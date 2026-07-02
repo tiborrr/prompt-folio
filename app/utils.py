@@ -1,6 +1,6 @@
+from app.schemas import TakeoverControlsContext
 import os
 import time
-from typing import Any
 from pydantic import BaseModel
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
@@ -48,44 +48,46 @@ def render_template(
     request: Request,
     name: str,
     context_store: ContextStore,
-    context: dict[str, Any] | BaseModel | None = None,
+    context: BaseModel | None = None,
 ):
-    if context is None:
-        context = {}
-    elif isinstance(context, BaseModel):
-        context = context.model_dump()
-    context["request"] = request
+    template_context = {}
+    if context is not None:
+        template_context = context.model_dump()
+        template_context = context.model_dump()
+    template_context["request"] = request
     colors = context_store.get_colors()
-    context["colors"] = colors.model_dump()
-    context["contrast_colors"] = {
+    template_context["colors"] = colors.model_dump()
+    template_context["contrast_colors"] = {
         f"{k}_contrast": get_contrast_color(v) for k, v in colors.model_dump().items()
     }
-    context["has_avatar"] = context_store.has_avatar()
-    context["app_version"] = app_version
-    context["owner_name"] = context_store.get_owner_name()
-    context["owner_pronouns"] = context_store.get_owner_pronouns()
-    context["recaptcha_client_side_key"] = settings.recaptcha_client_side_key
-    return templates.TemplateResponse(request=request, name=name, context=context)
+    template_context["has_avatar"] = context_store.has_avatar()
+    template_context["app_version"] = app_version
+    template_context["owner_name"] = context_store.get_owner_name()
+    template_context["owner_pronouns"] = context_store.get_owner_pronouns()
+    template_context["recaptcha_client_side_key"] = settings.recaptcha_client_side_key
+    return templates.TemplateResponse(
+        request=request, name=name, context=template_context
+    )
 
 
 def render_template_to_string(
     name: str,
-    context: dict[str, Any] | BaseModel | None = None,
+    context: BaseModel | None = None,
 ) -> str:
     """Renders a jinja template to a string without needing a Request object."""
-    if context is None:
-        context = {}
-    elif isinstance(context, BaseModel):
-        context = context.model_dump()
-    return templates.get_template(name).render(context)
+    template_context = {}
+    if context is not None:
+        template_context = context.model_dump()
+        template_context = context.model_dump()
+    return templates.get_template(name).render(template_context)
 
 
 def get_takeover_oob_html(session_id: str, is_taken_over: bool, owner_name: str) -> str:
     return render_template_to_string(
         "fragments/takeover_controls.html",
-        {
-            "session_id": session_id,
-            "is_taken_over": is_taken_over,
-            "owner_name": owner_name,
-        },
+        TakeoverControlsContext(
+            session_id=session_id,
+            is_taken_over=is_taken_over,
+            owner_name=owner_name,
+        ),
     )

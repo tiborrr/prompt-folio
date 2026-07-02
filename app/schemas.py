@@ -53,6 +53,7 @@ class RecaptchaVerifyResult(BaseModel):
 # Template Context Models
 # ------------------------------------------------------------------------------
 
+
 class StatusContext(BaseModel):
     message: str
 
@@ -64,17 +65,17 @@ class LoginContext(BaseModel):
 class ManageContext(BaseModel):
     active_tab: str
     raw_context: str | None = None
-    recent_sessions: list[Any] | None = None
+    recent_sessions: list["SessionListItemContext"] | None = None
     schedule_meeting_url: str | None = None
 
 
 class ChatSessionContext(BaseModel):
     session_id: str
-    history: list[Any] | str
+    history: list["ChatMessageData"] | str
 
 
 class MessageContext(BaseModel):
-    message: str | Any
+    message: str | ChatMessageData
     is_user: bool = False
     is_admin: bool = False
 
@@ -88,3 +89,19 @@ class SessionListItemContext(BaseModel):
 class SSEEvent(BaseModel):
     event: str
     data: str
+
+
+class ManageChatContext(BaseModel):
+    session_id: str
+    session_data: SessionDetail
+    schedule_meeting_url: str | None = None
+
+
+class ErrorContext(BaseModel):
+    error: str
+
+
+class TakeoverControlsContext(BaseModel):
+    session_id: str
+    is_taken_over: bool
+    owner_name: str

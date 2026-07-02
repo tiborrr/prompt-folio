@@ -1,4 +1,4 @@
-from typing import List, Annotated, Any
+from typing import List, Annotated
 import asyncio
 import random
 import secrets
@@ -17,10 +17,8 @@ from fastapi import (
 )
 from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
 
-from app.config import Settings
 from app.services import MistralService, ContextStore, SessionStore
 from app.dependencies import (
-    get_settings,
     get_mistral_service,
     get_context_store,
     get_session_store,
@@ -41,6 +39,7 @@ from app.schemas import (
     LoginContext,
     ManageContext,
     StatusContext,
+    ManageChatContext,
     MessageContext,
     SessionListItemContext,
 )
@@ -78,7 +77,10 @@ async def manage_get(
         context_store,
         ManageContext(
             active_tab="conversations",
-            recent_sessions=list(recent_sessions),
+            recent_sessions=[
+                SessionListItemContext(session_id=s.id, name=s.name, intent=s.intent)
+                for s in recent_sessions
+            ],
             raw_context=raw_context,
         ),
     )
@@ -410,11 +412,11 @@ async def manage_chat_get(
         request,
         "manage_chat.html",
         context_store,
-        {
-            "session_id": session_id,
-            "session_data": session_data.model_dump(),
-            "schedule_meeting_url": context_store.get_meeting_url(),
-        },
+        ManageChatContext(
+            session_id=session_id,
+            session_data=session_data,
+            schedule_meeting_url=context_store.get_meeting_url(),
+        ),
     )
 
 

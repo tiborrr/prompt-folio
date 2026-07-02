@@ -1,3 +1,4 @@
+from app.schemas import StatusContext
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Depends
@@ -7,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from slowapi.errors import RateLimitExceeded
 import typing
-from typing import Annotated, Any, override
+from typing import Annotated, override
 from starlette.responses import Response
 
 from app.routers import chat, manage
@@ -39,7 +40,11 @@ app.state.limiter = limiter
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     @override
-    async def dispatch(self, request: Request, call_next: typing.Callable[[Request], typing.Awaitable[Response]]) -> Response:
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: typing.Callable[[Request], typing.Awaitable[Response]],
+    ) -> Response:
         response = await call_next(request)
         for header, value in SECURITY_HEADERS.items():
             response.headers[header] = value
@@ -55,7 +60,9 @@ app.mount(
 
 
 @app.get("/avatar")
-async def get_avatar(context_store: Annotated[ContextStore, Depends(get_context_store)]):
+async def get_avatar(
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
+):
     if context_store.has_avatar():
         return FileResponse(context_store.get_avatar_path())
     raise StarletteHTTPException(status_code=404, detail="Avatar not found")
@@ -68,7 +75,10 @@ async def rate_limit_handler(request: Request, _: RateLimitExceeded):
 
     if is_htmx:
         response = render_template(
-            request, "error_message.html", get_context_store(), {"message": message}
+            request,
+            "error_message.html",
+            get_context_store(),
+            StatusContext(message=message),
         )
         response.status_code = 429
         return response
@@ -85,7 +95,10 @@ async def htmx_exception_handler(request: Request, exc: StarletteHTTPException):
     # If the request comes from HTMX, we return HTML template snippet instead of JSON.
     if is_htmx:
         response = render_template(
-            request, "error_message.html", get_context_store(), {"message": exc.detail}
+            request,
+            "error_message.html",
+            get_context_store(),
+            StatusContext(message=exc.detail),
         )
         response.status_code = exc.status_code
         return response
@@ -111,7 +124,9 @@ async def global_exception_handler(request: Request, exc: Exception):
             request,
             "error_message.html",
             get_context_store(),
-            {"message": "Internal Server Error. The admin has been notified."},
+            StatusContext(
+                message="Internal Server Error. The admin has been notified."
+            ),
         )
         response.status_code = 500
         return response
