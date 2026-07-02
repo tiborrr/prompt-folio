@@ -27,6 +27,11 @@ COPY alembic.ini /workspace/
 COPY alembic /workspace/alembic
 COPY app /workspace/app
 COPY start.sh /workspace/
+COPY update_htmx.sh /workspace/
+COPY update_editorjs.sh /workspace/
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN chmod +x update_htmx.sh update_editorjs.sh && ./update_htmx.sh && ./update_editorjs.sh
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked

@@ -180,3 +180,7 @@ private/
 .geminiignore
 tests/*.db
 .DS_Store
+
+# Downloaded static JS libraries
+app/static/js/htmx/*.js
+app/static/js/editorjs/*.js
