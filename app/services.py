@@ -5,6 +5,7 @@ import base64
 import json
 import httpx
 import asyncio
+import collections.abc
 from typing import Any
 from mistralai.client import Mistral
 from mistralai.client.models import DocumentURLChunk
@@ -19,6 +20,8 @@ from app.config import settings
 
 
 class MistralService:
+    client: Mistral
+
     def __init__(self, api_key: str):
         self.client = Mistral(api_key=api_key)
 
@@ -67,8 +70,8 @@ class MistralService:
     async def ask_mistral(
         self,
         messages_history: list[ChatMessageData],
-        tools: list[dict[str, Any]] | None = None,
-        tool_callback: typing.Callable[..., typing.Awaitable[None]] | None = None,
+        tools: list[dict[str, object]] | None = None,
+        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]] | None = None,
         max_depth: int = 3,
     ) -> str:
         if max_depth <= 0:
@@ -142,6 +145,9 @@ class MistralService:
 
 
 class RecaptchaService:
+    server_key: str
+    is_dev: bool
+
     def __init__(self, server_key: str, is_dev: bool):
         self.server_key = server_key
         self.is_dev = is_dev
@@ -162,6 +168,14 @@ class RecaptchaService:
 
 
 class ContextStore:
+    context_path: str
+    colors_path: str
+    avatar_path: str
+    db_path: str
+    owner_name_path: str
+    owner_pronouns_path: str
+    meeting_url_path: str
+
     def __init__(self, base_dir: str):
         self.context_path = os.path.join(base_dir, "context.txt")
         self.colors_path = os.path.join(base_dir, "colors.json")

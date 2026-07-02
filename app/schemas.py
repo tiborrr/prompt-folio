@@ -11,7 +11,7 @@ class ThemeColors(BaseModel):
 
     @field_validator("*", mode="before")
     @classmethod
-    def ensure_hash_prefix(cls, v: Any) -> Any:
+    def ensure_hash_prefix(cls, v: str | object) -> str | object:
         if isinstance(v, str):
             v = v.strip()
             if not v.startswith("#"):
@@ -31,7 +31,7 @@ class ChatMessageData(BaseModel):
     content: str
     name: str | None = None
     tool_call_id: str | None = None
-    tool_calls: list[dict[str, Any]] | None = None
+    tool_calls: list[dict[str, object]] | None = None
 
 
 class SessionDetail(BaseModel):

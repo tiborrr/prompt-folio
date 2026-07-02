@@ -14,7 +14,7 @@ class ChatMessage(SQLModel, table=True):
     content: str
     created_at: datetime = Field(default_factory=utcnow)
 
-    session: "ChatSession" = Relationship(back_populates="messages")
+    session: "ChatSession" = Relationship(back_populates="messages")  # basedpyright: ignore[reportAny]
 
 
 class ChatSession(SQLModel, table=True):
@@ -25,7 +25,7 @@ class ChatSession(SQLModel, table=True):
     human_takeover: bool = Field(default=False)
     created_at: datetime = Field(default_factory=utcnow)
 
-    messages: list[ChatMessage] = Relationship(
+    messages: list[ChatMessage] = Relationship(  # basedpyright: ignore[reportAny]
         back_populates="session",
         sa_relationship_kwargs={
             "cascade": "all, delete-orphan",

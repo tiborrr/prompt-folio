@@ -1,4 +1,4 @@
-from typing import Any
+
 
 # Mistral API Models
 MODEL_CHAT = "mistral-large-latest"
@@ -37,7 +37,7 @@ SECURITY_HEADERS = {
 }
 
 # Tools (JSON Schema for Mistral)
-UPDATE_USER_PROFILE_TOOL: dict[str, Any] = {
+UPDATE_USER_PROFILE_TOOL: dict[str, object] = {
     "type": "function",
     "function": {
         "name": "update_user_profile",

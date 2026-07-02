@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from slowapi.errors import RateLimitExceeded
 import typing
 from typing import Annotated, override
+import collections.abc
 from starlette.responses import Response
 
 from app.routers import chat, manage
@@ -43,7 +44,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self,
         request: Request,
-        call_next: typing.Callable[[Request], typing.Awaitable[Response]],
+        call_next: typing.Callable[[Request], collections.abc.Awaitable[Response]],
     ) -> Response:
         response = await call_next(request)
         for header, value in SECURITY_HEADERS.items():

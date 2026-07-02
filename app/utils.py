@@ -16,8 +16,8 @@ md = MarkdownIt("commonmark", {"breaks": True, "html": True, "linkify": True}).e
 )
 
 
-def markdown_filter(text):
-    return md.render(text)
+def markdown_filter(text: str) -> str:
+    return str(md.render(text))
 
 
 templates.env.filters["markdown"] = markdown_filter
@@ -58,7 +58,7 @@ def render_template(
     colors = context_store.get_colors()
     template_context["colors"] = colors.model_dump()
     template_context["contrast_colors"] = {
-        f"{k}_contrast": get_contrast_color(v) for k, v in colors.model_dump().items()
+        f"{k}_contrast": get_contrast_color(str(v)) for k, v in colors.model_dump().items()
     }
     template_context["has_avatar"] = context_store.has_avatar()
     template_context["app_version"] = app_version
