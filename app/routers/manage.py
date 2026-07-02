@@ -78,7 +78,12 @@ async def manage_get(
         ManageContext(
             active_tab="conversations",
             recent_sessions=[
-                SessionListItemContext(session_id=s.id, name=s.name, intent=s.intent)
+                SessionListItemContext(
+                    session_id=s.id,
+                    name=s.name,
+                    intent=s.intent,
+                    created_at=s.created_at,
+                )
                 for s in recent_sessions
             ],
             raw_context=raw_context,

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Any
+from datetime import datetime
 
 
 class ThemeColors(BaseModel):
@@ -84,6 +85,7 @@ class SessionListItemContext(BaseModel):
     session_id: str
     name: str | None = None
     intent: str | None = None
+    created_at: datetime
 
 
 class SSEEvent(BaseModel):
