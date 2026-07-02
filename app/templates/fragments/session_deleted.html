@@ -1,15 +1,17 @@
 <div class="system-message slide-in" style="margin: 20px 0; display: flex; flex-direction: column; align-items: center;">
-    <div style="background: rgba(0, 0, 0, 0.1); border-left: 3px solid var(--sweet-salmon); padding: 15px; border-radius: 4px; font-size: 0.9rem; color: var(--text-secondary); max-width: 80%; text-align: center;">
-        <p style="margin-bottom: 10px;">
-            <strong>This conversation has been closed by the owner.</strong><br>
+    <div style="background: rgba(30, 30, 30, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-left: 3px solid var(--sweet-salmon); border-radius: 8px; padding: 20px; font-size: 0.95rem; color: rgba(255,255,255,0.9); max-width: 85%; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+        <p style="margin-top: 0; margin-bottom: 15px; line-height: 1.5;">
+            <strong style="color: var(--sweet-salmon); font-size: 1.05rem;">This conversation has been closed.</strong><br>
             If you would like to keep a record, you can save the transcript before starting a new conversation.
         </p>
-        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-            <button onclick="downloadTranscript()" style="background: var(--muted-teal); color: var(--muted-teal-contrast); border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                Save Transcript
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <button onclick="downloadTranscript()" style="background: rgba(255,255,255,0.1); color: var(--khaki-beige); border: 1px solid rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='scale(1)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline; vertical-align: -2px; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Save Transcript (.md)
             </button>
-            <button onclick="window.location.reload()" style="background: var(--sweet-salmon); color: var(--sweet-salmon-contrast); border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                Start New Conversation
+            <button onclick="window.location.reload()" style="background: var(--sweet-salmon); color: var(--sweet-salmon-contrast); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: transform 0.2s; box-shadow: 0 2px 8px rgba(251,159,137,0.3);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline; vertical-align: -2px; margin-right: 4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Start New Chat
             </button>
         </div>
     </div>
@@ -19,17 +21,28 @@
         var chatInput = document.getElementById('chat-input');
         if (chatInput) {
             chatInput.disabled = true;
-            chatInput.placeholder = "Session closed.";
+            chatInput.placeholder = "Session closed. Start a new chat to continue.";
+            chatInput.style.opacity = "0.5";
+            chatInput.style.cursor = "not-allowed";
+        }
+        
+        var sendBtn = document.querySelector('.chat-input-form .send-btn');
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.style.opacity = "0.5";
+            sendBtn.style.cursor = "not-allowed";
         }
 
         function downloadTranscript() {
             var messages = document.querySelectorAll('.message, .system-message');
-            var transcript = "Chat Transcript\n====================\n\n";
+            var transcript = "# Chat Transcript\n\n*Exported on " + new Date().toLocaleString() + "*\n\n---\n\n";
             
             messages.forEach(function(msg) {
+                // If the message has markdown rendered, it's better to grab the innerText
                 var text = msg.innerText || msg.textContent;
+                
                 // Exclude system messages that are just buttons like this one
-                if (text.includes("Save Transcript") && text.includes("Start New Conversation")) {
+                if (text.includes("Save Transcript") && text.includes("Start New Chat")) {
                     return;
                 }
                 
@@ -42,18 +55,23 @@
                 }
                 
                 // Format the extracted text
-                // Removing extra newlines and trimming
-                var cleanText = text.replace(/\n\s*\n/g, '\n').trim();
+                var cleanText = text.replace(/\n\s*\n/g, '\n\n').trim();
+                
+                // Remove the "AI" or "TC" avatar text that gets captured in innerText
+                if (sender === "Assistant" && (cleanText.startsWith("AI\n") || cleanText.startsWith("TC\n"))) {
+                    cleanText = cleanText.substring(3).trim();
+                }
+                
                 if (cleanText) {
-                    transcript += "[" + sender + "]\n" + cleanText + "\n\n";
+                    transcript += "### **" + sender + "**\n" + cleanText + "\n\n";
                 }
             });
             
-            var blob = new Blob([transcript], { type: "text/plain;charset=utf-8" });
+            var blob = new Blob([transcript], { type: "text/markdown;charset=utf-8" });
             var url = URL.createObjectURL(blob);
             var a = document.createElement("a");
             a.href = url;
-            a.download = "chat-transcript-" + new Date().toISOString().slice(0,10) + ".txt";
+            a.download = "chat-transcript-" + new Date().toISOString().slice(0,10) + ".md";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

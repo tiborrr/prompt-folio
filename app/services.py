@@ -5,7 +5,7 @@ import base64
 import json
 import httpx
 import asyncio
-from typing import Annotated, Any
+from typing import Any
 from mistralai.client import Mistral
 from mistralai.client.models import DocumentURLChunk
 from app.constants import MODEL_CHAT, MODEL_OCR, ROLE_ASSISTANT, ROLE_TOOL
@@ -75,9 +75,7 @@ class MistralService:
             return "I'm sorry, I encountered a loop while trying to respond."
 
         try:
-            dict_messages = [
-                m.model_dump(exclude_none=True) for m in messages_history
-            ]
+            dict_messages = [m.model_dump(exclude_none=True) for m in messages_history]
             response = await self.client.chat.complete_async(
                 model=MODEL_CHAT,
                 messages=dict_messages,

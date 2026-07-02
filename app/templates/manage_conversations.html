@@ -10,7 +10,7 @@
         {% if recent_sessions %}
             <div style="display: flex; flex-direction: column; gap: 10px;">
             {% for session in recent_sessions %}
-                <a href="/manage/chat/{{ session.id }}" class="conversation-card">
+                <div onclick="if(!event.target.closest('.clear-btn')) window.location.href='/manage/chat/{{ session.id }}'" class="conversation-card" style="cursor: pointer;">
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div class="conv-avatar" style="flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--muted-teal), var(--seaweed)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                             {{ (session.name or 'G')[0]|upper }}
@@ -37,7 +37,7 @@
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                     </div>
-                </a>
+                </div>
             {% endfor %}
             </div>
         {% else %}
