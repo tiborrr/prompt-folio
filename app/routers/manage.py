@@ -4,6 +4,7 @@ import random
 import secrets
 import uuid
 import os
+from datetime import datetime
 from fastapi import (
     APIRouter,
     Request,
@@ -79,9 +80,10 @@ async def manage_get(
             active_tab="conversations",
             recent_sessions=[
                 SessionListItemContext(
-                    session_id=s.id,
+                    id=s.id,
                     name=s.name,
                     intent=s.intent,
+                    company=s.company,
                     created_at=s.created_at,
                 )
                 for s in recent_sessions
@@ -513,7 +515,7 @@ async def manage_chat_update_name(
 
     html = render_template_to_string(
         "fragments/session_name.html",
-        SessionListItemContext(session_id=session_id, name=name),
+        SessionListItemContext(id=session_id, name=name, created_at=datetime.utcnow()),
     )
     return HTMLResponse(content=html)
 
@@ -534,6 +536,6 @@ async def manage_chat_update_intent(
 
     html = render_template_to_string(
         "fragments/session_intent.html",
-        SessionListItemContext(session_id=session_id, intent=intent),
+        SessionListItemContext(id=session_id, intent=intent, created_at=datetime.utcnow()),
     )
     return HTMLResponse(content=html)

@@ -82,9 +82,10 @@ class MessageContext(BaseModel):
 
 
 class SessionListItemContext(BaseModel):
-    session_id: str
+    id: str
     name: str | None = None
     intent: str | None = None
+    company: str | None = None
     created_at: datetime
 
 
