@@ -6,15 +6,15 @@
     <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Set the name and pronouns of the person this AI represents.</p>
     
     <form hx-post="/manage/owner_name" hx-target="#owner-save-status" class="styled-form">
-        <label style="display: block; font-size: 0.85rem; color: #a5b4fc; margin-bottom: 5px;">Name</label>
+        <label style="display: block; font-size: 0.85rem; color: var(--color-success); margin-bottom: 5px;">Name</label>
         <input type="text" name="owner_name" value="{{ owner_name }}" placeholder="E.g. Alex" required style="width: 100%; max-width: 400px; padding: 10px 15px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent); background: rgba(0,0,0,0.2); color: var(--shadow-grey-contrast); margin-bottom: 15px; font-size: 0.95rem;">
         
-        <label style="display: block; font-size: 0.85rem; color: #a5b4fc; margin-bottom: 5px;">Pronouns</label>
+        <label style="display: block; font-size: 0.85rem; color: var(--color-success); margin-bottom: 5px;">Pronouns</label>
         <input type="text" name="owner_pronouns" value="{{ owner_pronouns }}" placeholder="E.g. his, her, their" required style="width: 100%; max-width: 400px; padding: 10px 15px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent); background: rgba(0,0,0,0.2); color: var(--shadow-grey-contrast); margin-bottom: 15px; font-size: 0.95rem;">
         
         <div style="display: flex; gap: 15px; align-items: center;">
             <button type="submit" class="primary-btn" style="width: auto; padding: 10px 25px;">Save Identity</button>
-            <div id="owner-save-status" style="color: #a5b4fc; font-size: 0.95rem; font-weight: 500;"></div>
+            <div id="owner-save-status" style="color: var(--color-success); font-size: 0.95rem; font-weight: 500;"></div>
         </div>
     </form>
 </div>
@@ -37,8 +37,8 @@
             }
             /* Modern Form Guidance: style parent with :has() based on user validation state */
             .file-drop-area:has(input:user-invalid) {
-                border-color: #ef4444; /* red */
-                background: rgba(239, 68, 68, 0.05);
+                border-color: var(--color-error); /* red */
+                background: color-mix(in srgb, var(--color-error) 5%, transparent);
             }
             .file-drop-area:has(input:user-valid) {
                 border-color: var(--seaweed);
@@ -60,7 +60,7 @@
         
         <div style="display: flex; gap: 15px; align-items: center;">
             <button type="submit" class="primary-btn" style="width: auto; padding: 10px 25px;">Upload Avatar</button>
-            <div id="avatar-save-status" style="color: #a5b4fc; font-size: 0.95rem; font-weight: 500;"></div>
+            <div id="avatar-save-status" style="color: var(--color-success); font-size: 0.95rem; font-weight: 500;"></div>
         </div>
     </form>
 </div>
@@ -235,7 +235,7 @@ document.addEventListener("DOMContentLoaded", function() {
         
         <div style="display: flex; align-items: center; justify-content: flex-start; gap: 15px; margin-top: 10px;">
             <button type="submit" class="primary-btn" style="width: auto; padding: 10px 25px;">Save Theme Colors</button>
-            <div id="color-save-status" style="color: #a5b4fc; font-size: 0.95rem; font-weight: 500;"></div>
+            <div id="color-save-status" style="color: var(--color-success); font-size: 0.95rem; font-weight: 500;"></div>
         </div>
     </form>
 </div>
@@ -251,7 +251,7 @@ document.addEventListener("DOMContentLoaded", function() {
         
         <div style="display: flex; gap: 15px; align-items: center;">
             <button type="submit" class="primary-btn" style="width: auto; padding: 10px 25px;">Save Link</button>
-            <div id="meeting-save-status" style="color: #a5b4fc; font-size: 0.95rem; font-weight: 500;"></div>
+            <div id="meeting-save-status" style="color: var(--color-success); font-size: 0.95rem; font-weight: 500;"></div>
         </div>
     </form>
 </div>
