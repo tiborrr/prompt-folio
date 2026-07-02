@@ -9,6 +9,7 @@ from app.dependencies import (
 )
 from app.config import Settings
 from app.services import SessionStore, MistralService, RecaptchaService, ContextStore
+from app.schemas import ChatMessageData, ThemeColors, UploadedDocument
 
 from typing import Any, override
 
@@ -19,12 +20,12 @@ class FakeMistralService(MistralService):
         super().__init__("fake")
 
     @override
-    async def ask_mistral(self, messages_history: list[dict[str, Any]]) -> str:
+    async def ask_mistral(self, messages_history: list[ChatMessageData], tools: list[dict[str, Any]] | None = None, tool_callback: Any | None = None, max_depth: int = 3) -> str:
         return "Fake AI Response"
 
     @override
     async def generate_profile_from_pdfs(
-        self, pdf_files: list[tuple[str, bytes]]
+        self, pdf_files: list[UploadedDocument], owner_name: str
     ) -> str:
         return "Fake Profile"
 
@@ -51,11 +52,17 @@ class FakeContextStore(ContextStore):
         pass
 
     @override
-    def get_colors(self) -> dict[str, str]:
-        return {}
+    def get_colors(self) -> ThemeColors:
+        return ThemeColors(
+            shadow_grey="#4a4a4a",
+            sweet_salmon="#fb9f89",
+            khaki_beige="#e8d8c3",
+            muted_teal="#678d85",
+            seaweed="#2c4c3b",
+        )
 
     @override
-    def save_colors(self, colors: dict[str, str]):
+    def save_colors(self, colors: ThemeColors):
         pass
 
 

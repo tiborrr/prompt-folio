@@ -1,0 +1,266 @@
+/Users/tiborcasteleijn/Repositories/prompt-folio/alembic/env.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/env.py:12:24 - warning: "SQLModel" is not exported from module "app.models"
+    Import from ".main" instead (reportPrivateLocalImportUsage)
+/Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:9:20 - warning: This type is deprecated as of Python 3.9; use "collections.abc.Sequence" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:9:30 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:18:16 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:19:16 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:20:13 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:26:5 - warning: Result of call expression is of type "Table" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:28:9 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "columns" in function "create_table"
+    Argument type is "Column[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:28:25 - warning: Type of "sql" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:28:25 - warning: Type of "sqltypes" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:28:25 - warning: Type of "AutoString" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:28:25 - warning: Argument type is unknown
+    Argument corresponds to parameter "__type_pos" in function "__init__" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:28:34 - error: "sql" is not a known attribute of module "sqlmodel" (reportAttributeAccessIssue)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:29:9 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "columns" in function "create_table"
+    Argument type is "Column[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:29:27 - warning: Type of "sql" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:29:27 - warning: Type of "sqltypes" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:29:27 - warning: Type of "AutoString" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:29:27 - warning: Argument type is unknown
+    Argument corresponds to parameter "__type_pos" in function "__init__" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:29:36 - error: "sql" is not a known attribute of module "sqlmodel" (reportAttributeAccessIssue)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:30:9 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "columns" in function "create_table"
+    Argument type is "Column[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:30:30 - warning: Type of "sql" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:30:30 - warning: Type of "sqltypes" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:30:30 - warning: Type of "AutoString" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:30:30 - warning: Argument type is unknown
+    Argument corresponds to parameter "__type_pos" in function "__init__" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:30:39 - error: "sql" is not a known attribute of module "sqlmodel" (reportAttributeAccessIssue)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:35:5 - warning: Result of call expression is of type "Table" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:37:9 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "columns" in function "create_table"
+    Argument type is "Column[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:37:25 - warning: Type of "sql" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:37:25 - warning: Type of "sqltypes" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:37:25 - warning: Type of "AutoString" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:37:25 - warning: Argument type is unknown
+    Argument corresponds to parameter "__type_pos" in function "__init__" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:37:34 - error: "sql" is not a known attribute of module "sqlmodel" (reportAttributeAccessIssue)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:38:9 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "columns" in function "create_table"
+    Argument type is "Column[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:38:33 - warning: Type of "sql" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:38:33 - warning: Type of "sqltypes" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:38:33 - warning: Type of "AutoString" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:38:33 - warning: Argument type is unknown
+    Argument corresponds to parameter "__type_pos" in function "__init__" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:38:42 - error: "sql" is not a known attribute of module "sqlmodel" (reportAttributeAccessIssue)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:39:9 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "columns" in function "create_table"
+    Argument type is "Column[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:39:27 - warning: Type of "sql" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:39:27 - warning: Type of "sqltypes" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:39:27 - warning: Type of "AutoString" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:39:27 - warning: Argument type is unknown
+    Argument corresponds to parameter "__type_pos" in function "__init__" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:39:36 - error: "sql" is not a known attribute of module "sqlmodel" (reportAttributeAccessIssue)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:40:9 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "columns" in function "create_table"
+    Argument type is "Column[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:40:30 - warning: Type of "sql" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:40:30 - warning: Type of "sqltypes" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:40:30 - warning: Type of "AutoString" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:40:30 - warning: Argument type is unknown
+    Argument corresponds to parameter "__type_pos" in function "__init__" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/499685ee795c_initial_migration.py:40:39 - error: "sql" is not a known attribute of module "sqlmodel" (reportAttributeAccessIssue)
+/Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:9:20 - warning: This type is deprecated as of Python 3.9; use "collections.abc.Sequence" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:9:30 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:18:16 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:19:16 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:20:13 - warning: This type is deprecated as of Python 3.10; use "|" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:28:29 - warning: Type of "sql" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:28:29 - warning: Type of "sqltypes" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:28:29 - warning: Type of "AutoString" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:28:29 - warning: Argument type is unknown
+    Argument corresponds to parameter "__type_pos" in function "__init__" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:28:38 - error: "sql" is not a known attribute of module "sqlmodel" (reportAttributeAccessIssue)
+/Users/tiborcasteleijn/Repositories/prompt-folio/app/main.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/main.py:38:15 - warning: Method "dispatch" is not marked as override but is overriding a method in class "BaseHTTPMiddleware" (reportImplicitOverride)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/main.py:38:48 - warning: Type annotation is missing for parameter "call_next" (reportMissingParameterType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/main.py:54:52 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+/Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:48:2 - warning: Type of "limit" is partially unknown
+    Type of "limit" is "(limit_value: str | ((...) -> str), key_func: ((...) -> str) | None = None, per_method: bool = False, methods: List[str] | None = None, error_message: str | None = None, exempt_when: ((...) -> bool) | None = None, cost: int | ((...) -> int) = 1, override_defaults: bool = True) -> ((...) -> Unknown)" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:48:2 - warning: Untyped function decorator obscures type of function; ignoring decorator (reportUntypedFunctionDecorator)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:155:2 - warning: Type of "limit" is partially unknown
+    Type of "limit" is "(limit_value: str | ((...) -> str), key_func: ((...) -> str) | None = None, per_method: bool = False, methods: List[str] | None = None, error_message: str | None = None, exempt_when: ((...) -> bool) | None = None, cost: int | ((...) -> int) = 1, override_defaults: bool = True) -> ((...) -> Unknown)" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:155:2 - warning: Untyped function decorator obscures type of function; ignoring decorator (reportUntypedFunctionDecorator)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:202:5 - warning: "request" is not accessed (reportUnusedParameter)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:236:2 - warning: Type of "limit" is partially unknown
+    Type of "limit" is "(limit_value: str | ((...) -> str), key_func: ((...) -> str) | None = None, per_method: bool = False, methods: List[str] | None = None, error_message: str | None = None, exempt_when: ((...) -> bool) | None = None, cost: int | ((...) -> int) = 1, override_defaults: bool = True) -> ((...) -> Unknown)" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:236:2 - warning: Untyped function decorator obscures type of function; ignoring decorator (reportUntypedFunctionDecorator)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:348:40 - warning: Type of "ask_mistral" is partially unknown
+    Type of "ask_mistral" is "(messages_history: list[ChatMessageData], tools: list[dict[str, Any]] | None = None, tool_callback: Unknown | None = None, max_depth: int = 3) -> CoroutineType[Any, Any, str]" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:376:5 - warning: "response" is not accessed (reportUnusedParameter)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:378:5 - warning: "session_store" is not accessed (reportUnusedParameter)
+/Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:1:20 - warning: This type is deprecated as of Python 3.9; use "list" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:59:5 - warning: "settings" is not accessed (reportUnusedParameter)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:82:29 - error: Argument of type "Sequence[ChatSession]" cannot be assigned to parameter "recent_sessions" of type "list[Any] | None" in function "__init__"
+    Type "Sequence[ChatSession]" is not assignable to type "list[Any] | None"
+      "Sequence[ChatSession]" is not assignable to "list[Any]"
+      "Sequence[ChatSession]" is not assignable to "None" (reportArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:92:5 - warning: "settings" is not accessed (reportUnusedParameter)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:118:5 - warning: "settings" is not accessed (reportUnusedParameter)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:143:2 - warning: Type of "limit" is partially unknown
+    Type of "limit" is "(limit_value: str | ((...) -> str), key_func: ((...) -> str) | None = None, per_method: bool = False, methods: List[str] | None = None, error_message: str | None = None, exempt_when: ((...) -> bool) | None = None, cost: int | ((...) -> int) = 1, override_defaults: bool = True) -> ((...) -> Unknown)" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:143:2 - warning: Untyped function decorator obscures type of function; ignoring decorator (reportUntypedFunctionDecorator)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:145:5 - warning: "request" is not accessed (reportUnusedParameter)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:148:28 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:175:5 - warning: "response" is not accessed (reportUnusedParameter)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:199:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:225:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:241:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:258:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:274:24 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:275:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:282:9 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:296:22 - warning: This type is deprecated as of Python 3.9; use "list" instead (reportDeprecated)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:299:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:330:5 - warning: "settings" is not accessed (reportUnusedParameter)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:376:5 - warning: "settings" is not accessed (reportUnusedParameter)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:430:5 - warning: "request" is not accessed (reportUnusedParameter)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:435:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:471:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:505:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:525:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+/Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:62:52 - error: "content" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:71:9 - warning: Type of parameter "tool_callback" is partially unknown
+    Parameter type is "Unknown | None" (reportUnknownParameterType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:71:9 - warning: Type annotation is missing for parameter "tool_callback" (reportMissingParameterType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:84:23 - error: Argument of type "list[dict[str, Any]] | None" cannot be assigned to parameter "tools" of type "OptionalNullable[List[ChatCompletionRequestTool] | List[ChatCompletionRequestToolTypedDict]]" in function "complete_async"
+    Type "list[dict[str, Any]] | None" is not assignable to type "OptionalNullable[List[ChatCompletionRequestTool] | List[ChatCompletionRequestToolTypedDict]]"
+      Type "list[dict[str, Any]]" is not assignable to type "OptionalNullable[List[ChatCompletionRequestTool] | List[ChatCompletionRequestToolTypedDict]]"
+        "list[dict[str, Any]]" is not assignable to "List[ChatCompletionRequestTool]"
+          Type parameter "_T@list" is invariant, but "dict[str, Any]" is not the same as "ChatCompletionRequestTool"
+          Consider switching from "list" to "Sequence" which is covariant
+        "list[dict[str, Any]]" is not assignable to "List[ChatCompletionRequestToolTypedDict]"
+          Type parameter "_T@list" is invariant, but "dict[str, Any]" is not the same as "ChatCompletionRequestToolTypedDict"
+          Consider switching from "list" to "Sequence" which is covariant
+    ... (reportArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:89:24 - error: "tool_calls" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:91:50 - error: Argument of type "str | List[ContentChunk]" cannot be assigned to parameter "content" of type "str" in function "__init__"
+    Type "str | List[ContentChunk]" is not assignable to type "str"
+      "List[ContentChunk]" is not assignable to "str" (reportArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:91:58 - error: "content" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:94:35 - error: "tool_calls" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:107:42 - error: "tool_calls" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:110:47 - error: Argument of type "Arguments" cannot be assigned to parameter "s" of type "str | bytes | bytearray" in function "loads"
+    Type "Arguments" is not assignable to type "str | bytes | bytearray"
+      Type "Dict[str, Any]" is not assignable to type "str | bytes | bytearray"
+        "Dict[str, Any]" is not assignable to "str"
+        "Dict[str, Any]" is not assignable to "bytes"
+        "Dict[str, Any]" is not assignable to "bytearray" (reportArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:126:30 - warning: Type of "ask_mistral" is partially unknown
+    Type of "ask_mistral" is "(messages_history: list[ChatMessageData], tools: list[dict[str, Any]] | None = None, tool_callback: Unknown | None = None, max_depth: int = 3) -> CoroutineType[Any, Any, str]" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:129:35 - warning: Argument type is unknown
+    Argument corresponds to parameter "tool_callback" in function "ask_mistral" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:133:32 - error: "content" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:179:13 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:191:13 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:207:13 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:236:13 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:254:29 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "headers" in function "post"
+    Argument type is "dict[Unknown, Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:270:9 - warning: Type of "q" is partially unknown
+    Type of "q" is "Queue[Unknown]" (reportUnknownVariableType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:273:40 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "object" in function "append"
+    Argument type is "Queue[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:274:16 - warning: Return type, "Queue[Unknown]", is partially unknown (reportUnknownVariableType)
+/Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:19:21 - warning: Type of parameter "text" is unknown (reportUnknownParameterType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:19:21 - warning: Type annotation is missing for parameter "text" (reportMissingParameterType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:20:22 - warning: Argument type is unknown
+    Argument corresponds to parameter "src" in function "render" (reportUnknownArgumentType)
+/Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse.py:33:25 - warning: Type of "append" is partially unknown
+    Type of "append" is "(object: Unknown, /) -> None" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse.py:54:9 - warning: Result of call expression is of type "bool" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse.py:56:20 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "obj" in function "len"
+    Argument type is "list[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse.py:59:35 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "values" in function "print"
+    Argument type is "list[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse.py:64:13 - warning: Type of "line" is unknown (reportUnknownVariableType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse.py:65:16 - warning: Type of "startswith" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse.py:67:18 - warning: Type of "startswith" is unknown (reportUnknownMemberType)
+/Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py:40:29 - warning: Type of "append" is partially unknown
+    Type of "append" is "(object: Unknown, /) -> None" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py:63:13 - warning: Result of call expression is of type "bool" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py:65:39 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "values" in function "print"
+    Argument type is "list[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py:66:24 - warning: Argument type is partially unknown
+    Argument corresponds to parameter "obj" in function "len"
+    Argument type is "list[Unknown]" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py:71:17 - warning: Type of "line" is unknown (reportUnknownVariableType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py:72:20 - warning: Type of "startswith" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py:74:22 - warning: Type of "startswith" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py:83:9 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+/Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:27:15 - error: Method "generate_profile_from_pdfs" overrides class "MistralService" in an incompatible manner
+    Positional parameter count mismatch; base method has 3, but override has 2
+    Parameter 2 type mismatch: base parameter is type "list[UploadedDocument]", override parameter is type "list[tuple[str, bytes]]"
+    Parameter 3 mismatch: base parameter "owner_name" is keyword parameter, override parameter is position-only
+      "list[UploadedDocument]" is not assignable to "list[tuple[str, bytes]]"
+        Type parameter "_T@list" is invariant, but "UploadedDocument" is not the same as "tuple[str, bytes]"
+        Consider switching from "list" to "Sequence" which is covariant (reportIncompatibleMethodOverride)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:93:5 - warning: Type of "response" is unknown (reportUnknownVariableType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:93:16 - warning: Type of "get" is partially unknown
+    Type of "get" is "(url: Unknown, *, params: Unknown | None = None, headers: Unknown | None = None, cookies: Unknown | None = None, auth: Unknown = httpx._client.USE_CLIENT_DEFAULT, follow_redirects: bool | Unknown = httpx._client.USE_CLIENT_DEFAULT, timeout: Unknown = httpx._client.USE_CLIENT_DEFAULT, extensions: dict[str, Any] | None = None) -> Unknown" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:94:12 - warning: Type of "status_code" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:98:5 - warning: Type of "response" is unknown (reportUnknownVariableType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:98:16 - warning: Type of "get" is partially unknown
+    Type of "get" is "(url: Unknown, *, params: Unknown | None = None, headers: Unknown | None = None, cookies: Unknown | None = None, auth: Unknown = httpx._client.USE_CLIENT_DEFAULT, follow_redirects: bool | Unknown = httpx._client.USE_CLIENT_DEFAULT, timeout: Unknown = httpx._client.USE_CLIENT_DEFAULT, extensions: dict[str, Any] | None = None) -> Unknown" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:99:12 - warning: Type of "status_code" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:100:29 - warning: Type of "text" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:104:5 - warning: Type of "response" is unknown (reportUnknownVariableType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:104:16 - warning: Type of "post" is partially unknown
+    Type of "post" is "(url: Unknown, *, content: Unknown | None = None, data: Mapping[str, str | Iterable[str] | bytes] | None = None, files: Unknown | None = None, json: Any = None, params: Unknown | None = None, headers: Unknown | None = None, cookies: Unknown | None = None, auth: Unknown = httpx._client.USE_CLIENT_DEFAULT, follow_redirects: bool | Unknown = httpx._client.USE_CLIENT_DEFAULT, timeout: Unknown = httpx._client.USE_CLIENT_DEFAULT, extensions: dict[str, Any] | None = None) -> Unknown" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:105:12 - warning: Type of "status_code" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:106:31 - warning: Type of "cookies" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:107:12 - warning: Type of "cookies" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:107:12 - warning: Type of "get" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:108:12 - warning: Type of "headers" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:108:12 - warning: Type of "get" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:112:5 - warning: Type of "response" is unknown (reportUnknownVariableType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:112:16 - warning: Type of "post" is partially unknown
+    Type of "post" is "(url: Unknown, *, content: Unknown | None = None, data: Mapping[str, str | Iterable[str] | bytes] | None = None, files: Unknown | None = None, json: Any = None, params: Unknown | None = None, headers: Unknown | None = None, cookies: Unknown | None = None, auth: Unknown = httpx._client.USE_CLIENT_DEFAULT, follow_redirects: bool | Unknown = httpx._client.USE_CLIENT_DEFAULT, timeout: Unknown = httpx._client.USE_CLIENT_DEFAULT, extensions: dict[str, Any] | None = None) -> Unknown" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:117:12 - warning: Type of "status_code" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:118:34 - warning: Type of "text" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:119:35 - warning: Type of "cookies" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:123:5 - warning: Type of "response" is unknown (reportUnknownVariableType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:123:16 - warning: Type of "get" is partially unknown
+    Type of "get" is "(url: Unknown, *, params: Unknown | None = None, headers: Unknown | None = None, cookies: Unknown | None = None, auth: Unknown = httpx._client.USE_CLIENT_DEFAULT, follow_redirects: bool | Unknown = httpx._client.USE_CLIENT_DEFAULT, timeout: Unknown = httpx._client.USE_CLIENT_DEFAULT, extensions: dict[str, Any] | None = None) -> Unknown" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:124:12 - warning: Type of "status_code" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:125:42 - warning: Type of "text" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:126:33 - warning: Type of "text" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:130:5 - warning: Type of "response" is unknown (reportUnknownVariableType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:130:16 - warning: Type of "post" is partially unknown
+    Type of "post" is "(url: Unknown, *, content: Unknown | None = None, data: Mapping[str, str | Iterable[str] | bytes] | None = None, files: Unknown | None = None, json: Any = None, params: Unknown | None = None, headers: Unknown | None = None, cookies: Unknown | None = None, auth: Unknown = httpx._client.USE_CLIENT_DEFAULT, follow_redirects: bool | Unknown = httpx._client.USE_CLIENT_DEFAULT, timeout: Unknown = httpx._client.USE_CLIENT_DEFAULT, extensions: dict[str, Any] | None = None) -> Unknown" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:135:12 - warning: Type of "status_code" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:136:12 - warning: Type of "headers" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:136:12 - warning: Type of "get" is unknown (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:137:35 - warning: Type of "cookies" is unknown (reportUnknownMemberType)
+/Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_services.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_services.py:20:22 - warning: Type of "ask_mistral" is partially unknown
+    Type of "ask_mistral" is "(messages_history: list[ChatMessageData], tools: list[dict[str, Any]] | None = None, tool_callback: Unknown | None = None, max_depth: int = 3) -> CoroutineType[Any, Any, str]" (reportUnknownMemberType)
+/Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_ui.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_ui.py:29:13 - warning: Result of call expression is of type "Response | None" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_ui.py:50:9 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+19 errors, 154 warnings, 0 notes

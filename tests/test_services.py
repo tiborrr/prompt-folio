@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 from app.services import MistralService
+from app.schemas import ChatMessageData
 
 
 @pytest.mark.asyncio
@@ -15,7 +16,7 @@ async def test_ask_mistral(mock_mistral_class: MagicMock):
     mock_client.chat.complete_async = AsyncMock(return_value=mock_response)
 
     service = MistralService(api_key="fake")
-    history = [{"role": "user", "content": "Hello"}]
+    history = [ChatMessageData(role="user", content="Hello")]
     response = await service.ask_mistral(history)
 
     assert response == "Mocked response!"

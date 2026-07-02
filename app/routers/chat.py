@@ -93,10 +93,7 @@ async def index(
     msg2 = ChatMessage(
         session_id=new_session_id,
         role=ROLE_SYSTEM,
-        content=get_system_prompt(
-            context_store,
-            content=f"You are {owner_name}'s AI assistant. The user has just opened the chat. Your previous message was a friendly welcome. Gently and naturally learn their name and what they are looking for during the conversation. IMPORTANT: Ask only ONE question at a time. Do not overwhelm the user with multiple questions in a single response. When you learn their name or intent, use the update_user_profile tool to save it.",
-        ),
+        content=f"You are {owner_name}'s AI assistant. The user has just opened the chat. Your previous message was a friendly welcome. Gently and naturally learn their name and what they are looking for during the conversation. IMPORTANT: Ask only ONE question at a time. Do not overwhelm the user with multiple questions in a single response. When you learn their name or intent, use the update_user_profile tool to save it.",
     )
 
     welcome_text = f"Hi! I am {owner_name}'s AI assistant. I have read {owner_pronouns} resume and repositories. How can I help you today?"

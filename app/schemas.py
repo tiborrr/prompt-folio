@@ -70,7 +70,7 @@ class ManageContext(BaseModel):
 
 class ChatSessionContext(BaseModel):
     session_id: str
-    history: list[dict[str, Any]] | str
+    history: list[Any] | str
 
 
 class MessageContext(BaseModel):

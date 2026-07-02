@@ -1,5 +1,4 @@
 import os
-import secrets
 import time
 from typing import Any
 from pydantic import BaseModel
@@ -69,10 +68,15 @@ def render_template(
     return templates.TemplateResponse(request=request, name=name, context=context)
 
 
-def render_template_to_string(name: str, context: dict[str, Any] | None = None) -> str:
+def render_template_to_string(
+    name: str,
+    context: dict[str, Any] | BaseModel | None = None,
+) -> str:
     """Renders a jinja template to a string without needing a Request object."""
     if context is None:
         context = {}
+    elif isinstance(context, BaseModel):
+        context = context.model_dump()
     return templates.get_template(name).render(context)
 
 

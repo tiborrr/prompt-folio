@@ -3,6 +3,7 @@ import asyncio
 import random
 import secrets
 import uuid
+import os
 from fastapi import (
     APIRouter,
     Request,
@@ -42,9 +43,8 @@ from app.schemas import (
     StatusContext,
     MessageContext,
     SessionListItemContext,
-    SSEEvent,
 )
-from app.schemas import SessionDetail, ThemeColors, UploadedDocument
+from app.schemas import SessionDetail, UploadedDocument
 from app.config import settings
 
 SECURE_COOKIE = settings.environment != "DEV"
@@ -79,7 +79,7 @@ async def manage_get(
         context_store,
         ManageContext(
             active_tab="conversations",
-            recent_sessions=recent_sessions,
+            recent_sessions=list(recent_sessions),
             raw_context=raw_context,
         ),
     )
@@ -401,7 +401,7 @@ async def manage_chat_get(
     )
     history_msgs = msg_result.scalars().all()
     history = [
-        ChatMessageData(role=m.role, content=m.content).model_dump() 
+        ChatMessageData(role=m.role, content=m.content)
         for m in history_msgs
     ]
 
