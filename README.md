@@ -28,38 +28,24 @@ Prompt Folio is a modern, AI-powered portfolio and context management system des
 
 ## Deployment
 
-Prompt Folio includes an automated deployment script that builds the Docker image locally, pushes it to your registry, and syncs the configuration to your remote server via SSH.
+Prompt Folio includes a smart, interactive deployment script. It automates building the Docker image locally, pushing it to your registry, and syncing everything to your remote server via SSH.
 
-### 1. Configure `.env`
-All deployment configurations are managed directly in your `.env` file. You do not need to edit the deployment script manually.
+### How to Deploy
 
-1. Copy the example file if you haven't already:
-   ```bash
-   cp .env.example .env
-   ```
-2. Open `.env` and configure your deployment settings at the bottom of the file:
-   ```env
-   # The remote SSH host where the application will be deployed (e.g., your server alias in ~/.ssh/config)
-   REMOTE_HOST=your_production_ssh_host
+You don't need to manually configure anything to get started. Just run:
 
-   # The absolute path on the remote host where the application will reside
-   REMOTE_PATH=/opt/prompt-folio
-   ```
-
-### 2. Run the Deployment Script
-Once your `.env` file is configured, simply run:
 ```bash
 ./deploy.sh
 ```
 
-The script will:
-1. Build the Docker image locally.
-2. Push it to the container registry.
-3. SSH into `REMOTE_HOST` and create `REMOTE_PATH`.
-4. Sync `docker-compose.yml`.
-5. Pull the new image on the remote server and start the container using `docker compose`.
+**What the script does:**
+1. **Interactive Setup:** If this is your first time deploying, the script will automatically pause and ask you for any missing configuration (like your server IP, Docker registry, and port). 
+2. **Auto-Save:** It saves your answers to the `.env` file so you never have to type them again.
+3. **Build & Push:** It builds the Docker image locally and pushes it to your registry.
+4. **Sync & Run:** It connects via SSH to your `REMOTE_HOST`, syncs your configuration, and starts the container using `docker compose`.
+5. **Registry Cleanup:** It automatically cleans up old Docker images from your registry (keeping only the last 3 tags) to save space.
 
-**Note:** Ensure you have SSH access to `REMOTE_HOST` and permissions to write to `REMOTE_PATH`. The application container runs securely as a non-root user.
+**Note:** Ensure you have SSH access to your `REMOTE_HOST` (e.g. using SSH keys) and permissions to write to the `REMOTE_PATH`. The application container is configured to run securely as a non-root user.
 
 ## Security
 - The admin dashboard is protected via an HTTPOnly, Secure, SameSite=Strict cookie.
