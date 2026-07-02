@@ -52,7 +52,7 @@ async def manage_get(
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
     ] = None,
 ):
-    if not admin_session or admin_session != settings.admin_password:
+    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
         return render_template(
             request, "admin_login.html", context_store, {"next_url": "/manage"}
         )
@@ -84,7 +84,7 @@ async def manage_context_get(
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
     ] = None,
 ):
-    if not admin_session or admin_session != settings.admin_password:
+    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
         return render_template(
             request, "admin_login.html", context_store, {"next_url": "/manage/context"}
         )
@@ -107,7 +107,7 @@ async def manage_appearance_get(
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
     ] = None,
 ):
-    if not admin_session or admin_session != settings.admin_password:
+    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
         return render_template(
             request,
             "admin_login.html",
@@ -319,7 +319,7 @@ async def manage_chat_get(
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
     ] = None,
 ):
-    if not admin_session or admin_session != settings.admin_password:
+    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
         return render_template(
             request,
             "admin_login.html",
