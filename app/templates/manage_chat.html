@@ -11,7 +11,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         </a>
         <div id="name-container" style="display: flex; align-items: center; gap: 8px; flex: 1;">
-            <h3 style="margin: 0; font-size: 1.1rem; color: rgba(255,255,255,0.6);">Admin Chat:</h3>
+            <h3 style="margin: 0; font-size: 1.1rem; color: color-mix(in srgb, var(--shadow-grey-contrast) 60%, transparent);">Admin Chat:</h3>
             <div id="name-display" style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-primary);" onclick="this.style.display='none'; document.getElementById('name-edit').style.display='flex'; document.getElementById('name-input').focus();">
                 <h3 style="margin: 0; font-size: 1.1rem;">{{ session_data.name or 'Guest' }}</h3>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
@@ -20,11 +20,11 @@
                 <input type="text" id="name-input" name="name" value="{{ session_data.name or '' }}" placeholder="Guest"
                        hx-post="/manage/chat/{{ session_id }}/update_name" 
                        hx-trigger="blur, keyup[key=='Enter']" hx-target="#name-container" hx-swap="outerHTML"
-                       style="background:transparent; border:none; border-bottom:1px dashed rgba(255,255,255,0.3); color:var(--text-primary); font-size:1.1rem; font-weight:bold; width:150px; outline:none; padding:2px;">
+                       style="background:transparent; border:none; border-bottom:1px dashed color-mix(in srgb, var(--shadow-grey-contrast) 30%, transparent); color:var(--text-primary); font-size:1.1rem; font-weight:bold; width:150px; outline:none; padding:2px;">
             </div>
         </div>
     </div>
-    <div style="font-size: 0.8em; color: rgba(255,255,255,0.6); margin-bottom: 10px; line-height: 1.3;">
+    <div style="font-size: 0.8em; color: color-mix(in srgb, var(--shadow-grey-contrast) 60%, transparent); margin-bottom: 10px; line-height: 1.3;">
         {% set goal = "" %}
         {% if session_data.history|length > 1 %}
             {% if "goal is: " in session_data.history[1].content %}
@@ -34,7 +34,7 @@
         {% if goal %}Goal: {{ goal }}<br>{% endif %}
         <div id="intent-container" style="display: flex; align-items: center; gap: 5px; margin-top: 3px;">
             Intent: 
-            <div id="intent-display" style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: rgba(255,255,255,0.6);" onclick="this.style.display='none'; document.getElementById('intent-edit').style.display='flex'; document.getElementById('intent-input').focus();">
+            <div id="intent-display" style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: color-mix(in srgb, var(--shadow-grey-contrast) 60%, transparent);" onclick="this.style.display='none'; document.getElementById('intent-edit').style.display='flex'; document.getElementById('intent-input').focus();">
                 <span>{{ session_data.intent or session_data.company or 'No specific intent' }}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
             </div>
@@ -42,7 +42,7 @@
                 <input type="text" id="intent-input" name="intent" value="{{ session_data.intent or session_data.company or '' }}" placeholder="No specific intent"
                        hx-post="/manage/chat/{{ session_id }}/update_intent" 
                        hx-trigger="blur, keyup[key=='Enter']" hx-target="#intent-container" hx-swap="outerHTML"
-                       style="background:transparent; border:none; border-bottom:1px dashed rgba(255,255,255,0.3); color:var(--text-primary); font-size:1em; width: 100%; outline:none; padding:2px; font-family: inherit;">
+                       style="background:transparent; border:none; border-bottom:1px dashed color-mix(in srgb, var(--shadow-grey-contrast) 30%, transparent); color:var(--text-primary); font-size:1em; width: 100%; outline:none; padding:2px; font-family: inherit;">
             </div>
         </div>
     </div>
