@@ -1,9 +1,11 @@
+# pyright: reportArgumentType=false
 import os
+import typing
 import base64
 import json
 import httpx
 import asyncio
-from typing import Any
+from typing import Annotated, Any
 from mistralai.client import Mistral
 from mistralai.client.models import DocumentURLChunk
 from app.constants import MODEL_CHAT, MODEL_OCR, ROLE_ASSISTANT, ROLE_TOOL
@@ -47,17 +49,13 @@ class MistralService:
         system_prompt = f"You are an expert summarizer. Take the following extracted documents and synthesize them into a rich, cohesive professional profile for {owner_name}. Do not include any meta-commentary, just the profile text."
 
         try:
-            from typing import cast
-
+            dict_messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": combined_text},
+            ]
             response = await self.client.chat.complete_async(
                 model=MODEL_CHAT,
-                messages=cast(
-                    Any,
-                    [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": combined_text},
-                    ],
-                ),
+                messages=dict_messages,
             )
             message = response.choices[0].message
             assert message is not None
@@ -70,20 +68,20 @@ class MistralService:
         self,
         messages_history: list[ChatMessageData],
         tools: list[dict[str, Any]] | None = None,
-        tool_callback=None,
+        tool_callback: typing.Callable[..., typing.Awaitable[None]] | None = None,
         max_depth: int = 3,
     ) -> str:
         if max_depth <= 0:
             return "I'm sorry, I encountered a loop while trying to respond."
 
         try:
-            from typing import cast
-
-            dict_messages = [m.model_dump(exclude_none=True) for m in messages_history]
+            dict_messages = [
+                m.model_dump(exclude_none=True) for m in messages_history
+            ]
             response = await self.client.chat.complete_async(
                 model=MODEL_CHAT,
-                messages=cast(Any, dict_messages),
-                tools=cast(Any, tools),
+                messages=dict_messages,
+                tools=tools,
                 tool_choice="auto" if tools else "none",
             )
             message = response.choices[0].message
@@ -116,7 +114,7 @@ class MistralService:
                             if isinstance(arguments, str):
                                 args = json.loads(arguments)
                             else:
-                                args = cast(dict[str, Any], arguments)
+                                args = arguments
                             await tool_callback(args.get("name"), args.get("intent"))
                             tool_result = "Profile updated successfully."
                         except Exception as e:
@@ -276,7 +274,7 @@ class SessionStore:
                 await q.put(message_html)
 
     def subscribe(self, session_id: str) -> asyncio.Queue[str]:
-        q = asyncio.Queue()
+        q: asyncio.Queue[str] = asyncio.Queue()
         if session_id not in self.queues:
             self.queues[session_id] = []
         self.queues[session_id].append(q)

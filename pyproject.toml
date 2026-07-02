@@ -41,10 +41,5 @@ dev = [
 profile = "black"
 
 [tool.basedpyright]
-typeCheckingMode = "standard"
+typeCheckingMode = "recommended"
 ignore = ["alembic/versions"]
-reportImportCycles = "warning"
-reportIncompatibleVariableOverride = "warning"
-reportUnsafeMultipleInheritance = "warning"
-reportUnannotatedClassAttribute = "none"
-failOnWarnings = false

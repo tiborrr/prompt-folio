@@ -1,4 +1,4 @@
-from typing import List, Annotated
+from typing import List, Annotated, Any
 import asyncio
 import random
 import secrets
@@ -196,7 +196,7 @@ async def manage_colors(
     muted_teal: Annotated[str, Form()],
     seaweed: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _=Depends(require_admin),
+    _: Annotated[Any, Depends(require_admin)],
 ):
     colors = ThemeColors(
         shadow_grey=shadow_grey,
@@ -222,7 +222,7 @@ async def manage_update_raw(
     request: Request,
     raw_context: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _=Depends(require_admin),
+    _: Annotated[Any, Depends(require_admin)],
 ):
     context_store.save_context(raw_context)
     return render_template(
@@ -238,7 +238,7 @@ async def manage_meeting_url(
     request: Request,
     meeting_url: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _=Depends(require_admin),
+    _: Annotated[Any, Depends(require_admin)],
 ):
     context_store.save_meeting_url(meeting_url)
     return render_template(
@@ -255,7 +255,7 @@ async def manage_owner_name(
     owner_name: Annotated[str, Form()],
     owner_pronouns: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _=Depends(require_admin),
+    _: Annotated[Any, Depends(require_admin)],
 ):
     context_store.save_owner_name(owner_name)
     context_store.save_owner_pronouns(owner_pronouns)
@@ -271,8 +271,8 @@ async def manage_owner_name(
 async def manage_avatar(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    file: UploadFile = File(...),
-    _=Depends(require_admin),
+    file: Annotated[UploadFile, File(...)],
+    _: Annotated[Any, Depends(require_admin)],
 ):
     content = await file.read()
     if not content:
@@ -296,7 +296,7 @@ async def manage_upload(
     files: Annotated[List[UploadFile], File()],
     mistral_service: Annotated[MistralService, Depends(get_mistral_service)],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _=Depends(require_admin),
+    _: Annotated[Any, Depends(require_admin)],
 ):
     pdf_files: list[UploadedDocument] = []
     for file in files:
@@ -432,7 +432,7 @@ async def manage_chat_toggle_takeover(
     db: Annotated[AsyncSession, Depends(get_db_session)],
     session_store: Annotated[SessionStore, Depends(get_session_store)],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _=Depends(require_admin),
+    _: Annotated[Any, Depends(require_admin)],
 ):
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
     session_obj = result.scalar_one_or_none()
@@ -468,7 +468,7 @@ async def manage_chat_send(
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     session_store: Annotated[SessionStore, Depends(get_session_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    _=Depends(require_admin),
+    _: Annotated[Any, Depends(require_admin)],
 ):
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
     session_obj = result.scalar_one_or_none()
@@ -502,7 +502,7 @@ async def manage_chat_update_name(
     session_id: str,
     name: Annotated[str, Form()],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    _=Depends(require_admin),
+    _: Annotated[Any, Depends(require_admin)],
 ):
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
     session_obj = result.scalar_one_or_none()
@@ -522,7 +522,7 @@ async def manage_chat_update_intent(
     session_id: str,
     intent: Annotated[str, Form()],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    _=Depends(require_admin),
+    _: Annotated[Any, Depends(require_admin)],
 ):
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
     session_obj = result.scalar_one_or_none()

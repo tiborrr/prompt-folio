@@ -6,6 +6,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from slowapi.errors import RateLimitExceeded
+import typing
+from typing import Annotated, Any, override
+from starlette.responses import Response
 
 from app.routers import chat, manage
 from app.dependencies import get_context_store, limiter
@@ -35,7 +38,8 @@ app.state.limiter = limiter
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    @override
+    async def dispatch(self, request: Request, call_next: typing.Callable[[Request], typing.Awaitable[Response]]) -> Response:
         response = await call_next(request)
         for header, value in SECURITY_HEADERS.items():
             response.headers[header] = value
@@ -51,7 +55,7 @@ app.mount(
 
 
 @app.get("/avatar")
-async def get_avatar(context_store: ContextStore = Depends(get_context_store)):
+async def get_avatar(context_store: Annotated[ContextStore, Depends(get_context_store)]):
     if context_store.has_avatar():
         return FileResponse(context_store.get_avatar_path())
     raise StarletteHTTPException(status_code=404, detail="Avatar not found")
