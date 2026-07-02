@@ -25,10 +25,16 @@ export DOCKER_DEFAULT_PLATFORM=linux/amd64
 if [ -f .env ]; then
     ENV_REMOTE_HOST=$(grep -E "^REMOTE_HOST=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
     ENV_REMOTE_PATH=$(grep -E "^REMOTE_PATH=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
+    ENV_DOCKER_REGISTRY=$(grep -E "^DOCKER_REGISTRY=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
+    ENV_DOCKER_IMAGE_NAME=$(grep -E "^DOCKER_IMAGE_NAME=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
+    ENV_PORT=$(grep -E "^PORT=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
 fi
 
 REMOTE_HOST="${ENV_REMOTE_HOST:-BRUG_TOT_BRUG}"
 REMOTE_PATH="${ENV_REMOTE_PATH:-/root/deployments/prompt-folio}"
+export DOCKER_REGISTRY="${ENV_DOCKER_REGISTRY:-registry.casteleijn.com}"
+export DOCKER_IMAGE_NAME="${ENV_DOCKER_IMAGE_NAME:-prompt-folio}"
+export PORT="${ENV_PORT:-3005}"
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
@@ -96,7 +102,7 @@ cleanup_registry() {
     local auth=""
     local creds_store=$(jq -r '.credsStore // empty' "$config_file")
     if [ -n "$creds_store" ] && command_exists "docker-credential-$creds_store"; then
-        local creds_json=$(echo "registry.casteleijn.com" | "docker-credential-$creds_store" get 2>/dev/null || echo "")
+        local creds_json=$(echo "${DOCKER_REGISTRY}" | "docker-credential-$creds_store" get 2>/dev/null || echo "")
         local user=$(echo "$creds_json" | jq -r '.Username // empty')
         local secret=$(echo "$creds_json" | jq -r '.Secret // empty')
         if [ -n "$user" ] && [ -n "$secret" ]; then
@@ -105,20 +111,20 @@ cleanup_registry() {
     fi
     
     if [ -z "$auth" ]; then
-        auth=$(jq -r '.auths["registry.casteleijn.com"].auth // empty' "$config_file")
+        auth=$(jq -r ".auths[\"${DOCKER_REGISTRY}\"].auth // empty" "$config_file")
     fi
     
     if [ -z "$auth" ]; then
-        print_warning "No auth token found for registry.casteleijn.com in Docker config. Skipping cleanup."
+        print_warning "No auth token found for ${DOCKER_REGISTRY} in Docker config. Skipping cleanup."
         return
     fi
     
-    local repos=("prompt-folio")
+    local repos=("${DOCKER_IMAGE_NAME}")
     local keep=3
     
     for repo in "${repos[@]}"; do
         print_status "Cleaning up ${repo}..."
-        local tags_json=$(curl -s -H "Authorization: Basic $auth" "https://registry.casteleijn.com/v2/${repo}/tags/list")
+        local tags_json=$(curl -s -H "Authorization: Basic $auth" "https://${DOCKER_REGISTRY}/v2/${repo}/tags/list")
         
         # Check if tags is null or empty
         local has_tags=$(echo "$tags_json" | jq -e '.tags != null')
@@ -146,10 +152,10 @@ cleanup_registry() {
                     -H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
                     -H "Accept: application/vnd.oci.image.manifest.v1+json" \
                     -H "Accept: application/vnd.oci.image.index.v1+json" \
-                    "https://registry.casteleijn.com/v2/${repo}/manifests/${tag}" | grep -i "^Docker-Content-Digest:" | awk '{print $2}' | tr -d '\r')
+                    "https://${DOCKER_REGISTRY}/v2/${repo}/manifests/${tag}" | grep -i "^Docker-Content-Digest:" | awk '{print $2}' | tr -d '\r')
                     
                 if [ -n "$digest" ]; then
-                    curl -s -X DELETE -H "Authorization: Basic $auth" "https://registry.casteleijn.com/v2/${repo}/manifests/${digest}" > /dev/null
+                    curl -s -X DELETE -H "Authorization: Basic $auth" "https://${DOCKER_REGISTRY}/v2/${repo}/manifests/${digest}" > /dev/null
                     print_success "Deleted ${repo}:${tag}"
                 else
                     print_warning "Could not get digest for ${tag}"
