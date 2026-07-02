@@ -1,5 +1,5 @@
 <div id="name-container" style="display: flex; align-items: center; gap: 8px;">
-    <h3 style="margin: 0; font-size: 1.1rem; color: var(--shadow-grey);">Admin Chat:</h3>
+    <h3 style="margin: 0; font-size: 1.1rem; color: rgba(255,255,255,0.6);">Admin Chat:</h3>
     <div id="name-display" style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-primary);" onclick="this.style.display='none'; document.getElementById('name-edit').style.display='flex'; document.getElementById('name-input').focus();">
         <h3 style="margin: 0; font-size: 1.1rem;">{{ name if name else 'Guest' }}</h3>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
@@ -8,6 +8,6 @@
         <input type="text" id="name-input" name="name" value="{{ name if name else '' }}" placeholder="Guest"
                hx-post="/manage/chat/{{ session_id }}/update_name" 
                hx-trigger="blur, keyup[key=='Enter']" hx-target="#name-container" hx-swap="outerHTML"
-               style="background:transparent; border:none; border-bottom:1px dashed var(--shadow-grey); color:var(--text-primary); font-size:1.1rem; font-weight:bold; width:150px; outline:none; padding:2px;">
+               style="background:transparent; border:none; border-bottom:1px dashed rgba(255,255,255,0.3); color:var(--text-primary); font-size:1.1rem; font-weight:bold; width:150px; outline:none; padding:2px;">
     </div>
 </div>
