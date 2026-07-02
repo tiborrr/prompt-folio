@@ -56,7 +56,6 @@ router = APIRouter()
 async def manage_get(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    settings: Annotated[Settings, Depends(get_settings)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
     admin_session: Annotated[
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
@@ -89,14 +88,16 @@ async def manage_get(
 async def manage_context_get(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    settings: Annotated[Settings, Depends(get_settings)],
     admin_session: Annotated[
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
     ] = None,
 ):
     if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
         return render_template(
-            request, "admin_login.html", context_store, LoginContext(next_url="/manage/context")
+            request,
+            "admin_login.html",
+            context_store,
+            LoginContext(next_url="/manage/context"),
         )
 
     raw_context = context_store.get_context()
@@ -115,7 +116,6 @@ async def manage_context_get(
 async def manage_appearance_get(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    settings: Annotated[Settings, Depends(get_settings)],
     admin_session: Annotated[
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
     ] = None,
@@ -144,9 +144,9 @@ async def manage_appearance_get(
 async def manage_login(
     request: Request,
     password: Annotated[str, Form()],
-    settings: Annotated[Settings, Depends(get_settings)],
-    next_url: str | None = Form(None),
+    next_url: Annotated[str | None, Form()] = None,
 ):
+    _ = request
     # Add a random artificial delay to simulate "verification" and slightly mitigate timing attacks
     await asyncio.sleep(random.uniform(0.6, 1.5))
 
@@ -171,9 +171,7 @@ async def manage_login(
 
 
 @router.post("/manage/logout")
-async def manage_logout(
-    response: Response, settings: Annotated[Settings, Depends(get_settings)]
-):
+async def manage_logout():
     res = RedirectResponse(url="/", status_code=303)
     res.delete_cookie(
         f"{COOKIE_PREFIX}admin_session",
@@ -196,7 +194,7 @@ async def manage_colors(
     muted_teal: Annotated[str, Form()],
     seaweed: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _: Annotated[Any, Depends(require_admin)],
+    _: Annotated[None, Depends(require_admin)],
 ):
     colors = ThemeColors(
         shadow_grey=shadow_grey,
@@ -222,7 +220,7 @@ async def manage_update_raw(
     request: Request,
     raw_context: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _: Annotated[Any, Depends(require_admin)],
+    _: Annotated[None, Depends(require_admin)],
 ):
     context_store.save_context(raw_context)
     return render_template(
@@ -238,7 +236,7 @@ async def manage_meeting_url(
     request: Request,
     meeting_url: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _: Annotated[Any, Depends(require_admin)],
+    _: Annotated[None, Depends(require_admin)],
 ):
     context_store.save_meeting_url(meeting_url)
     return render_template(
@@ -255,7 +253,7 @@ async def manage_owner_name(
     owner_name: Annotated[str, Form()],
     owner_pronouns: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _: Annotated[Any, Depends(require_admin)],
+    _: Annotated[None, Depends(require_admin)],
 ):
     context_store.save_owner_name(owner_name)
     context_store.save_owner_pronouns(owner_pronouns)
@@ -272,7 +270,7 @@ async def manage_avatar(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     file: Annotated[UploadFile, File(...)],
-    _: Annotated[Any, Depends(require_admin)],
+    _: Annotated[None, Depends(require_admin)],
 ):
     content = await file.read()
     if not content:
@@ -296,7 +294,7 @@ async def manage_upload(
     files: Annotated[List[UploadFile], File()],
     mistral_service: Annotated[MistralService, Depends(get_mistral_service)],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _: Annotated[Any, Depends(require_admin)],
+    _: Annotated[None, Depends(require_admin)],
 ):
     pdf_files: list[UploadedDocument] = []
     for file in files:
@@ -327,7 +325,6 @@ async def delete_chat_session(
     session_id: str,
     db: Annotated[AsyncSession, Depends(get_db_session)],
     session_store: Annotated[SessionStore, Depends(get_session_store)],
-    settings: Annotated[Settings, Depends(get_settings)],
     admin_session: Annotated[
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
     ] = None,
@@ -373,7 +370,6 @@ async def manage_chat_get(
     session_id: str,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    settings: Annotated[Settings, Depends(get_settings)],
     admin_session: Annotated[
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
     ] = None,
@@ -400,10 +396,7 @@ async def manage_chat_get(
         .order_by(col(ChatMessage.created_at))
     )
     history_msgs = msg_result.scalars().all()
-    history = [
-        ChatMessageData(role=m.role, content=m.content)
-        for m in history_msgs
-    ]
+    history = [ChatMessageData(role=m.role, content=m.content) for m in history_msgs]
 
     session_data = SessionDetail(
         name=session_obj.name,
@@ -432,7 +425,7 @@ async def manage_chat_toggle_takeover(
     db: Annotated[AsyncSession, Depends(get_db_session)],
     session_store: Annotated[SessionStore, Depends(get_session_store)],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
-    _: Annotated[Any, Depends(require_admin)],
+    _: Annotated[None, Depends(require_admin)],
 ):
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
     session_obj = result.scalar_one_or_none()
@@ -468,7 +461,7 @@ async def manage_chat_send(
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     session_store: Annotated[SessionStore, Depends(get_session_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    _: Annotated[Any, Depends(require_admin)],
+    _: Annotated[None, Depends(require_admin)],
 ):
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
     session_obj = result.scalar_one_or_none()
@@ -502,7 +495,7 @@ async def manage_chat_update_name(
     session_id: str,
     name: Annotated[str, Form()],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    _: Annotated[Any, Depends(require_admin)],
+    _: Annotated[None, Depends(require_admin)],
 ):
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
     session_obj = result.scalar_one_or_none()
@@ -512,7 +505,8 @@ async def manage_chat_update_name(
         await db.commit()
 
     html = render_template_to_string(
-        "fragments/session_name.html", SessionListItemContext(session_id=session_id, name=name)
+        "fragments/session_name.html",
+        SessionListItemContext(session_id=session_id, name=name),
     )
     return HTMLResponse(content=html)
 
@@ -522,7 +516,7 @@ async def manage_chat_update_intent(
     session_id: str,
     intent: Annotated[str, Form()],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    _: Annotated[Any, Depends(require_admin)],
+    _: Annotated[None, Depends(require_admin)],
 ):
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
     session_obj = result.scalar_one_or_none()
@@ -532,6 +526,7 @@ async def manage_chat_update_intent(
         await db.commit()
 
     html = render_template_to_string(
-        "fragments/session_intent.html", SessionListItemContext(session_id=session_id, intent=intent)
+        "fragments/session_intent.html",
+        SessionListItemContext(session_id=session_id, intent=intent),
     )
     return HTMLResponse(content=html)
