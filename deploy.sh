@@ -21,20 +21,40 @@ print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 export IMAGE_TAG="v$(date +%Y%m%d%H%M%S)"
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
-# Load configuration from .env if present
-if [ -f .env ]; then
-    ENV_REMOTE_HOST=$(grep -E "^REMOTE_HOST=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
-    ENV_REMOTE_PATH=$(grep -E "^REMOTE_PATH=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
-    ENV_DOCKER_REGISTRY=$(grep -E "^DOCKER_REGISTRY=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
-    ENV_DOCKER_IMAGE_NAME=$(grep -E "^DOCKER_IMAGE_NAME=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
-    ENV_PORT=$(grep -E "^PORT=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
+# Helper to get or prompt for env var
+get_or_prompt_env() {
+    local var_name=$1
+    local default_value=$2
+    local prompt_text=$3
+    
+    local current_value=""
+    if [ -f .env ]; then
+        current_value=$(grep -E "^${var_name}=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
+    fi
+    
+    # Check if the variable is entirely missing from the file
+    if ! grep -q -E "^${var_name}=" .env 2>/dev/null; then
+        echo -e "${YELLOW}Missing configuration: ${var_name}${NC}" >&2
+        read -p "${prompt_text} [${default_value}]: " user_input
+        current_value="${user_input:-$default_value}"
+        
+        echo "${var_name}=${current_value}" >> .env
+        print_success "Saved ${var_name}=${current_value} to .env" >&2
+    fi
+    
+    export "${var_name}=${current_value}"
+}
+
+if [ ! -f .env ]; then
+    print_warning ".env file not found! We will create one for you."
+    touch .env
 fi
 
-REMOTE_HOST="${ENV_REMOTE_HOST:-BRUG_TOT_BRUG}"
-REMOTE_PATH="${ENV_REMOTE_PATH:-/root/deployments/prompt-folio}"
-export DOCKER_REGISTRY="${ENV_DOCKER_REGISTRY:-registry.casteleijn.com}"
-export DOCKER_IMAGE_NAME="${ENV_DOCKER_IMAGE_NAME:-prompt-folio}"
-export PORT="${ENV_PORT:-3005}"
+get_or_prompt_env "REMOTE_HOST" "BRUG_TOT_BRUG" "Enter your SSH Remote Host (e.g., server IP or ~/.ssh/config alias)"
+get_or_prompt_env "REMOTE_PATH" "/root/deployments/prompt-folio" "Enter the absolute path on the remote host for deployment"
+get_or_prompt_env "DOCKER_REGISTRY" "registry.casteleijn.com" "Enter your Docker Registry URL (leave empty for Docker Hub)"
+get_or_prompt_env "DOCKER_IMAGE_NAME" "prompt-folio" "Enter your Docker Image/Repository Name"
+get_or_prompt_env "PORT" "3005" "Enter the local port to run the application on"
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
