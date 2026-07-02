@@ -321,6 +321,52 @@ async def manage_upload(
     final_context += new_profile + "\n\n" + repos_section
 
 
+@router.delete("/manage/chat/{session_id}", response_class=Response)
+async def delete_chat_session(
+    request: Request,
+    session_id: str,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    session_store: Annotated[SessionStore, Depends(get_session_store)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    admin_session: Annotated[
+        str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
+    ] = None,
+):
+    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
+    session_obj = result.scalar_one_or_none()
+
+    if session_obj:
+        # Broadcast notification to the active user (if any) that the session is deleted
+        try:
+            with open(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "../templates/fragments/session_deleted.html",
+                ),
+                "r",
+            ) as f:
+                deleted_html = f.read()
+            await session_store.broadcast(session_id, deleted_html)
+        except Exception as e:
+            print(f"Failed to broadcast deletion to {session_id}: {e}")
+
+        await db.delete(session_obj)
+        await db.commit()
+
+    # Determine response based on where the delete was triggered from
+    if request.headers.get("HX-Target") == "closest .conversation-card":
+        # Delete from list view: return empty 200 to remove the card from the DOM
+        return Response(status_code=200)
+    else:
+        # Delete from detailed view: redirect back to list view
+        response = Response(status_code=204)
+        response.headers["HX-Redirect"] = "/manage"
+        return response
+
+
 @router.get("/manage/chat/{session_id}", response_class=HTMLResponse)
 async def manage_chat_get(
     request: Request,

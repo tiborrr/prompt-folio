@@ -25,7 +25,17 @@
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <span style="font-size: 0.75rem; color: rgba(255,255,255,0.4); background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 6px;">{{ session.created_at.strftime('%b %d, %H:%M') }}</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--sweet-salmon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        <button hx-delete="/manage/chat/{{ session.id }}" 
+                                hx-confirm="Are you sure you want to permanently delete this conversation?" 
+                                hx-target="closest .conversation-card" 
+                                hx-swap="outerHTML" 
+                                onclick="event.preventDefault(); event.stopPropagation();"
+                                class="clear-btn" 
+                                style="padding: 5px; color: var(--sweet-salmon); opacity: 0.7; transition: all 0.2s; border-radius: 4px;"
+                                onmouseover="this.style.opacity='1'; this.style.background='rgba(251,159,137,0.1)';" 
+                                onmouseout="this.style.opacity='0.7'; this.style.background='transparent';">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
                     </div>
                 </a>
             {% endfor %}

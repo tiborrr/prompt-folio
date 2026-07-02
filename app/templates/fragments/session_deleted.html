@@ -1,0 +1,63 @@
+<div class="system-message slide-in" style="margin: 20px 0; display: flex; flex-direction: column; align-items: center;">
+    <div style="background: rgba(0, 0, 0, 0.1); border-left: 3px solid var(--sweet-salmon); padding: 15px; border-radius: 4px; font-size: 0.9rem; color: var(--text-secondary); max-width: 80%; text-align: center;">
+        <p style="margin-bottom: 10px;">
+            <strong>This conversation has been closed by the owner.</strong><br>
+            If you would like to keep a record, you can save the transcript before starting a new conversation.
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button onclick="downloadTranscript()" style="background: var(--muted-teal); color: var(--muted-teal-contrast); border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                Save Transcript
+            </button>
+            <button onclick="window.location.reload()" style="background: var(--sweet-salmon); color: var(--sweet-salmon-contrast); border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                Start New Conversation
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // Disable the chat input now that the session is closed
+        var chatInput = document.getElementById('chat-input');
+        if (chatInput) {
+            chatInput.disabled = true;
+            chatInput.placeholder = "Session closed.";
+        }
+
+        function downloadTranscript() {
+            var messages = document.querySelectorAll('.message, .system-message');
+            var transcript = "Chat Transcript\n====================\n\n";
+            
+            messages.forEach(function(msg) {
+                var text = msg.innerText || msg.textContent;
+                // Exclude system messages that are just buttons like this one
+                if (text.includes("Save Transcript") && text.includes("Start New Conversation")) {
+                    return;
+                }
+                
+                // Identify sender based on class
+                var sender = "System";
+                if (msg.classList.contains('user')) {
+                    sender = "You";
+                } else if (msg.classList.contains('assistant')) {
+                    sender = "Assistant";
+                }
+                
+                // Format the extracted text
+                // Removing extra newlines and trimming
+                var cleanText = text.replace(/\n\s*\n/g, '\n').trim();
+                if (cleanText) {
+                    transcript += "[" + sender + "]\n" + cleanText + "\n\n";
+                }
+            });
+            
+            var blob = new Blob([transcript], { type: "text/plain;charset=utf-8" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "chat-transcript-" + new Date().toISOString().slice(0,10) + ".txt";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</div>

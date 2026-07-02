@@ -47,12 +47,20 @@
         </div>
     </div>
     
-    <div id="admin-takeover-controls" style="margin-bottom: 10px;">
+    <div id="admin-controls" style="margin-bottom: 10px; display: flex; gap: 10px;">
         <button hx-post="/manage/chat/{{ session_id }}/toggle_takeover" 
                 hx-swap="none"
                 class="clear-btn" 
-                style="background: {% if session_data.human_takeover %}var(--muted-teal){% else %}var(--sweet-salmon){% endif %}; color: {% if session_data.human_takeover %}var(--muted-teal-contrast){% else %}var(--sweet-salmon-contrast){% endif %}; border:none; padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer; width: 100%; transition: all 0.2s;">
+                style="flex: 1; background: {% if session_data.human_takeover %}var(--muted-teal){% else %}var(--sweet-salmon){% endif %}; color: {% if session_data.human_takeover %}var(--muted-teal-contrast){% else %}var(--sweet-salmon-contrast){% endif %}; border:none; padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer; transition: all 0.2s;">
             {% if session_data.human_takeover %}Return to AI (Unmute){% else %}Take Over Chat (Mute AI){% endif %}
+        </button>
+        <button hx-delete="/manage/chat/{{ session_id }}" 
+                hx-confirm="Are you sure you want to permanently delete this conversation?"
+                class="clear-btn" 
+                style="background: transparent; color: var(--sweet-salmon); border: 1px solid var(--sweet-salmon); padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer; transition: all 0.2s;"
+                onmouseover="this.style.background='var(--sweet-salmon)'; this.style.color='var(--sweet-salmon-contrast)';"
+                onmouseout="this.style.background='transparent'; this.style.color='var(--sweet-salmon)';">
+            Delete Chat
         </button>
     </div>
 
