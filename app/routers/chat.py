@@ -29,7 +29,13 @@ from app.constants import (
     NEW_SESSION_NOTIFICATION_MSG_COUNT,
     UPDATE_USER_PROFILE_TOOL,
 )
-from app.schemas import ChatMessageData
+from app.schemas import (
+    ChatMessageData,
+    StatusContext,
+    ChatSessionContext,
+    MessageContext,
+    SSEEvent,
+)
 from app.config import settings
 
 COOKIE_PREFIX = "" if settings.environment == "DEV" else "__Secure-"
@@ -69,7 +75,7 @@ async def index(
                 request,
                 "chat.html",
                 context_store,
-                {"session_id": session_id, "history": history},
+                ChatSessionContext(session_id=session_id, history=history),
             )
 
     # Create new session
@@ -107,7 +113,7 @@ async def index(
         request,
         "chat.html",
         context_store,
-        {"session_id": new_session_id, "history": history},
+        ChatSessionContext(session_id=new_session_id, history=history),
     )
     res.set_cookie(
         key=f"{COOKIE_PREFIX}session_id",
@@ -139,7 +145,7 @@ async def chat_stream(
                 if await request.is_disconnected():
                     break
                 message_html = await q.get()
-                yield {"event": "chat_message", "data": message_html}
+                yield SSEEvent(event="chat_message", data=message_html).model_dump()
         except asyncio.CancelledError:
             pass
         finally:
@@ -187,7 +193,7 @@ async def takeover_request(
 
     msg = f"{context_store.get_owner_name()} has been notified and can chat with you directly now."
     msg_html = render_template_to_string(
-        "fragments/system_message.html", {"message": msg}
+        "fragments/system_message.html", StatusContext(message=msg)
     )
     await session_store.broadcast(session_id, msg_html)
 
@@ -222,7 +228,7 @@ async def revert_takeover(
 
         msg_html = render_template_to_string(
             "fragments/system_message.html",
-            {"message": "You are now chatting with the AI again."},
+            StatusContext(message="You are now chatting with the AI again."),
         )
         await session_store.broadcast(session_id, msg_html)
 
@@ -251,7 +257,7 @@ async def chat(
     if not session_id:
         error_html = render_template_to_string(
             "fragments/system_message.html",
-            {"message": "No active session found. Please refresh the page."},
+            StatusContext(message="No active session found. Please refresh the page."),
         )
         return HTMLResponse(error_html, status_code=400)
 
@@ -261,7 +267,7 @@ async def chat(
     if not session_obj:
         error_html = render_template_to_string(
             "fragments/system_message.html",
-            {"message": "Session expired. Please refresh the page."},
+            StatusContext(message="Session expired. Please refresh the page."),
         )
         return HTMLResponse(error_html, status_code=400)
 
@@ -275,7 +281,7 @@ async def chat(
             request,
             "message.html",
             context_store,
-            {"message": message, "is_user": True},
+            MessageContext(message=message, is_user=True),
         ).body
     ).decode("utf-8")
     await session_store.broadcast(session_id, user_html)
@@ -358,7 +364,7 @@ async def chat(
                     request,
                     "message.html",
                     context_store,
-                    {"message": assistant_response, "is_user": False},
+                    MessageContext(message=assistant_response, is_user=False),
                 ).body
             ).decode("utf-8")
             await session_store.broadcast(session_id, assistant_html)

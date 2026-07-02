@@ -47,3 +47,44 @@ class RecaptchaVerifyResult(BaseModel):
     challenge_ts: str | None = None
     hostname: str | None = None
     error_codes: list[str] | None = Field(default=None, alias="error-codes")
+
+
+# ------------------------------------------------------------------------------
+# Template Context Models
+# ------------------------------------------------------------------------------
+
+class StatusContext(BaseModel):
+    message: str
+
+
+class LoginContext(BaseModel):
+    next_url: str
+
+
+class ManageContext(BaseModel):
+    active_tab: str
+    raw_context: str | None = None
+    recent_sessions: list[Any] | None = None
+    schedule_meeting_url: str | None = None
+
+
+class ChatSessionContext(BaseModel):
+    session_id: str
+    history: list[dict[str, Any]] | str
+
+
+class MessageContext(BaseModel):
+    message: str | Any
+    is_user: bool = False
+    is_admin: bool = False
+
+
+class SessionListItemContext(BaseModel):
+    session_id: str
+    name: str | None = None
+    intent: str | None = None
+
+
+class SSEEvent(BaseModel):
+    event: str
+    data: str

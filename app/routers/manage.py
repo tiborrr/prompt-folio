@@ -34,6 +34,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, col
 from app.database import get_db_session
 from app.models import ChatSession, ChatMessage
+from app.schemas import (
+    ThemeColors,
+    ChatMessageData,
+    LoginContext,
+    ManageContext,
+    StatusContext,
+    MessageContext,
+    SessionListItemContext,
+    SSEEvent,
+)
 from app.schemas import SessionDetail, ThemeColors, UploadedDocument
 from app.config import settings
 
@@ -54,7 +64,7 @@ async def manage_get(
 ):
     if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
         return render_template(
-            request, "admin_login.html", context_store, {"next_url": "/manage"}
+            request, "admin_login.html", context_store, LoginContext(next_url="/manage")
         )
 
     result = await db.execute(
@@ -67,11 +77,11 @@ async def manage_get(
         request,
         "manage_conversations.html",
         context_store,
-        {
-            "raw_context": raw_context,
-            "recent_sessions": recent_sessions,
-            "active_tab": "conversations",
-        },
+        ManageContext(
+            active_tab="conversations",
+            recent_sessions=recent_sessions,
+            raw_context=raw_context,
+        ),
     )
 
 
@@ -86,7 +96,7 @@ async def manage_context_get(
 ):
     if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
         return render_template(
-            request, "admin_login.html", context_store, {"next_url": "/manage/context"}
+            request, "admin_login.html", context_store, LoginContext(next_url="/manage/context")
         )
 
     raw_context = context_store.get_context()
@@ -94,7 +104,10 @@ async def manage_context_get(
         request,
         "manage_context.html",
         context_store,
-        {"raw_context": raw_context, "active_tab": "context"},
+        ManageContext(
+            active_tab="context",
+            raw_context=raw_context,
+        ),
     )
 
 
@@ -112,17 +125,17 @@ async def manage_appearance_get(
             request,
             "admin_login.html",
             context_store,
-            {"next_url": "/manage/appearance"},
+            LoginContext(next_url="/manage/appearance"),
         )
 
     return render_template(
         request,
         "manage_appearance.html",
         context_store,
-        {
-            "active_tab": "appearance",
-            "schedule_meeting_url": context_store.get_meeting_url(),
-        },
+        ManageContext(
+            active_tab="appearance",
+            schedule_meeting_url=context_store.get_meeting_url(),
+        ),
     )
 
 
@@ -198,9 +211,9 @@ async def manage_colors(
         request,
         "status.html",
         context_store,
-        {
-            "message": "Colors updated successfully! Please hard refresh (Ctrl+F5) to see changes across all pages."
-        },
+        StatusContext(
+            message="Colors updated successfully! Please hard refresh (Ctrl+F5) to see changes across all pages."
+        ),
     )
 
 
@@ -216,7 +229,7 @@ async def manage_update_raw(
         request,
         "status.html",
         context_store,
-        {"message": "Context updated successfully!"},
+        StatusContext(message="Context updated successfully!"),
     )
 
 
@@ -232,7 +245,7 @@ async def manage_meeting_url(
         request,
         "status.html",
         context_store,
-        {"message": "Meeting link updated successfully!"},
+        StatusContext(message="Meeting link updated successfully!"),
     )
 
 
@@ -250,7 +263,7 @@ async def manage_owner_name(
         request,
         "status.html",
         context_store,
-        {"message": "Owner identity updated successfully!"},
+        StatusContext(message="Owner identity updated successfully!"),
     )
 
 
@@ -272,9 +285,9 @@ async def manage_avatar(
         request,
         "status.html",
         context_store,
-        {
-            "message": "Avatar updated successfully! Please hard refresh (Ctrl+F5) to see changes across all pages."
-        },
+        StatusContext(
+            message="Avatar updated successfully! Please hard refresh (Ctrl+F5) to see changes across all pages."
+        ),
     )
 
 
@@ -324,7 +337,7 @@ async def manage_chat_get(
             request,
             "admin_login.html",
             context_store,
-            {"next_url": f"/manage/chat/{session_id}"},
+            LoginContext(next_url=f"/manage/chat/{session_id}"),
         )
 
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
@@ -341,7 +354,10 @@ async def manage_chat_get(
         .order_by(col(ChatMessage.created_at))
     )
     history_msgs = msg_result.scalars().all()
-    history = [{"role": m.role, "content": m.content} for m in history_msgs]
+    history = [
+        ChatMessageData(role=m.role, content=m.content).model_dump() 
+        for m in history_msgs
+    ]
 
     session_data = SessionDetail(
         name=session_obj.name,
@@ -391,7 +407,7 @@ async def manage_chat_toggle_takeover(
             else "You are now chatting with the AI again."
         )
         msg_html = render_template_to_string(
-            "fragments/system_message.html", {"message": msg}
+            "fragments/system_message.html", StatusContext(message=msg)
         )
         await session_store.broadcast(session_id, msg_html)
 
@@ -427,7 +443,7 @@ async def manage_chat_send(
             request,
             "message.html",
             context_store,
-            {"message": message, "is_user": False, "is_admin": True},
+            MessageContext(message=message, is_user=False, is_admin=True),
         ).body
     ).decode("utf-8")
 
@@ -450,7 +466,7 @@ async def manage_chat_update_name(
         await db.commit()
 
     html = render_template_to_string(
-        "fragments/session_name.html", {"session_id": session_id, "name": name}
+        "fragments/session_name.html", SessionListItemContext(session_id=session_id, name=name)
     )
     return HTMLResponse(content=html)
 
@@ -470,6 +486,6 @@ async def manage_chat_update_intent(
         await db.commit()
 
     html = render_template_to_string(
-        "fragments/session_intent.html", {"session_id": session_id, "intent": intent}
+        "fragments/session_intent.html", SessionListItemContext(session_id=session_id, intent=intent)
     )
     return HTMLResponse(content=html)

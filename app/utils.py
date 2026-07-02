@@ -1,6 +1,8 @@
 import os
+import secrets
 import time
 from typing import Any
+from pydantic import BaseModel
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from markdown_it import MarkdownIt
@@ -47,10 +49,12 @@ def render_template(
     request: Request,
     name: str,
     context_store: ContextStore,
-    context: dict[str, Any] | None = None,
+    context: dict[str, Any] | BaseModel | None = None,
 ):
     if context is None:
         context = {}
+    elif isinstance(context, BaseModel):
+        context = context.model_dump()
     context["request"] = request
     colors = context_store.get_colors()
     context["colors"] = colors.model_dump()
