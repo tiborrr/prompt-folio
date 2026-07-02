@@ -1,6 +1,7 @@
 from app.schemas import TakeoverControlsContext
 import os
 import time
+from functools import cache, lru_cache
 from pydantic import BaseModel
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
@@ -16,6 +17,7 @@ md = MarkdownIt("commonmark", {"breaks": True, "html": True, "linkify": True}).e
 )
 
 
+@lru_cache(maxsize=128)
 def markdown_filter(text: str) -> str:
     return str(md.render(text))
 
@@ -26,6 +28,7 @@ templates.env.filters["markdown"] = markdown_filter
 app_version = str(int(time.time()))
 
 
+@cache
 def get_contrast_color(hex_color: str) -> str:
     """Returns #ffffff or #1e1e24 based on relative luminance."""
     if not hex_color or not hex_color.startswith("#") or len(hex_color) not in (4, 7):

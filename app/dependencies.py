@@ -1,4 +1,5 @@
 import os
+from functools import cache
 from typing import Annotated
 from fastapi import Depends, Cookie, Form, HTTPException
 from slowapi import Limiter
@@ -21,6 +22,7 @@ ACTIVE_ADMIN_SESSIONS: set[str] = set()
 limiter = Limiter(key_func=get_remote_address, default_limits=[RATE_LIMIT_GLOBAL])
 
 
+@cache
 def get_settings() -> Settings:
     return settings
 
@@ -44,6 +46,7 @@ def get_notification_service(
     return NotificationService(topic=config.ntfy_topic)
 
 
+@cache
 def get_context_store() -> ContextStore:
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     private_dir = os.path.join(root_dir, "private")
