@@ -59,7 +59,9 @@ class MistralService:
                     ],
                 ),
             )
-            return str(response.choices[0].message.content)
+            message = response.choices[0].message
+            assert message is not None
+            return str(message.content)
         except Exception as e:
             print(f"Mistral chat error: {e}")
             return combined_text
@@ -81,14 +83,16 @@ class MistralService:
             response = await self.client.chat.complete_async(
                 model=MODEL_CHAT,
                 messages=cast(Any, dict_messages),
-                tools=tools,
+                tools=cast(Any, tools),
                 tool_choice="auto" if tools else "none",
             )
             message = response.choices[0].message
+            assert message is not None
 
             if message.tool_calls and tool_callback:
+                content_str = str(message.content) if message.content else ""
                 assistant_msg = ChatMessageData(
-                    role=ROLE_ASSISTANT, content=message.content or ""
+                    role=ROLE_ASSISTANT, content=content_str
                 )
                 assistant_msg.tool_calls = []
                 for tc in message.tool_calls:
@@ -107,7 +111,12 @@ class MistralService:
                 for tool_call in message.tool_calls:
                     if tool_call.function.name == "update_user_profile":
                         try:
-                            args = json.loads(tool_call.function.arguments)
+                            # Mistral's function.arguments can be returned as a dict or str.
+                            arguments = tool_call.function.arguments
+                            if isinstance(arguments, str):
+                                args = json.loads(arguments)
+                            else:
+                                args = cast(dict[str, Any], arguments)
                             await tool_callback(args.get("name"), args.get("intent"))
                             tool_result = "Profile updated successfully."
                         except Exception as e:

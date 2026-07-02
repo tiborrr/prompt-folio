@@ -84,10 +84,15 @@
   /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:28:29 - warning: Argument type is unknown
     Argument corresponds to parameter "__type_pos" in function "__init__" (reportUnknownArgumentType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/alembic/versions/968625b21b76_add_intent_to_chatsession.py:28:38 - error: "sql" is not a known attribute of module "sqlmodel" (reportAttributeAccessIssue)
+/Users/tiborcasteleijn/Repositories/prompt-folio/app/constants.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/constants.py:40:37 - warning: Type `Any` is not allowed (reportExplicitAny)
 /Users/tiborcasteleijn/Repositories/prompt-folio/app/main.py
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/main.py:38:15 - warning: Method "dispatch" is not marked as override but is overriding a method in class "BaseHTTPMiddleware" (reportImplicitOverride)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/main.py:38:48 - warning: Type annotation is missing for parameter "call_next" (reportMissingParameterType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/main.py:54:52 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+/Users/tiborcasteleijn/Repositories/prompt-folio/app/models.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/models.py:17:5 - warning: Type of "session" is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/models.py:28:5 - warning: Type of "messages" is Any (reportAny)
 /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/chat.py:48:2 - warning: Type of "limit" is partially unknown
     Type of "limit" is "(limit_value: str | ((...) -> str), key_func: ((...) -> str) | None = None, per_method: bool = False, methods: List[str] | None = None, error_message: str | None = None, exempt_when: ((...) -> bool) | None = None, cost: int | ((...) -> int) = 1, override_defaults: bool = True) -> ((...) -> Unknown)" (reportUnknownMemberType)
@@ -106,10 +111,6 @@
 /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:1:20 - warning: This type is deprecated as of Python 3.9; use "list" instead (reportDeprecated)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:59:5 - warning: "settings" is not accessed (reportUnusedParameter)
-  /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:82:29 - error: Argument of type "Sequence[ChatSession]" cannot be assigned to parameter "recent_sessions" of type "list[Any] | None" in function "__init__"
-    Type "Sequence[ChatSession]" is not assignable to type "list[Any] | None"
-      "Sequence[ChatSession]" is not assignable to "list[Any]"
-      "Sequence[ChatSession]" is not assignable to "None" (reportArgumentType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:92:5 - warning: "settings" is not accessed (reportUnusedParameter)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:118:5 - warning: "settings" is not accessed (reportUnusedParameter)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:143:2 - warning: Type of "limit" is partially unknown
@@ -134,11 +135,31 @@
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:471:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:505:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/routers/manage.py:525:7 - warning: Function calls and mutable objects not allowed within parameter default value expression (reportCallInDefaultInitializer)
+/Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:14:9 - warning: Return type is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:14:33 - warning: Type of parameter "v" is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:14:36 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:14:44 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:17:20 - warning: Type of "startswith" is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:19:19 - warning: Type of "startswith" is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:20:17 - warning: Type of "v" is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:21:16 - warning: Return type is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:34:32 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:67:27 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:73:19 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/schemas.py:77:20 - warning: Type `Any` is not allowed (reportExplicitAny)
 /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:54:26 - warning: Argument type is Any
+    Argument corresponds to parameter "messages" in function "complete_async" (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:55:21 - warning: Type `Any` is not allowed (reportExplicitAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:62:52 - error: "content" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:70:31 - warning: Type `Any` is not allowed (reportExplicitAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:71:9 - warning: Type of parameter "tool_callback" is partially unknown
     Parameter type is "Unknown | None" (reportUnknownParameterType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:71:9 - warning: Type annotation is missing for parameter "tool_callback" (reportMissingParameterType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:83:26 - warning: Argument type is Any
+    Argument corresponds to parameter "messages" in function "complete_async" (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:83:31 - warning: Type `Any` is not allowed (reportExplicitAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:84:23 - error: Argument of type "list[dict[str, Any]] | None" cannot be assigned to parameter "tools" of type "OptionalNullable[List[ChatCompletionRequestTool] | List[ChatCompletionRequestToolTypedDict]]" in function "complete_async"
     Type "list[dict[str, Any]] | None" is not assignable to type "OptionalNullable[List[ChatCompletionRequestTool] | List[ChatCompletionRequestToolTypedDict]]"
       Type "list[dict[str, Any]]" is not assignable to type "OptionalNullable[List[ChatCompletionRequestTool] | List[ChatCompletionRequestToolTypedDict]]"
@@ -156,20 +177,41 @@
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:91:58 - error: "content" is not a known attribute of "None" (reportOptionalMemberAccess)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:94:35 - error: "tool_calls" is not a known attribute of "None" (reportOptionalMemberAccess)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:107:42 - error: "tool_calls" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:110:29 - warning: Type of "args" is Any (reportAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:110:47 - error: Argument of type "Arguments" cannot be assigned to parameter "s" of type "str | bytes | bytearray" in function "loads"
     Type "Arguments" is not assignable to type "str | bytes | bytearray"
       Type "Dict[str, Any]" is not assignable to type "str | bytes | bytearray"
         "Dict[str, Any]" is not assignable to "str"
         "Dict[str, Any]" is not assignable to "bytes"
         "Dict[str, Any]" is not assignable to "bytearray" (reportArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:111:49 - warning: Type of "get" is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:111:67 - warning: Type of "get" is Any (reportAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:126:30 - warning: Type of "ask_mistral" is partially unknown
     Type of "ask_mistral" is "(messages_history: list[ChatMessageData], tools: list[dict[str, Any]] | None = None, tool_callback: Unknown | None = None, max_depth: int = 3) -> CoroutineType[Any, Any, str]" (reportUnknownMemberType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:129:35 - warning: Argument type is unknown
     Argument corresponds to parameter "tool_callback" in function "ask_mistral" (reportUnknownArgumentType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:133:32 - error: "content" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:152:50 - warning: Argument type is Any
+    Argument corresponds to parameter "success" in function "__init__" (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:152:50 - warning: Argument type is Any
+    Argument corresponds to parameter "challenge_ts" in function "__init__" (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:152:50 - warning: Argument type is Any
+    Argument corresponds to parameter "hostname" in function "__init__" (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:152:50 - warning: Argument type is Any
+    Argument corresponds to parameter "error-codes" in function "__init__" (reportAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:179:13 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:191:13 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:207:13 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:213:42 - warning: Argument type is Any
+    Argument corresponds to parameter "shadow_grey" in function "__init__" (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:213:42 - warning: Argument type is Any
+    Argument corresponds to parameter "sweet_salmon" in function "__init__" (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:213:42 - warning: Argument type is Any
+    Argument corresponds to parameter "khaki_beige" in function "__init__" (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:213:42 - warning: Argument type is Any
+    Argument corresponds to parameter "muted_teal" in function "__init__" (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:213:42 - warning: Argument type is Any
+    Argument corresponds to parameter "seaweed" in function "__init__" (reportAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:236:13 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:254:29 - warning: Argument type is partially unknown
     Argument corresponds to parameter "headers" in function "post"
@@ -181,10 +223,17 @@
     Argument type is "Queue[Unknown]" (reportUnknownArgumentType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/services.py:274:16 - warning: Return type, "Queue[Unknown]", is partially unknown (reportUnknownVariableType)
 /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:19:5 - warning: Return type is Any (reportAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:19:21 - warning: Type of parameter "text" is unknown (reportUnknownParameterType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:19:21 - warning: Type annotation is missing for parameter "text" (reportMissingParameterType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:20:12 - warning: Return type is Any (reportAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:20:22 - warning: Argument type is unknown
     Argument corresponds to parameter "src" in function "render" (reportUnknownArgumentType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:51:24 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:61:45 - warning: Argument type is Any
+    Argument corresponds to parameter "hex_color" in function "get_contrast_color" (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:61:55 - warning: Type of "v" is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/app/utils.py:73:24 - warning: Type `Any` is not allowed (reportExplicitAny)
 /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse.py
   /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse.py:33:25 - warning: Type of "append" is partially unknown
     Type of "append" is "(object: Unknown, /) -> None" (reportUnknownMemberType)
@@ -213,13 +262,8 @@
   /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py:74:22 - warning: Type of "startswith" is unknown (reportUnknownMemberType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_chat_sse_real.py:83:9 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
 /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py
-  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:27:15 - error: Method "generate_profile_from_pdfs" overrides class "MistralService" in an incompatible manner
-    Positional parameter count mismatch; base method has 3, but override has 2
-    Parameter 2 type mismatch: base parameter is type "list[UploadedDocument]", override parameter is type "list[tuple[str, bytes]]"
-    Parameter 3 mismatch: base parameter "owner_name" is keyword parameter, override parameter is position-only
-      "list[UploadedDocument]" is not assignable to "list[tuple[str, bytes]]"
-        Type parameter "_T@list" is invariant, but "UploadedDocument" is not the same as "tuple[str, bytes]"
-        Consider switching from "list" to "Sequence" which is covariant (reportIncompatibleMethodOverride)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:23:96 - warning: Type `Any` is not allowed (reportExplicitAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:23:132 - warning: Type `Any` is not allowed (reportExplicitAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:93:5 - warning: Type of "response" is unknown (reportUnknownVariableType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:93:16 - warning: Type of "get" is partially unknown
     Type of "get" is "(url: Unknown, *, params: Unknown | None = None, headers: Unknown | None = None, cookies: Unknown | None = None, auth: Unknown = httpx._client.USE_CLIENT_DEFAULT, follow_redirects: bool | Unknown = httpx._client.USE_CLIENT_DEFAULT, timeout: Unknown = httpx._client.USE_CLIENT_DEFAULT, extensions: dict[str, Any] | None = None) -> Unknown" (reportUnknownMemberType)
@@ -258,9 +302,16 @@
   /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:136:12 - warning: Type of "get" is unknown (reportUnknownMemberType)
   /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_main.py:137:35 - warning: Type of "cookies" is unknown (reportUnknownMemberType)
 /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_services.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_services.py:16:5 - warning: Type of "chat" is Any (reportAny)
   /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_services.py:20:22 - warning: Type of "ask_mistral" is partially unknown
     Type of "ask_mistral" is "(messages_history: list[ChatMessageData], tools: list[dict[str, Any]] | None = None, tool_callback: Unknown | None = None, max_depth: int = 3) -> CoroutineType[Any, Any, str]" (reportUnknownMemberType)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_services.py:23:5 - warning: Type of "chat" is Any (reportAny)
+/Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_sse.py
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_sse.py:42:20 - warning: Type of "role" is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_sse.py:43:20 - warning: Type of "content" is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_sse.py:44:20 - warning: Type of "role" is Any (reportAny)
+  /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_sse.py:45:20 - warning: Type of "content" is Any (reportAny)
 /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_ui.py
   /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_ui.py:29:13 - warning: Result of call expression is of type "Response | None" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
   /Users/tiborcasteleijn/Repositories/prompt-folio/tests/test_ui.py:50:9 - warning: Result of call expression is of type "int" and is not used; assign to variable "_" if this is intentional (reportUnusedCallResult)
-19 errors, 154 warnings, 0 notes
+17 errors, 200 warnings, 0 notes
