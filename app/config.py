@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     # Default UI configuration for new deployments
     default_owner_name: str = "Tibor"
+    default_owner_pronouns: str = "their"
     default_color_shadow_grey: str = "#1e1e24"
     default_color_sweet_salmon: str = "#fb9f89"
     default_color_khaki_beige: str = "#c4af9a"

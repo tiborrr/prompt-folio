@@ -240,15 +240,17 @@ async def manage_meeting_url(
 async def manage_owner_name(
     request: Request,
     owner_name: Annotated[str, Form()],
+    owner_pronouns: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     _=Depends(require_admin),
 ):
     context_store.save_owner_name(owner_name)
+    context_store.save_owner_pronouns(owner_pronouns)
     return render_template(
         request,
         "status.html",
         context_store,
-        {"message": "Owner name updated successfully!"},
+        {"message": "Owner identity updated successfully!"},
     )
 
 

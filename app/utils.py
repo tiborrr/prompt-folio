@@ -60,6 +60,7 @@ def render_template(
     context["has_avatar"] = context_store.has_avatar()
     context["app_version"] = app_version
     context["owner_name"] = context_store.get_owner_name()
+    context["owner_pronouns"] = context_store.get_owner_pronouns()
     context["recaptcha_client_side_key"] = settings.recaptcha_client_side_key
     return templates.TemplateResponse(request=request, name=name, context=context)
 

@@ -2,14 +2,18 @@
 
 {% block manage_content %}
 <div id="owner-section" style="margin-bottom: 25px; scroll-margin-top: 30px;">
-    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: #fff;">1. Profile Name</h3>
-    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Set the name of the person this AI represents.</p>
+    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: #fff;">1. Profile Identity</h3>
+    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Set the name and pronouns of the person this AI represents.</p>
     
     <form hx-post="/manage/owner_name" hx-target="#owner-save-status" class="styled-form">
+        <label style="display: block; font-size: 0.85rem; color: #a5b4fc; margin-bottom: 5px;">Name</label>
         <input type="text" name="owner_name" value="{{ owner_name }}" placeholder="E.g. Alex" required style="width: 100%; max-width: 400px; padding: 10px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; margin-bottom: 15px; font-size: 0.95rem;">
         
+        <label style="display: block; font-size: 0.85rem; color: #a5b4fc; margin-bottom: 5px;">Pronouns</label>
+        <input type="text" name="owner_pronouns" value="{{ owner_pronouns }}" placeholder="E.g. his, her, their" required style="width: 100%; max-width: 400px; padding: 10px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; margin-bottom: 15px; font-size: 0.95rem;">
+        
         <div style="display: flex; gap: 15px; align-items: center;">
-            <button type="submit" class="primary-btn" style="width: auto; padding: 10px 25px;">Save Name</button>
+            <button type="submit" class="primary-btn" style="width: auto; padding: 10px 25px;">Save Identity</button>
             <div id="owner-save-status" style="color: #a5b4fc; font-size: 0.95rem; font-weight: 500;"></div>
         </div>
     </form>

@@ -161,8 +161,10 @@ class ContextStore:
         self.context_path = os.path.join(base_dir, "context.txt")
         self.colors_path = os.path.join(base_dir, "colors.json")
         self.avatar_path = os.path.join(base_dir, "avatar")
-        self.meeting_url_path = os.path.join(base_dir, "meeting_url.txt")
+        self.db_path = os.path.join(base_dir, "chat.db")
         self.owner_name_path = os.path.join(base_dir, "owner_name.txt")
+        self.owner_pronouns_path = os.path.join(base_dir, "owner_pronouns.txt")
+        self.meeting_url_path = os.path.join(base_dir, "meeting_url.txt")
 
     def get_owner_name(self) -> str:
         if os.path.exists(self.owner_name_path):
@@ -175,6 +177,18 @@ class ContextStore:
     def save_owner_name(self, name: str):
         with open(self.owner_name_path, "w", encoding="utf-8") as f:
             f.write(name.strip())
+
+    def get_owner_pronouns(self) -> str:
+        if os.path.exists(self.owner_pronouns_path):
+            with open(self.owner_pronouns_path, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if content:
+                    return content
+        return settings.default_owner_pronouns
+
+    def save_owner_pronouns(self, pronouns: str):
+        with open(self.owner_pronouns_path, "w", encoding="utf-8") as f:
+            f.write(pronouns.strip())
 
     def has_avatar(self) -> bool:
         return os.path.exists(self.avatar_path)
