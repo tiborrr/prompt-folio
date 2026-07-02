@@ -166,7 +166,7 @@ body {
 }
 
 .form-group input, .form-group textarea {
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 12px 15px;
@@ -184,7 +184,7 @@ body {
 .form-group input:focus, .form-group textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--shadow-grey-contrast) 8%, transparent);
 }
 
 .primary-btn {
@@ -225,7 +225,7 @@ body {
 }
 
 .clear-btn {
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent);
     color: var(--text-secondary);
     border: none;
     padding: 6px 12px;
@@ -255,7 +255,7 @@ body {
 }
 
 .chat-history::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent);
     border-radius: 3px;
 }
 
@@ -278,7 +278,7 @@ body {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -356,7 +356,7 @@ body {
 }
 
 .message.user .msg-bubble a {
-    color: white;
+    color: var(--shadow-grey-contrast);
     font-weight: 500;
 }
 
@@ -378,7 +378,7 @@ body {
     min-width: 0;
     background: transparent;
     border: none;
-    color: white;
+    color: var(--shadow-grey-contrast);
     font-family: inherit;
     font-size: 1rem;
     padding: 0 10px;
@@ -398,7 +398,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--shadow-grey-contrast);
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -532,8 +532,8 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.05);
+    background: color-mix(in srgb, var(--shadow-grey-contrast) 3%, transparent);
+    border: 1px solid color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent);
     border-radius: 12px;
     transition: all 0.2s ease;
     outline: none;
@@ -542,7 +542,7 @@ body {
 }
 
 .conversation-card:hover, .conversation-card:focus-visible {
-    background: rgba(255,255,255,0.08);
+    background: color-mix(in srgb, var(--shadow-grey-contrast) 8%, transparent);
     border-color: var(--sweet-salmon);
     transform: translateY(-2px);
     z-index: 20; /* Pop above scroll indicators */
@@ -554,7 +554,7 @@ body {
 
 /* Icon Buttons */
 .icon-btn {
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent);
     color: var(--text-secondary);
     border: 1px solid var(--border-color);
     width: 38px;
@@ -568,7 +568,7 @@ body {
 }
 
 .icon-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: color-mix(in srgb, var(--shadow-grey-contrast) 15%, transparent);
     color: var(--text-primary);
     transform: scale(1.05);
 }
@@ -617,14 +617,14 @@ body {
 
 .tab-pill:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent);
 }
 
 .tab-pill.active {
     background: var(--panel-bg);
     color: var(--sweet-salmon);
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.05);
+    border: 1px solid color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent);
 }
 
 /* Responsive Adjustments for Mobile */

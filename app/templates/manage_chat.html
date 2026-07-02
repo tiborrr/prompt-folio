@@ -104,15 +104,15 @@
         <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;"
               hx-on::after-request="setTimeout(() => { document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight; }, 100);">
             <input type="hidden" name="message" value="Hey! I'm currently away from my desk, but feel free to book a meeting with me here: {{ schedule_meeting_url }}">
-            <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: rgba(255,255,255,0.05); color: var(--khaki-beige); white-space: nowrap;">🗓️ Send meeting</button>
+            <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent); color: var(--khaki-beige); white-space: nowrap;">🗓️ Send meeting</button>
         </form>
         {% else %}
-        <a href="/manage/appearance#meeting-link-section" class="clear-btn" style="text-decoration: none; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); white-space: nowrap; border: 1px dashed rgba(255,255,255,0.2);" title="Set up a meeting link in settings first">🔗 Setup meeting link</a>
+        <a href="/manage/appearance#meeting-link-section" class="clear-btn" style="text-decoration: none; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent); color: color-mix(in srgb, var(--shadow-grey-contrast) 40%, transparent); white-space: nowrap; border: 1px dashed color-mix(in srgb, var(--shadow-grey-contrast) 20%, transparent);" title="Set up a meeting link in settings first">🔗 Setup meeting link</a>
         {% endif %}
         <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;"
               hx-on::after-request="setTimeout(() => { document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight; }, 100);">
             <input type="hidden" name="message" value="Hi! I'll be right with you. Give me just a moment.">
-            <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: rgba(255,255,255,0.05); color: var(--khaki-beige); white-space: nowrap;">⏱️ "Be right there"</button>
+            <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent); color: var(--khaki-beige); white-space: nowrap;">⏱️ "Be right there"</button>
         </form>
     </div>
 </div>

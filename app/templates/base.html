@@ -95,14 +95,14 @@ document.addEventListener('htmx:confirm', function(evt) {
 
 <!-- Custom HTMX Confirm Modal -->
 <div id="custom-confirm-modal" style="display: none; position: fixed; inset: 0; z-index: 9999; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.2s ease;">
-    <div style="background: rgba(30, 30, 30, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 25px; max-width: 400px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateY(10px); transition: transform 0.2s ease;" class="modal-content">
-        <h3 style="margin-top: 0; margin-bottom: 15px; color: #fff; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
+    <div style="background: rgba(30, 30, 30, 0.8); border: 1px solid color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent); border-radius: 12px; padding: 25px; max-width: 400px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateY(10px); transition: transform 0.2s ease;" class="modal-content">
+        <h3 style="margin-top: 0; margin-bottom: 15px; color: var(--shadow-grey-contrast); font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--sweet-salmon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
             Confirmation
         </h3>
-        <p id="custom-confirm-question" style="color: rgba(255,255,255,0.8); margin-bottom: 25px; line-height: 1.5;"></p>
+        <p id="custom-confirm-question" style="color: color-mix(in srgb, var(--shadow-grey-contrast) 80%, transparent); margin-bottom: 25px; line-height: 1.5;"></p>
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
-            <button id="custom-confirm-cancel" style="background: transparent; color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600;" onmouseover="this.style.background='rgba(255,255,255,0.1)';" onmouseout="this.style.background='transparent';">Cancel</button>
+            <button id="custom-confirm-cancel" style="background: transparent; color: color-mix(in srgb, var(--shadow-grey-contrast) 70%, transparent); border: 1px solid color-mix(in srgb, var(--shadow-grey-contrast) 20%, transparent); padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600;" onmouseover="this.style.background='color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent)';" onmouseout="this.style.background='transparent';">Cancel</button>
             <button id="custom-confirm-ok" style="background: var(--sweet-salmon); color: var(--sweet-salmon-contrast); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600;" onmouseover="this.style.transform='scale(1.05)';" onmouseout="this.style.transform='scale(1)';">Yes, proceed</button>
         </div>
     </div>
