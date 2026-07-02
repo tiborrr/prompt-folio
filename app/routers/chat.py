@@ -293,7 +293,7 @@ async def chat(
         from app.database import get_engine
         from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
-        engine = get_engine(settings)
+        engine = get_engine(settings.sqlite_url)
         async_session = async_sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
         )
