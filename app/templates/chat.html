@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="glass-panel chat-panel slide-up">
+    <div class="chat-header manage-header" style="border-bottom: none; padding-bottom: 0;">
+        <h2 style="font-size: 1.5rem;">Conversation</h2>
+        <div class="manage-actions" style="display: flex; gap: 10px; align-items: center;">
+            <a href="/manage" class="icon-btn" title="Settings" aria-label="Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </a>
+            <form action="/clear" method="POST" style="margin:0;" title="End Chat">
+                <button type="submit" class="icon-btn logout-btn" aria-label="End Chat">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="chat-history" class="chat-history scroller" style="gap: 0;" hx-ext="sse" sse-connect="/stream/{{ session_id }}">
+        <div class="indicator-top"></div>
+        <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1;">
+            {% if history %}
+                {% for msg in history %}
+                    {% if msg.role == 'assistant' %}
+                    <div class="message assistant slide-in">
+                        <div class="msg-avatar" {% if has_avatar %}style="background-image: url('/avatar?v={{ app_version }}'); background-size: cover; background-position: center; color: transparent;"{% endif %}>AI</div>
+                        <div class="msg-bubble">
+                            {{ msg.content | markdown | safe }}
+                        </div>
+                    </div>
+                    {% elif msg.role == 'user' %}
+                    <div class="message user slide-in">
+                        <div class="msg-bubble">
+                            {{ msg.content | markdown | safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+        <div class="indicator-bottom"></div>
+    </div>
+
+    <form class="chat-input-form" id="chat-input-form"
+          hx-post="/chat" 
+          hx-swap="none"
+          hx-trigger="{% if recaptcha_client_side_key %}recaptcha-verified{% else %}submit{% endif %}"
+          hx-indicator="#htmx-indicator"
+          hx-on::after-request="this.reset(); setTimeout(() => { document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight; }, 100);">
+        <input type="text" name="message" id="chat-input" class="chat-input" placeholder="Ask me anything about {{ owner_name }}..." required autocomplete="off" autofocus aria-label="Message">
+        <button type="submit" class="send-btn" aria-label="Send Message">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+    </form>
+    
+    <div id="takeover-controls" style="text-align:center; margin-top:15px; margin-bottom: 5px;">
+        {% if human_takeover %}
+            <div style="margin-bottom: 10px; font-size: 0.9rem; color: var(--sweet-salmon);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                {{ owner_name }} has been notified. The AI is paused.
+            </div>
+            <button hx-post="/revert_takeover" hx-swap="none" class="clear-btn" style="background:var(--muted-teal); color:var(--muted-teal-contrast); border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:600; font-size: 0.9rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                Nevermind, switch back to AI
+            </button>
+        {% else %}
+            <button hx-post="/takeover_request" hx-swap="none" class="clear-btn" style="background:var(--sweet-salmon); color:var(--sweet-salmon-contrast); border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:600; font-size: 0.9rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                Talk to {{ owner_name }} directly
+            </button>
+        {% endif %}
+    </div>
+
+    <div id="htmx-indicator" class="htmx-indicator">
+        <div class="typing-indicator">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+</div>
+
+{% if recaptcha_client_side_key %}
+<script>
+    document.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (form.id === 'chat-input-form') {
+            if (window.grecaptcha) {
+                e.preventDefault();
+                document.getElementById('htmx-indicator').classList.add('htmx-request');
+                grecaptcha.ready(function() {
+                    grecaptcha.execute('{{ recaptcha_client_side_key }}', {action: 'chat_message'}).then(function(token) {
+                        let hidden = form.querySelector('input[name="g-recaptcha-response"]');
+                        if (!hidden) {
+                            hidden = document.createElement('input');
+                            hidden.type = 'hidden';
+                            hidden.name = 'g-recaptcha-response';
+                            form.appendChild(hidden);
+                        }
+                        hidden.value = token;
+                        htmx.trigger(form, 'recaptcha-verified');
+                    }).catch(function() {
+                        document.getElementById('htmx-indicator').classList.remove('htmx-request');
+                        alert("ReCaptcha failed to load. Please try again or disable ad-blockers.");
+                    });
+                });
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

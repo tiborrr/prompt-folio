@@ -1,0 +1,25 @@
+services:
+  prompt-folio-web:
+    image: registry.casteleijn.com/prompt-folio:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      tags:
+        - "registry.casteleijn.com/prompt-folio:latest"
+    container_name: prompt-folio-web
+    platform: linux/amd64
+    ports:
+      - "127.0.0.1:3005:3005"
+    volumes:
+      # Persist context and uploaded PDFs across container restarts
+      - ./private:/workspace/private
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - default
+      - gateway-net
+
+networks:
+  gateway-net:
+    external: true

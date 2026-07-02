@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block header %}
+<!-- No header for mobile admin chat -->
+{% endblock %}
+
+{% block content %}
+<div class="glass-panel slide-up" style="height: 95vh; display: flex; flex-direction: column; padding: 10px; margin: 0; border-radius: 0;">
+    <div class="chat-header manage-header" style="display: flex; align-items: center; gap: 15px; margin-bottom: 5px; border-bottom: none; padding-bottom: 0; padding-top: 10px;">
+        <a href="/manage" class="icon-btn" title="Back to Manage" aria-label="Back" style="flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </a>
+        <div id="name-container" style="display: flex; align-items: center; gap: 8px; flex: 1;">
+            <h3 style="margin: 0; font-size: 1.1rem; color: var(--shadow-grey);">Admin Chat:</h3>
+            <div id="name-display" style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-primary);" onclick="this.style.display='none'; document.getElementById('name-edit').style.display='flex'; document.getElementById('name-input').focus();">
+                <h3 style="margin: 0; font-size: 1.1rem;">{{ session_data.name or 'Guest' }}</h3>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            </div>
+            <div id="name-edit" style="display: none; align-items: center; gap: 8px;">
+                <input type="text" id="name-input" name="name" value="{{ session_data.name or '' }}" placeholder="Guest"
+                       hx-post="/manage/chat/{{ session_id }}/update_name" 
+                       hx-trigger="blur, keyup[key=='Enter']" hx-target="#name-container" hx-swap="outerHTML"
+                       style="background:transparent; border:none; border-bottom:1px dashed var(--shadow-grey); color:var(--text-primary); font-size:1.1rem; font-weight:bold; width:150px; outline:none; padding:2px;">
+            </div>
+        </div>
+    </div>
+    <div style="font-size: 0.8em; color: var(--shadow-grey); margin-bottom: 10px; line-height: 1.3;">
+        {% set goal = "" %}
+        {% if session_data.history|length > 1 %}
+            {% if "goal is: " in session_data.history[1].content %}
+                {% set goal = session_data.history[1].content.split("goal is: ")[1].split(".")[0] %}
+            {% endif %}
+        {% endif %}
+        {% if goal %}Goal: {{ goal }}<br>{% endif %}
+        <div id="intent-container" style="display: flex; align-items: center; gap: 5px; margin-top: 3px;">
+            Intent: 
+            <div id="intent-display" style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--shadow-grey);" onclick="this.style.display='none'; document.getElementById('intent-edit').style.display='flex'; document.getElementById('intent-input').focus();">
+                <span>{{ session_data.intent or session_data.company or 'No specific intent' }}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            </div>
+            <div id="intent-edit" style="display: none; align-items: center; gap: 8px; flex: 1;">
+                <input type="text" id="intent-input" name="intent" value="{{ session_data.intent or session_data.company or '' }}" placeholder="No specific intent"
+                       hx-post="/manage/chat/{{ session_id }}/update_intent" 
+                       hx-trigger="blur, keyup[key=='Enter']" hx-target="#intent-container" hx-swap="outerHTML"
+                       style="background:transparent; border:none; border-bottom:1px dashed var(--shadow-grey); color:var(--shadow-grey); font-size:1em; width: 100%; outline:none; padding:2px; font-family: inherit;">
+            </div>
+        </div>
+    </div>
+    
+    <div id="admin-takeover-controls" style="margin-bottom: 10px;">
+        <button hx-post="/manage/chat/{{ session_id }}/toggle_takeover" 
+                hx-swap="none"
+                class="clear-btn" 
+                style="background: {% if session_data.human_takeover %}var(--muted-teal){% else %}var(--sweet-salmon){% endif %}; color: {% if session_data.human_takeover %}var(--muted-teal-contrast){% else %}var(--sweet-salmon-contrast){% endif %}; border:none; padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer; width: 100%; transition: all 0.2s;">
+            {% if session_data.human_takeover %}Return to AI (Unmute){% else %}Take Over Chat (Mute AI){% endif %}
+        </button>
+    </div>
+
+    <div id="chat-history" class="chat-history scroller" style="flex: 1; height: auto; background: rgba(0,0,0,0.1); border-radius: 10px; padding: 15px; margin-bottom: 10px; gap: 0;" hx-ext="sse" sse-connect="/stream/{{ session_id }}">
+        <div class="indicator-top"></div>
+        <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1;">
+            <div class="message assistant slide-in">
+                <div class="msg-avatar">AI</div>
+                <div class="msg-bubble">
+                    Hello! I am {{ owner_name }}'s AI assistant. I have read their resume and repositories. How can I help you today?
+                </div>
+            </div>
+            
+            {% for msg in session_data.history %}
+                {% if msg.role == 'user' %}
+                    <div class="message user slide-in">
+                        <div class="msg-bubble">{{ msg.content | markdown | safe }}</div>
+                    </div>
+                {% elif msg.role == 'assistant' %}
+                    <div class="message assistant slide-in">
+                        <div class="msg-avatar">{% if session_data.human_takeover %}TC{% else %}AI{% endif %}</div>
+                        <div class="msg-bubble">{{ msg.content | markdown | safe }}</div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <div class="indicator-bottom"></div>
+    </div>
+
+    <form class="chat-input-form" 
+          hx-post="/manage/chat/{{ session_id }}/send" 
+          hx-swap="none"
+          hx-on::after-request="this.reset(); setTimeout(() => { document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight; }, 100);">
+        <input type="text" name="message" id="admin-chat-input" class="chat-input" placeholder="Reply..." required autocomplete="off" aria-label="Reply Message">
+        <button type="submit" class="send-btn" aria-label="Send Reply">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+    </form>
+    <div style="display: flex; gap: 10px; margin-top: 10px; overflow-x: auto; padding-bottom: 5px;" class="scroller">
+        {% if schedule_meeting_url %}
+        <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;"
+              hx-on::after-request="setTimeout(() => { document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight; }, 100);">
+            <input type="hidden" name="message" value="Hey! I'm currently away from my desk, but feel free to book a meeting with me here: {{ schedule_meeting_url }}">
+            <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: rgba(255,255,255,0.05); color: var(--khaki-beige); white-space: nowrap;">🗓️ Send meeting</button>
+        </form>
+        {% else %}
+        <a href="/manage/appearance#meeting-link-section" class="clear-btn" style="text-decoration: none; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); white-space: nowrap; border: 1px dashed rgba(255,255,255,0.2);" title="Set up a meeting link in settings first">🔗 Setup meeting link</a>
+        {% endif %}
+        <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;"
+              hx-on::after-request="setTimeout(() => { document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight; }, 100);">
+            <input type="hidden" name="message" value="Hi! I'll be right with you. Give me just a moment.">
+            <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: rgba(255,255,255,0.05); color: var(--khaki-beige); white-space: nowrap;">⏱️ "Be right there"</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

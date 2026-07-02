@@ -1,0 +1,42 @@
+{% extends "manage_layout.html" %}
+
+{% block manage_content %}
+<div id="conversations-section" style="scroll-margin-top: 30px;">
+    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: #fff;">Recent Conversations</h3>
+    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">View and manage user chat sessions.</p>
+    
+    <div class="scroller" style="padding: 5px 10px 5px 5px; margin: -5px -10px -5px -5px; max-height: 400px; overflow-y: auto; position: relative;">
+        <div class="indicator-top"></div>
+        {% if recent_sessions %}
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+            {% for session in recent_sessions %}
+                <a href="/manage/chat/{{ session.id }}" class="conversation-card">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="conv-avatar" style="flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--muted-teal), var(--seaweed)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            {{ (session.name or 'G')[0]|upper }}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <strong style="color: var(--text-primary); font-size: 1.05rem;">{{ session.name or 'Guest' }}</strong>
+                            <span style="font-size: 0.85rem; color: var(--text-secondary); opacity: 0.8;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline; vertical-align: -2px; margin-right: 2px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                {{ session.intent or session.company or 'New Conversation' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 0.75rem; color: rgba(255,255,255,0.4); background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 6px;">{{ session.created_at.strftime('%b %d, %H:%M') }}</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--sweet-salmon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
+                </a>
+            {% endfor %}
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 40px 20px; background: rgba(0,0,0,0.1); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <p style="color: rgba(255,255,255,0.5); font-size: 0.95rem; margin: 0;">No conversations yet. When someone chats with your AI, they will appear here.</p>
+            </div>
+        {% endif %}
+        <div class="indicator-bottom"></div>
+    </div>
+</div>
+{% endblock %}

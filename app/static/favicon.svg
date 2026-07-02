@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <defs>
+        <linearGradient id="tcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fb9f89" />
+            <stop offset="100%" stop-color="#81ae9d" />
+        </linearGradient>
+    </defs>
+    <rect width="100" height="100" rx="20" fill="#1e1e24" />
+    <path d="M 30 35 h 40 M 50 35 v 40" stroke="url(#tcGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

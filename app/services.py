@@ -1,0 +1,270 @@
+import os
+import base64
+import json
+import httpx
+import asyncio
+from typing import Any
+from mistralai.client import Mistral
+from mistralai.client.models import DocumentURLChunk
+from app.constants import MODEL_CHAT, MODEL_OCR, ROLE_ASSISTANT, ROLE_TOOL
+from app.schemas import (
+    ThemeColors,
+    UploadedDocument,
+    ChatMessageData,
+    RecaptchaVerifyResult,
+)
+from app.config import settings
+
+
+class MistralService:
+    def __init__(self, api_key: str):
+        self.client = Mistral(api_key=api_key)
+
+    async def extract_pdf_ocr(self, file_name: str, file_bytes: bytes) -> str:
+        try:
+            base64_pdf = base64.b64encode(file_bytes).decode("utf-8")
+            base64_pdf_url = f"data:application/pdf;base64,{base64_pdf}"
+
+            ocr_response = await self.client.ocr.process_async(
+                model=MODEL_OCR, document=DocumentURLChunk(document_url=base64_pdf_url)
+            )
+            text = ""
+            for page in ocr_response.pages:
+                text += page.markdown + "\n\n"
+            return text
+        except Exception as e:
+            print(f"Error during OCR for {file_name}: {e}")
+            return ""
+
+    async def generate_profile_from_pdfs(
+        self, pdf_files: list[UploadedDocument], owner_name: str
+    ) -> str:
+        combined_text = ""
+        for doc in pdf_files:
+            ocr_text = await self.extract_pdf_ocr(doc.filename, doc.content)
+            combined_text += f"\n--- {doc.filename} ---\n{ocr_text}\n"
+
+        system_prompt = f"You are an expert summarizer. Take the following extracted documents and synthesize them into a rich, cohesive professional profile for {owner_name}. Do not include any meta-commentary, just the profile text."
+
+        try:
+            from typing import cast
+
+            response = await self.client.chat.complete_async(
+                model=MODEL_CHAT,
+                messages=cast(
+                    Any,
+                    [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": combined_text},
+                    ],
+                ),
+            )
+            return str(response.choices[0].message.content)
+        except Exception as e:
+            print(f"Mistral chat error: {e}")
+            return combined_text
+
+    async def ask_mistral(
+        self,
+        messages_history: list[ChatMessageData],
+        tools: list[dict[str, Any]] | None = None,
+        tool_callback=None,
+        max_depth: int = 3,
+    ) -> str:
+        if max_depth <= 0:
+            return "I'm sorry, I encountered a loop while trying to respond."
+
+        try:
+            from typing import cast
+
+            dict_messages = [m.model_dump(exclude_none=True) for m in messages_history]
+            response = await self.client.chat.complete_async(
+                model=MODEL_CHAT,
+                messages=cast(Any, dict_messages),
+                tools=tools,
+                tool_choice="auto" if tools else "none",
+            )
+            message = response.choices[0].message
+
+            if message.tool_calls and tool_callback:
+                assistant_msg = ChatMessageData(
+                    role=ROLE_ASSISTANT, content=message.content or ""
+                )
+                assistant_msg.tool_calls = []
+                for tc in message.tool_calls:
+                    assistant_msg.tool_calls.append(
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments,
+                            },
+                        }
+                    )
+                messages_history.append(assistant_msg)
+
+                for tool_call in message.tool_calls:
+                    if tool_call.function.name == "update_user_profile":
+                        try:
+                            args = json.loads(tool_call.function.arguments)
+                            await tool_callback(args.get("name"), args.get("intent"))
+                            tool_result = "Profile updated successfully."
+                        except Exception as e:
+                            print(f"Tool error: {e}")
+                            tool_result = f"Failed to update profile: {e}"
+
+                        messages_history.append(
+                            ChatMessageData(
+                                role=ROLE_TOOL,
+                                name=tool_call.function.name,
+                                content=tool_result,
+                                tool_call_id=tool_call.id,
+                            )
+                        )
+
+                return await self.ask_mistral(
+                    messages_history,
+                    tools=tools,
+                    tool_callback=tool_callback,
+                    max_depth=max_depth - 1,
+                )
+
+            return str(message.content)
+        except Exception as e:
+            print(f"Mistral API Error: {e}")
+            return "I'm sorry, I'm having trouble connecting to my brain right now."
+
+
+class RecaptchaService:
+    def __init__(self, server_key: str, is_dev: bool):
+        self.server_key = server_key
+        self.is_dev = is_dev
+
+    async def verify(self, token: str) -> bool:
+        if self.is_dev:
+            return True
+        verify_url = "https://www.google.com/recaptcha/api/siteverify"
+        data = {"secret": self.server_key, "response": token}
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(verify_url, data=data)
+                result = RecaptchaVerifyResult(**response.json())
+                return result.success
+        except Exception as e:
+            print(f"Recaptcha verification error: {e}")
+            return False
+
+
+class ContextStore:
+    def __init__(self, base_dir: str):
+        self.context_path = os.path.join(base_dir, "context.txt")
+        self.colors_path = os.path.join(base_dir, "colors.json")
+        self.avatar_path = os.path.join(base_dir, "avatar")
+        self.meeting_url_path = os.path.join(base_dir, "meeting_url.txt")
+        self.owner_name_path = os.path.join(base_dir, "owner_name.txt")
+
+    def get_owner_name(self) -> str:
+        if os.path.exists(self.owner_name_path):
+            with open(self.owner_name_path, "r", encoding="utf-8") as f:
+                val = f.read().strip()
+                if val:
+                    return val
+        return settings.default_owner_name
+
+    def save_owner_name(self, name: str):
+        with open(self.owner_name_path, "w", encoding="utf-8") as f:
+            f.write(name.strip())
+
+    def has_avatar(self) -> bool:
+        return os.path.exists(self.avatar_path)
+
+    def get_avatar_path(self) -> str:
+        return self.avatar_path
+
+    def get_context(self) -> str:
+        if os.path.exists(self.context_path):
+            with open(self.context_path, "r", encoding="utf-8") as f:
+                return f.read()
+        return f"You are an assistant representing {self.get_owner_name()}."
+
+    def save_context(self, text: str):
+        with open(self.context_path, "w", encoding="utf-8") as f:
+            f.write(text)
+
+    def get_colors(self) -> ThemeColors:
+        if os.path.exists(self.colors_path):
+            try:
+                with open(self.colors_path, "r", encoding="utf-8") as f:
+                    return ThemeColors(**json.load(f))
+            except Exception:
+                pass
+        return ThemeColors(
+            shadow_grey=settings.default_color_shadow_grey,
+            sweet_salmon=settings.default_color_sweet_salmon,
+            khaki_beige=settings.default_color_khaki_beige,
+            muted_teal=settings.default_color_muted_teal,
+            seaweed=settings.default_color_seaweed,
+        )
+
+    def save_colors(self, colors: ThemeColors):
+        with open(self.colors_path, "w", encoding="utf-8") as f:
+            json.dump(colors.model_dump(), f)
+
+    def get_meeting_url(self) -> str:
+        if os.path.exists(self.meeting_url_path):
+            with open(self.meeting_url_path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+        return ""
+
+    def save_meeting_url(self, url: str):
+        with open(self.meeting_url_path, "w", encoding="utf-8") as f:
+            f.write(url.strip())
+
+
+class NotificationService:
+    def __init__(self, topic: str):
+        self.topic = topic
+
+    async def send(self, message: str, url: str | None = None):
+        if not self.topic:
+            return
+        headers = {}
+        if url:
+            headers["Click"] = url
+        try:
+            async with httpx.AsyncClient() as client:
+                _ = await client.post(
+                    f"https://ntfy.sh/{self.topic}",
+                    content=message.encode("utf-8"),
+                    headers=headers,
+                )
+        except Exception as e:
+            print(f"Failed to send ntfy.sh notification: {e}")
+
+
+class SessionStore:
+    def __init__(self):
+        self.queues: dict[str, list[asyncio.Queue[str]]] = {}
+
+    async def broadcast(self, session_id: str, message_html: str):
+        if session_id in self.queues:
+            for q in self.queues[session_id]:
+                await q.put(message_html)
+
+    def subscribe(self, session_id: str) -> asyncio.Queue[str]:
+        q = asyncio.Queue()
+        if session_id not in self.queues:
+            self.queues[session_id] = []
+        self.queues[session_id].append(q)
+        return q
+
+    def unsubscribe(self, session_id: str, q: asyncio.Queue[str]):
+        if session_id in self.queues and q in self.queues[session_id]:
+            self.queues[session_id].remove(q)
+            if not self.queues[session_id]:
+                del self.queues[session_id]
+
+
+# Singleton instance for default usage
+default_session_store = SessionStore()

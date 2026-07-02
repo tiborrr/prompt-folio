@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ owner_name }} | AI Assistant</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v={{ app_version }}">
+    <script src="/static/js/htmx/htmx.min.js?v={{ app_version }}"></script>
+    <script src="/static/js/htmx/response-targets.js?v={{ app_version }}"></script>
+    <script src="/static/js/htmx/sse.js?v={{ app_version }}"></script>
+    {% if recaptcha_client_side_key %}
+    <script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_client_side_key }}"></script>
+    {% endif %}
+    <style>
+        :root {
+            --shadow-grey: {{ colors.shadow_grey }};
+            --sweet-salmon: {{ colors.sweet_salmon }};
+            --khaki-beige: {{ colors.khaki_beige }};
+            --muted-teal: {{ colors.muted_teal }};
+            --seaweed: {{ colors.seaweed }};
+
+            --shadow-grey-contrast: {{ contrast_colors.shadow_grey_contrast }};
+            --sweet-salmon-contrast: {{ contrast_colors.sweet_salmon_contrast }};
+            --khaki-beige-contrast: {{ contrast_colors.khaki_beige_contrast }};
+            --muted-teal-contrast: {{ contrast_colors.muted_teal_contrast }};
+            --seaweed-contrast: {{ contrast_colors.seaweed_contrast }};
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body hx-ext="response-targets">
+    <div class="background-blob blob-1"></div>
+    <div class="background-blob blob-2"></div>
+    
+    <main class="container">
+        {% block header %}
+        <header class="app-header">
+            <div class="avatar">
+                <span>{{ (owner_name or 'U')[0]|upper }}</span>
+            </div>
+            <div class="header-text">
+                <h1>{{ owner_name }}</h1>
+                <p>AI Assistant & Digital Architect</p>
+            </div>
+        </header>
+        {% endblock %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,13 @@
+<div class="message user slide-in">
+    <div class="msg-bubble">
+        {{ user_message }}
+    </div>
+    <div class="msg-avatar">U</div>
+</div>
+
+<div class="message assistant slide-in">
+    <div class="msg-avatar">TC</div>
+    <div class="msg-bubble markdown-body">
+        {{ assistant_message | replace('\n', '<br>') | safe }}
+    </div>
+</div>

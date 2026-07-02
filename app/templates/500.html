@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 Internal Server Error</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            background-color: #1e1e24; /* Shadow Grey */
+            color: #c4af9a; /* Khaki Beige */
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 600px;
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .error-code {
+            font-size: 8rem;
+            font-weight: 800;
+            margin: 0;
+            color: #fb9f89; /* Sweet Salmon */
+            text-shadow: 0px 4px 15px rgba(251, 159, 137, 0.2);
+            line-height: 1;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin: 1rem 0 1.5rem;
+            color: #81ae9d; /* Muted Teal */
+        }
+
+        .message {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
+            color: rgba(196, 175, 154, 0.9);
+        }
+
+        .server-info {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #21a179; /* Seaweed */
+            border-top: 1px solid rgba(196, 175, 154, 0.15);
+            padding-top: 1.5rem;
+            margin-top: 2rem;
+            opacity: 0.8;
+            letter-spacing: 0.5px;
+        }
+
+        /* Decorative background elements */
+        .blob1, .blob2 {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 1;
+            opacity: 0.12;
+            animation: float 10s ease-in-out infinite;
+        }
+
+        .blob1 {
+            width: 400px;
+            height: 400px;
+            background: #fb9f89; /* Sweet Salmon */
+            top: -100px;
+            left: -150px;
+            animation-delay: 0s;
+        }
+
+        .blob2 {
+            width: 350px;
+            height: 350px;
+            background: #81ae9d; /* Muted Teal */
+            bottom: -100px;
+            right: -100px;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, -20px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="blob1"></div>
+    <div class="blob2"></div>
+    <div class="container">
+        <h1 class="error-code">500</h1>
+        <div class="title">Internal Server Error</div>
+        <p class="message">
+            The server encountered an unexpected condition that prevented it from fulfilling the request. The administrator has been notified.
+        </p>
+        <div class="server-info">
+            prompt-folio/1.0
+        </div>
+    </div>
+</body>
+</html>

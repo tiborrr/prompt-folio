@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="glass-panel slide-up" style="max-width: 400px; margin: 50px auto;">
+    <div class="chat-header">
+        <h2>Admin Login</h2>
+    </div>
+
+    <div style="padding: 20px 0;">
+        <p class="subtitle" style="margin-bottom: 20px; text-align: center;">Enter your password to manage context.</p>
+        
+        <form hx-post="/manage/login" hx-target-401="#login-error" hx-indicator="#login-loading" class="styled-form">
+            {% if next_url %}
+            <input type="hidden" name="next_url" value="{{ next_url }}">
+            {% endif %}
+            <div class="form-group">
+                <input type="password" name="password" id="password-input" placeholder="Password" required aria-label="Admin Password">
+            </div>
+            
+            <button type="submit" class="primary-btn" style="width: 100%;" aria-label="Login">Login</button>
+            
+            <div id="login-loading" class="htmx-indicator" style="text-align: center; margin-top: 15px;">
+                <div class="typing-indicator" style="background: transparent; border: none; padding: 0;">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+            
+            <div id="login-error" style="margin-top: 15px; text-align: center; font-size: 0.9rem;"></div>
+        </form>
+    </div>
+</div>
+{% endblock %}
