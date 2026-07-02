@@ -1,5 +1,5 @@
 # First, build the application in the /workspace directory
-FROM ghcr.io/astral-sh/uv:bookworm-slim AS builder
+FROM ghcr.io/astral-sh/uv:bookworm AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
 # Omit development dependencies
@@ -30,7 +30,6 @@ COPY start.sh /workspace/
 COPY update_htmx.sh /workspace/
 COPY update_editorjs.sh /workspace/
 
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN chmod +x update_htmx.sh update_editorjs.sh && ./update_htmx.sh && ./update_editorjs.sh
 
 RUN --mount=type=cache,target=/root/.cache/uv \
