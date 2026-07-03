@@ -16,6 +16,18 @@
     --text-secondary: var(--khaki-beige);
     --bubble-user: var(--seaweed);
     --bubble-assistant: color-mix(in srgb, var(--khaki-beige) 10%, transparent);
+
+    /* Shadow grey contrast opacities */
+    --shadow-contrast-5: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent);
+    --shadow-contrast-10: color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent);
+    --shadow-contrast-20: color-mix(in srgb, var(--shadow-grey-contrast) 20%, transparent);
+    --shadow-contrast-30: color-mix(in srgb, var(--shadow-grey-contrast) 30%, transparent);
+    --shadow-contrast-40: color-mix(in srgb, var(--shadow-grey-contrast) 40%, transparent);
+    --shadow-contrast-50: color-mix(in srgb, var(--shadow-grey-contrast) 50%, transparent);
+    --shadow-contrast-60: color-mix(in srgb, var(--shadow-grey-contrast) 60%, transparent);
+    --shadow-contrast-70: color-mix(in srgb, var(--shadow-grey-contrast) 70%, transparent);
+    --shadow-contrast-80: color-mix(in srgb, var(--shadow-grey-contrast) 80%, transparent);
+    --shadow-contrast-90: color-mix(in srgb, var(--shadow-grey-contrast) 90%, transparent);
 }
 
 * {
@@ -765,6 +777,148 @@ body {
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
+}
+
+/* Hover Effects - Replace inline JavaScript */
+.hover-scale {
+    transition: transform 0.2s;
+}
+
+.hover-scale:hover {
+    transform: scale(1.05);
+}
+
+.hover-salmon-bg {
+    opacity: 0.7;
+    background: transparent;
+    transition: all 0.2s;
+}
+
+.hover-salmon-bg:hover {
+    opacity: 1;
+    background: rgba(251, 159, 137, 0.1);
+}
+
+.hover-color-salmon {
+    color: var(--text-primary);
+    transition: color 0.2s;
+}
+
+.hover-color-salmon:hover {
+    color: var(--sweet-salmon);
+}
+
+.hover-bg-salmon {
+    background: var(--sweet-salmon);
+    color: var(--sweet-salmon-contrast);
+    transition: all 0.2s;
+}
+
+.hover-bg-salmon:hover {
+    background: var(--sweet-salmon);
+    color: var(--sweet-salmon-contrast);
+    transform: scale(1.05);
+}
+
+.hover-bg-translucent {
+    background: var(--shadow-contrast-10);
+    color: var(--khaki-beige);
+    transition: all 0.2s;
+}
+
+.hover-bg-translucent:hover {
+    background: var(--shadow-contrast-20);
+    color: var(--khaki-beige);
+    transform: scale(1.05);
+}
+
+.conversation-card {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.conversation-card:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* File drop area hover */
+.file-drop-area {
+    border: 2px dashed var(--shadow-contrast-20);
+    border-radius: 8px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+    background: rgba(0,0,0,0.1);
+}
+
+.file-drop-area:hover {
+    background: rgba(0,0,0,0.2);
+    border-color: var(--sweet-salmon);
+}
+
+.file-drop-area.drag-over {
+    background: rgba(0,0,0,0.3);
+    border-color: var(--sweet-salmon);
+    border-width: 3px;
+}
+
+/* Salmon outline button hover */
+.hover-salmon-outline {
+    background: transparent;
+    color: var(--sweet-salmon);
+    border: 1px solid var(--sweet-salmon);
+    transition: all 0.2s;
+}
+
+.hover-salmon-outline:hover {
+    background: var(--sweet-salmon);
+    color: var(--sweet-salmon-contrast);
+}
+
+/* Click-to-edit functionality */
+.editable-display {
+    cursor: pointer;
+}
+
+.editable-edit {
+    display: none;
+}
+
+.editable-edit.active {
+    display: flex;
+}
+
+.editable-display.hidden {
+    display: none;
+}
+
+/* Flexbox Utility Classes */
+.flex-row-center {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.flex-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Form Inputs */
+.admin-input {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid var(--shadow-contrast-10);
+    background: rgba(0,0,0,0.2);
+    color: var(--shadow-grey-contrast);
+    margin-bottom: 15px;
+    font-size: 0.95rem;
+    transition: all 0.2s;
 }
 
 

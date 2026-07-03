@@ -20,10 +20,10 @@
     <div class="scroller" style="padding: 5px 10px 5px 5px; margin: -5px -10px -5px -5px; max-height: 400px; overflow-y: auto; position: relative;">
         <div class="indicator-top"></div>
         {% if recent_sessions %}
-            <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="flex-col">
             {% for session in recent_sessions %}
-                <div onclick="if(!event.target.closest('.clear-btn')) window.location.href='/manage/chat/{{ session.id }}'" class="conversation-card" style="cursor: pointer;">
-                    <div style="display: flex; align-items: center; gap: 15px;">
+                <div hx-get="/manage/chat/{{ session.id }}" hx-push-url="true" hx-target="body" class="conversation-card" style="cursor: pointer;">
+                    <div class="flex-row-center">
                         <div class="conv-avatar" style="flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--muted-teal), var(--seaweed)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--shadow-grey-contrast); font-size: 1.1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                             {{ (session.name or 'G')[0]|upper }}
                         </div>
@@ -35,17 +35,14 @@
                             </span>
                         </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <span style="font-size: 0.75rem; color: color-mix(in srgb, var(--shadow-grey-contrast) 40%, transparent); background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 6px;">{{ session.created_at.strftime('%b %d, %H:%M') }}</span>
+                    <div class="flex-row-center">
+                        <span style="font-size: 0.75rem; color: var(--shadow-contrast-40); background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 6px;">{{ session.created_at.strftime('%b %d, %H:%M') }}</span>
                         <button hx-delete="/manage/chat/{{ session.id }}" 
                                 hx-confirm="Are you sure you want to permanently delete this conversation?" 
                                 hx-target="closest .conversation-card" 
-                                hx-swap="outerHTML" 
-                                onclick="event.preventDefault(); event.stopPropagation();"
-                                class="clear-btn" 
-                                style="padding: 5px; color: var(--sweet-salmon); opacity: 0.7; transition: all 0.2s; border-radius: 4px;"
-                                onmouseover="this.style.opacity='1'; this.style.background='rgba(251,159,137,0.1)';" 
-                                onmouseout="this.style.opacity='0.7'; this.style.background='transparent';">
+                                hx-swap="outerHTML"
+                                class="clear-btn hover-salmon-bg" 
+                                style="padding: 5px; color: var(--sweet-salmon); border-radius: 4px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                     </div>
@@ -53,9 +50,9 @@
             {% endfor %}
             </div>
         {% else %}
-            <div style="text-align: center; padding: 40px 20px; background: rgba(0,0,0,0.1); border-radius: 12px; border: 1px dashed color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent);">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="color-mix(in srgb, var(--shadow-grey-contrast) 20%, transparent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                <p style="color: color-mix(in srgb, var(--shadow-grey-contrast) 50%, transparent); font-size: 0.95rem; margin: 0;">No conversations yet. When someone chats with your AI, they will appear here.</p>
+            <div style="text-align: center; padding: 40px 20px; background: rgba(0,0,0,0.1); border-radius: 12px; border: 1px dashed var(--shadow-contrast-10);">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--shadow-contrast-20)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <p style="color: var(--shadow-contrast-50); font-size: 0.95rem; margin: 0;">No conversations yet. When someone chats with your AI, they will appear here.</p>
             </div>
         {% endif %}
         <div class="indicator-bottom"></div>

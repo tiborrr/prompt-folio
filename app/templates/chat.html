@@ -24,7 +24,7 @@
     
     <div id="chat-history" class="chat-history scroller" style="gap: 0;" hx-ext="sse" sse-connect="/stream/{{ session_id }}">
         <div class="indicator-top"></div>
-        <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1;">
+        <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend scroll:#chat-history:bottom" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1;">
             {% if history %}
                 {% for msg in history %}
                     {% if msg.role == 'assistant' or msg.role == 'admin' %}
@@ -70,11 +70,11 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                 {{ owner_name }} has been notified. The AI is paused.
             </div>
-            <button hx-post="/revert_takeover" hx-swap="none" class="clear-btn" style="background:var(--muted-teal); color:var(--muted-teal-contrast); border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:600; font-size: 0.9rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            <button hx-post="/revert_takeover" hx-swap="none" class="clear-btn hover-scale" style="background:var(--muted-teal); color:var(--muted-teal-contrast); border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:600; font-size: 0.9rem;">
                 Nevermind, switch back to AI
             </button>
         {% else %}
-            <button hx-post="/takeover_request" hx-swap="none" class="clear-btn" style="background:var(--sweet-salmon); color:var(--sweet-salmon-contrast); border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:600; font-size: 0.9rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            <button hx-post="/takeover_request" hx-swap="none" class="clear-btn hover-scale" style="background:var(--sweet-salmon); color:var(--sweet-salmon-contrast); border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:600; font-size: 0.9rem;">
                 Talk to {{ owner_name }} directly
             </button>
         {% endif %}

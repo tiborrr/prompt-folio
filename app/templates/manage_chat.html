@@ -11,20 +11,20 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         </a>
         <div id="name-container" style="display: flex; align-items: center; gap: 8px; flex: 1;">
-            <h3 style="margin: 0; font-size: 1.1rem; color: color-mix(in srgb, var(--shadow-grey-contrast) 60%, transparent);">Admin Chat:</h3>
-            <div id="name-display" style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-primary);" onclick="this.style.display='none'; document.getElementById('name-edit').style.display='flex'; document.getElementById('name-input').focus();">
+            <h3 style="margin: 0; font-size: 1.1rem; color: var(--shadow-contrast-60);">Admin Chat:</h3>
+            <div id="name-display" class="editable-display" style="display: flex; align-items: center; gap: 6px; color: var(--text-primary);">
                 <h3 style="margin: 0; font-size: 1.1rem;">{{ session_data.name or 'Guest' }}</h3>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
             </div>
-            <div id="name-edit" style="display: none; align-items: center; gap: 8px;">
+            <div id="name-edit" class="editable-edit" style="align-items: center; gap: 8px;">
                 <input type="text" id="name-input" name="name" value="{{ session_data.name or '' }}" placeholder="Guest"
                        hx-post="/manage/chat/{{ session_id }}/update_name" 
                        hx-trigger="blur, keyup[key=='Enter']" hx-target="#name-container" hx-swap="outerHTML"
-                       style="background:transparent; border:none; border-bottom:1px dashed color-mix(in srgb, var(--shadow-grey-contrast) 30%, transparent); color:var(--text-primary); font-size:1.1rem; font-weight:bold; width:150px; outline:none; padding:2px;">
+                       style="background:transparent; border:none; border-bottom:1px dashed var(--shadow-contrast-30); color:var(--text-primary); font-size:1.1rem; font-weight:bold; width:150px; outline:none; padding:2px;">
             </div>
         </div>
     </div>
-    <div style="font-size: 0.8em; color: color-mix(in srgb, var(--shadow-grey-contrast) 60%, transparent); margin-bottom: 10px; line-height: 1.3;">
+    <div style="font-size: 0.8em; color: var(--shadow-contrast-60); margin-bottom: 10px; line-height: 1.3;">
         {% set goal = "" %}
         {% if session_data.history|length > 1 %}
             {% if "goal is: " in session_data.history[1].content %}
@@ -34,15 +34,15 @@
         {% if goal %}Goal: {{ goal }}<br>{% endif %}
         <div id="intent-container" style="display: flex; align-items: center; gap: 5px; margin-top: 3px;">
             Intent: 
-            <div id="intent-display" style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: color-mix(in srgb, var(--shadow-grey-contrast) 60%, transparent);" onclick="this.style.display='none'; document.getElementById('intent-edit').style.display='flex'; document.getElementById('intent-input').focus();">
+            <div id="intent-display" class="editable-display" style="display: flex; align-items: center; gap: 6px; color: var(--shadow-contrast-60);">
                 <span>{{ session_data.intent or session_data.company or 'No specific intent' }}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
             </div>
-            <div id="intent-edit" style="display: none; align-items: center; gap: 8px; flex: 1;">
+            <div id="intent-edit" class="editable-edit" style="align-items: center; gap: 8px; flex: 1;">
                 <input type="text" id="intent-input" name="intent" value="{{ session_data.intent or session_data.company or '' }}" placeholder="No specific intent"
                        hx-post="/manage/chat/{{ session_id }}/update_intent" 
                        hx-trigger="blur, keyup[key=='Enter']" hx-target="#intent-container" hx-swap="outerHTML"
-                       style="background:transparent; border:none; border-bottom:1px dashed color-mix(in srgb, var(--shadow-grey-contrast) 30%, transparent); color:var(--text-primary); font-size:1em; width: 100%; outline:none; padding:2px; font-family: inherit;">
+                       style="background:transparent; border:none; border-bottom:1px dashed var(--shadow-contrast-30); color:var(--text-primary); font-size:1em; width: 100%; outline:none; padding:2px; font-family: inherit;">
             </div>
         </div>
     </div>
@@ -56,17 +56,15 @@
         </button>
         <button hx-delete="/manage/chat/{{ session_id }}" 
                 hx-confirm="Are you sure you want to permanently delete this conversation?"
-                class="clear-btn" 
-                style="background: transparent; color: var(--sweet-salmon); border: 1px solid var(--sweet-salmon); padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer; transition: all 0.2s;"
-                onmouseover="this.style.background='var(--sweet-salmon)'; this.style.color='var(--sweet-salmon-contrast)';"
-                onmouseout="this.style.background='transparent'; this.style.color='var(--sweet-salmon)';">
+                class="clear-btn hover-salmon-outline" 
+                style="padding:8px 15px; border-radius:5px; font-weight:bold; cursor:pointer;">
             Delete Chat
         </button>
     </div>
 
     <div id="chat-history" class="chat-history scroller" style="flex: 1; height: auto; background: rgba(0,0,0,0.1); border-radius: 10px; padding: 15px; margin-bottom: 10px; gap: 0;" hx-ext="sse" sse-connect="/stream/{{ session_id }}">
         <div class="indicator-top"></div>
-        <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1;">
+        <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend scroll:#chat-history:bottom" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1;">
             <div class="message assistant slide-in">
                 <div class="msg-avatar">AI</div>
                 <div class="msg-bubble">
@@ -111,14 +109,14 @@
         {% if schedule_meeting_url %}
         <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;">
             <input type="hidden" name="message" value="Hey! I'm currently away from my desk, but feel free to book a meeting with me here: {{ schedule_meeting_url }}">
-            <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent); color: var(--khaki-beige); white-space: nowrap;">🗓️ Send meeting</button>
+            <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: var(--shadow-contrast-5); color: var(--khaki-beige); white-space: nowrap;">🗓️ Send meeting</button>
         </form>
         {% else %}
-        <a href="/manage/appearance#meeting-link-section" class="clear-btn" style="text-decoration: none; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent); color: color-mix(in srgb, var(--shadow-grey-contrast) 40%, transparent); white-space: nowrap; border: 1px dashed color-mix(in srgb, var(--shadow-grey-contrast) 20%, transparent);" title="Set up a meeting link in settings first">🔗 Setup meeting link</a>
+        <a href="/manage/appearance#meeting-link-section" class="clear-btn" style="text-decoration: none; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: var(--shadow-contrast-5); color: var(--shadow-contrast-40); white-space: nowrap; border: 1px dashed var(--shadow-contrast-20);" title="Set up a meeting link in settings first">🔗 Setup meeting link</a>
         {% endif %}
         <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;">
             <input type="hidden" name="message" value="Hi! I'll be right with you. Give me just a moment.">
-            <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent); color: var(--khaki-beige); white-space: nowrap;">⏱️ "Be right there"</button>
+            <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: var(--shadow-contrast-5); color: var(--khaki-beige); white-space: nowrap;">⏱️ "Be right there"</button>
         </form>
     </div>
 </div>

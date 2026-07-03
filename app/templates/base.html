@@ -12,7 +12,7 @@
     <script src="/static/js/htmx/htmx.min.js?v={{ app_version }}"></script>
     <script src="/static/js/htmx/response-targets.js?v={{ app_version }}"></script>
     <script src="/static/js/htmx/sse.js?v={{ app_version }}"></script>
-    <script src="/static/js/chat-scroll.js?v={{ app_version }}"></script>
+
     {% if recaptcha_client_side_key %}
     <script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_client_side_key }}"></script>
     {% endif %}
@@ -107,15 +107,15 @@ document.addEventListener('htmx:confirm', function(evt) {
 
 <!-- Custom HTMX Confirm Modal -->
 <div id="custom-confirm-modal" style="display: none; position: fixed; inset: 0; z-index: 9999; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.2s ease;">
-    <div style="background: rgba(30, 30, 30, 0.8); border: 1px solid color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent); border-radius: 12px; padding: 25px; max-width: 400px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateY(10px); transition: transform 0.2s ease;" class="modal-content">
+    <div style="background: rgba(30, 30, 30, 0.8); border: 1px solid var(--shadow-contrast-10); border-radius: 12px; padding: 25px; max-width: 400px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateY(10px); transition: transform 0.2s ease;" class="modal-content">
         <h3 style="margin-top: 0; margin-bottom: 15px; color: var(--shadow-grey-contrast); font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--sweet-salmon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
             Confirmation
         </h3>
-        <p id="custom-confirm-question" style="color: color-mix(in srgb, var(--shadow-grey-contrast) 80%, transparent); margin-bottom: 25px; line-height: 1.5;"></p>
+        <p id="custom-confirm-question" style="color: var(--shadow-contrast-80); margin-bottom: 25px; line-height: 1.5;"></p>
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
-            <button id="custom-confirm-cancel" style="background: transparent; color: color-mix(in srgb, var(--shadow-grey-contrast) 70%, transparent); border: 1px solid color-mix(in srgb, var(--shadow-grey-contrast) 20%, transparent); padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600;" onmouseover="this.style.background='color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent)';" onmouseout="this.style.background='transparent';">Cancel</button>
-            <button id="custom-confirm-ok" style="background: var(--sweet-salmon); color: var(--sweet-salmon-contrast); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600;" onmouseover="this.style.transform='scale(1.05)';" onmouseout="this.style.transform='scale(1)';">Yes, proceed</button>
+            <button id="custom-confirm-cancel" class="hover-bg-translucent" style="border: 1px solid var(--shadow-contrast-20); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; color: var(--shadow-contrast-70);">Cancel</button>
+            <button id="custom-confirm-ok" class="hover-bg-salmon" style="border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">Yes, proceed</button>
         </div>
     </div>
 </div>
@@ -123,6 +123,37 @@ document.addEventListener('htmx:confirm', function(evt) {
     #custom-confirm-modal.visible { opacity: 1 !important; }
     #custom-confirm-modal.visible .modal-content { transform: translateY(0) !important; }
 </style>
+
+<script>
+// Click-to-edit utility function
+function initClickToEdit() {
+    document.querySelectorAll('.editable-display').forEach(function(display) {
+        display.addEventListener('click', function() {
+            var displayId = this.id;
+            var container = this.closest('[id$="-container"]') || this.parentElement;
+            
+            // Hide display and show edit
+            this.classList.add('hidden');
+            
+            // Find the corresponding edit element
+            var editId = displayId.replace('-display', '-edit');
+            var editEl = container.querySelector('#' + editId);
+            if (editEl) {
+                editEl.classList.add('active');
+                // Focus the input if it exists
+                var input = editEl.querySelector('input');
+                if (input) {
+                    input.focus();
+                }
+            }
+        });
+    });
+}
+
+// Initialize on page load and after HTMX swaps
+document.addEventListener('DOMContentLoaded', initClickToEdit);
+document.body.addEventListener('htmx:afterSwap', initClickToEdit);
+</script>
 
 </body>
 </html>

@@ -27,12 +27,10 @@
               document.getElementById('editorjs-container').style.pointerEvents = 'auto';
           "
           class="styled-form">
-        <div class="file-drop-area" id="file-drop-area" style="border: 2px dashed color-mix(in srgb, var(--shadow-grey-contrast) 20%, transparent); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s ease; margin-bottom: 15px; background: rgba(0,0,0,0.1);"
-             onmouseover="this.style.background='rgba(0,0,0,0.2)'; this.style.borderColor='var(--sweet-salmon)';" 
-             onmouseout="this.style.background='rgba(0,0,0,0.1)'; this.style.borderColor='color-mix(in srgb, var(--shadow-grey-contrast) 20%, transparent)';">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="color-mix(in srgb, var(--shadow-grey-contrast) 50%, transparent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px; transition: stroke 0.3s;" id="drop-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            <p style="color: color-mix(in srgb, var(--shadow-grey-contrast) 70%, transparent); margin-bottom: 5px; font-weight: 500; font-size: 1.05rem;">Drag & drop PDFs here</p>
-            <p style="color: color-mix(in srgb, var(--shadow-grey-contrast) 40%, transparent); font-size: 0.85rem;">or click to browse files</p>
+        <div class="file-drop-area" id="file-drop-area">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--shadow-contrast-50)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px; transition: stroke 0.3s;" id="drop-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <p style="color: var(--shadow-contrast-70); margin-bottom: 5px; font-weight: 500; font-size: 1.05rem;">Drag & drop PDFs here</p>
+            <p style="color: var(--shadow-contrast-40); font-size: 0.85rem;">or click to browse files</p>
             <input type="file" name="files" id="file-input" multiple accept=".pdf" required style="display: none;">
             <div id="file-list" style="margin-top: 15px; text-align: center; font-size: 0.9rem; color: var(--sweet-salmon); font-weight: 600;"></div>
         </div>
@@ -55,7 +53,7 @@
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--khaki-beige)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.8;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                     <div>
-                        <a href="/manage/document/{{ doc.id }}" target="_blank" style="color: var(--text-primary); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: color 0.2s;" onmouseover="this.style.color='var(--sweet-salmon)'" onmouseout="this.style.color='var(--text-primary)'">{{ doc.filename }}</a>
+                        <a href="/manage/document/{{ doc.id }}" target="_blank" class="hover-color-salmon" style="text-decoration: none; font-weight: 500; font-size: 0.9rem;">{{ doc.filename }}</a>
                         <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">Uploaded {{ doc.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
                     </div>
                 </div>
@@ -110,7 +108,7 @@
             <textarea name="raw_context" id="hidden-raw-context" style="display: none;">{{ raw_context }}</textarea>
             <div id="editorjs-container"></div>
         </div>
-        <div style="display: flex; align-items: center; gap: 15px;">
+        <div class="flex-row-center">
             <button type="button" id="save-context-btn" class="primary-btn" style="width: auto;">Save Context</button>
             <div id="save-indicator" class="htmx-indicator">
                 <div class="typing-indicator"><span></span><span></span><span></span></div>
@@ -144,7 +142,7 @@
     }
     
     .ce-popover__item:hover {
-        background: color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent) !important;
+        background: var(--shadow-contrast-10) !important;
     }
 
     .ce-popover__item-icon {
@@ -168,7 +166,7 @@
     }
 
     .ce-inline-tool:hover {
-        background: color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent);
+        background: var(--shadow-contrast-10);
     }
 </style>
 
@@ -273,9 +271,9 @@
         }
 
         function unhighlight(e) {
-            dropArea.style.borderColor = 'color-mix(in srgb, var(--shadow-grey-contrast) 20%, transparent)';
+            dropArea.style.borderColor = 'var(--shadow-contrast-20)';
             dropArea.style.background = 'rgba(0,0,0,0.1)';
-            dropIcon.style.stroke = 'color-mix(in srgb, var(--shadow-grey-contrast) 50%, transparent)';
+            dropIcon.style.stroke = 'var(--shadow-contrast-50)';
         }
 
         dropArea.addEventListener('drop', handleDrop, false);

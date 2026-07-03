@@ -308,14 +308,15 @@ async def chat(
 
         try:
             async with bg_session_factory() as bg_db:
-                # Broadcast typing indicator
-                typing_html = await render_template_to_string(
+                # Step 1: Inject the typing indicator normally
+                typing_indicator_html = await render_template_to_string(
                     "fragments/typing_indicator.html",
                     context_store,
                     bg_db,
                 )
-                await session_store.broadcast(session_id, typing_html)
-
+                await session_store.broadcast(session_id, typing_indicator_html)
+                
+                # Step 2: Process the request (call LLM)
                 # Get session
                 result = await bg_db.execute(
                     select(ChatSession).where(ChatSession.id == session_id)
@@ -379,6 +380,7 @@ async def chat(
                 bg_db.add(assistant_msg)
                 await bg_db.commit()
 
+                # Step 3 & 4: Bundle the deletion with the first chunk of AI response
                 assistant_html = bytes(
                     (await render_template(
                         request,
@@ -388,10 +390,16 @@ async def chat(
                         MessageContext(message=assistant_response, is_user=False),
                     )).body
                 ).decode("utf-8")
-                await session_store.broadcast(session_id, assistant_html)
+                
+                # Prepend the OOB delete to the AI response so they're in the same payload
+                response_with_delete = '<div id="typing-indicator" hx-swap-oob="delete"></div>' + assistant_html
+                await session_store.broadcast(session_id, response_with_delete)
+        except Exception as e:
+            # If there's an error, still remove the typing indicator
+            await session_store.broadcast(session_id, '<div id="typing-indicator" hx-swap-oob="delete"></div>')
+            raise e
         finally:
-            remove_typing_html = '<div id="typing-indicator" hx-swap-oob="outerHTML" style="display: none;"></div>'
-            await session_store.broadcast(session_id, remove_typing_html)
+            pass
 
     background_tasks.add_task(generate_ai_response)
 
