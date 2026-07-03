@@ -55,7 +55,7 @@
 
     <form id="context-form" hx-post="/manage/update_raw" hx-target="#save-status" hx-indicator="#save-indicator" class="styled-form">
         <div class="form-group">
-            <input type="hidden" name="raw_context" id="hidden-raw-context" value="{{ raw_context }}">
+            <textarea name="raw_context" id="hidden-raw-context" style="display: none;">{{ raw_context }}</textarea>
             <div id="editorjs-container"></div>
         </div>
         <div style="display: flex; align-items: center; gap: 15px;">

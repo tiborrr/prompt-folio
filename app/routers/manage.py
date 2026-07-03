@@ -354,6 +354,9 @@ async def manage_upload(
     final_context = f"The following is the rich context profile for {owner}:\n\n"
     final_context += new_profile + "\n\n" + repos_section
 
+    await context_store.save_context(db, final_context)
+    return PlainTextResponse(final_context)
+
 
 @router.delete("/manage/chat/{session_id}", response_class=Response)
 async def delete_chat_session(
