@@ -33,7 +33,7 @@ from app.constants import ADMIN_SESSION_COOKIE_NAME, COOKIE_MAX_AGE_SECONDS
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, col
 from app.database import get_db_session
-from app.models import ChatSession, ChatMessage
+from app.models import ChatSession, ChatMessage, SourceDocument
 from app.schemas import (
     ThemeColors,
     ChatMessageData,
@@ -119,6 +119,9 @@ async def manage_context_get(
         )
 
     raw_context = await context_store.get_context(db)
+    result = await db.execute(select(SourceDocument).order_by(col(SourceDocument.created_at).desc()))
+    source_docs = result.scalars().all()
+
     return await render_template(
         request,
         "manage_context.html",
@@ -127,6 +130,7 @@ async def manage_context_get(
         ManageContext(
             active_tab="context",
             raw_context=raw_context,
+            source_documents=list(source_docs),
         ),
     )
 
@@ -336,11 +340,18 @@ async def manage_upload(
     for file in files:
         if file.filename and file.filename.endswith(".pdf"):
             content = await file.read()
-            pdf_files.append(UploadedDocument(filename=file.filename, content=content))
+            doc = SourceDocument(filename=file.filename, content=content)
+            db.add(doc)
+    await db.commit()
 
-    if not pdf_files:
-        return PlainTextResponse("No valid PDFs uploaded.", status_code=400)
+    # Fetch all source documents to rebuild context
+    result = await db.execute(select(SourceDocument).order_by(col(SourceDocument.created_at).desc()))
+    all_docs = result.scalars().all()
 
+    if not all_docs:
+        return PlainTextResponse("No PDFs available to generate profile.", status_code=400)
+
+    pdf_files = [UploadedDocument(filename=d.filename, content=d.content) for d in all_docs]
     owner = await context_store.get_owner_name(db)
     new_profile = await mistral_service.generate_profile_from_pdfs(pdf_files, owner)
 
@@ -356,6 +367,68 @@ async def manage_upload(
 
     await context_store.save_context(db, final_context)
     return PlainTextResponse(final_context)
+
+
+@router.post("/manage/rebuild_context")
+async def manage_rebuild_context(
+    mistral_service: Annotated[MistralService, Depends(get_mistral_service)],
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(require_admin)],
+):
+    result = await db.execute(select(SourceDocument).order_by(col(SourceDocument.created_at).desc()))
+    all_docs = result.scalars().all()
+    if not all_docs:
+        return PlainTextResponse("No PDFs uploaded yet. Upload a PDF first.", status_code=400)
+
+    pdf_files = [UploadedDocument(filename=d.filename, content=d.content) for d in all_docs]
+    owner = await context_store.get_owner_name(db)
+    new_profile = await mistral_service.generate_profile_from_pdfs(pdf_files, owner)
+
+    old_context = await context_store.get_context(db)
+    repos_split = old_context.split("=== Repositories ===")
+    if len(repos_split) > 1:
+        repos_section = "=== Repositories ===" + repos_split[1]
+    else:
+        repos_section = ""
+
+    final_context = f"The following is the rich context profile for {owner}:\n\n"
+    final_context += new_profile + "\n\n" + repos_section
+
+    await context_store.save_context(db, final_context)
+    return PlainTextResponse(final_context)
+
+
+@router.get("/manage/document/{document_id}")
+async def manage_document_get(
+    document_id: str,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(require_admin)],
+):
+    result = await db.execute(select(SourceDocument).where(SourceDocument.id == document_id))
+    doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    return Response(
+        content=doc.content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=\"{doc.filename}\""}
+    )
+
+
+@router.delete("/manage/document/{document_id}", response_class=Response)
+async def manage_document_delete(
+    document_id: str,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(require_admin)],
+):
+    result = await db.execute(select(SourceDocument).where(SourceDocument.id == document_id))
+    doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    await db.delete(doc)
+    await db.commit()
+    return Response(status_code=204)
 
 
 @router.delete("/manage/chat/{session_id}", response_class=Response)

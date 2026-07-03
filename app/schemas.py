@@ -70,6 +70,7 @@ class ManageContext(BaseModel):
     schedule_meeting_url: str | None = None
     total_chats: int = 0
     takeover_requests: int = 0
+    source_documents: list[Any] | None = None
 
 
 class ChatSessionContext(BaseModel):

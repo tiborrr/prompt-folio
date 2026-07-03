@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import uuid
 from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy import Column, LargeBinary
 
 
 def utcnow():
@@ -49,3 +50,11 @@ class SiteSettings(SQLModel, table=True):
     color_seaweed: str = Field(default="#21a179")
     avatar: bytes | None = Field(default=None)
     avatar_content_type: str | None = Field(default=None)
+
+
+class SourceDocument(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    filename: str
+    content: bytes = Field(sa_column=Column(LargeBinary))
+    created_at: datetime = Field(default_factory=utcnow)
+
