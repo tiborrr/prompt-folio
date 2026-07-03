@@ -57,6 +57,12 @@
 
 <script>
 document.addEventListener('htmx:confirm', function(evt) {
+    // If the request has already been custom confirmed, allow it to proceed immediately
+    if (evt.target && evt.target.getAttribute('data-confirmed') === 'true') {
+        evt.target.removeAttribute('data-confirmed');
+        return;
+    }
+
     if (evt.detail.question) {
         evt.preventDefault();
         
@@ -79,6 +85,11 @@ document.addEventListener('htmx:confirm', function(evt) {
         var handleConfirm = function() {
             modal.classList.remove('visible');
             setTimeout(() => modal.style.display = 'none', 200);
+            
+            // Set the confirmation flag on the target element to bypass confirm on the second event trigger
+            if (evt.target) {
+                evt.target.setAttribute('data-confirmed', 'true');
+            }
             evt.detail.issueRequest();
             cleanup();
         };
