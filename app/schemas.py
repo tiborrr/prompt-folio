@@ -68,6 +68,8 @@ class ManageContext(BaseModel):
     raw_context: str | None = None
     recent_sessions: list["SessionListItemContext"] | None = None
     schedule_meeting_url: str | None = None
+    total_chats: int = 0
+    takeover_requests: int = 0
 
 
 class ChatSessionContext(BaseModel):

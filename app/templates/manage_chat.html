@@ -78,10 +78,13 @@
                 {% if msg.role == 'user' %}
                     <div class="message user slide-in">
                         <div class="msg-bubble">{{ msg.content | markdown | safe }}</div>
+                        <div class="msg-avatar" style="background: rgba(255,255,255,0.08); color: var(--text-primary); margin-left: 10px; flex-shrink: 0;">
+                            {{ (session_data.name or 'G')[0]|upper }}
+                        </div>
                     </div>
-                {% elif msg.role == 'assistant' %}
+                {% elif msg.role == 'assistant' or msg.role == 'admin' %}
                     <div class="message assistant slide-in">
-                        <div class="msg-avatar">{% if session_data.human_takeover %}TC{% else %}AI{% endif %}</div>
+                        <div class="msg-avatar">{% if msg.role == 'admin' %}TC{% else %}AI{% endif %}</div>
                         <div class="msg-bubble">{{ msg.content | markdown | safe }}</div>
                     </div>
                 {% endif %}
@@ -90,10 +93,15 @@
         <div class="indicator-bottom"></div>
     </div>
 
+    <button id="scroll-to-bottom-btn" class="scroll-to-bottom-btn" aria-label="Scroll to bottom">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+        New messages
+    </button>
+
     <form class="chat-input-form" 
           hx-post="/manage/chat/{{ session_id }}/send" 
           hx-swap="none"
-          hx-on::after-request="this.reset(); setTimeout(() => { document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight; }, 100);">
+          hx-on::after-request="this.reset()">
         <input type="text" name="message" id="admin-chat-input" class="chat-input" placeholder="Reply..." required autocomplete="off" aria-label="Reply Message">
         <button type="submit" class="send-btn" aria-label="Send Reply">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -101,16 +109,14 @@
     </form>
     <div style="display: flex; gap: 10px; margin-top: 10px; overflow-x: auto; padding-bottom: 5px;" class="scroller">
         {% if schedule_meeting_url %}
-        <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;"
-              hx-on::after-request="setTimeout(() => { document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight; }, 100);">
+        <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;">
             <input type="hidden" name="message" value="Hey! I'm currently away from my desk, but feel free to book a meeting with me here: {{ schedule_meeting_url }}">
             <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent); color: var(--khaki-beige); white-space: nowrap;">🗓️ Send meeting</button>
         </form>
         {% else %}
         <a href="/manage/appearance#meeting-link-section" class="clear-btn" style="text-decoration: none; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent); color: color-mix(in srgb, var(--shadow-grey-contrast) 40%, transparent); white-space: nowrap; border: 1px dashed color-mix(in srgb, var(--shadow-grey-contrast) 20%, transparent);" title="Set up a meeting link in settings first">🔗 Setup meeting link</a>
         {% endif %}
-        <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;"
-              hx-on::after-request="setTimeout(() => { document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight; }, 100);">
+        <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;">
             <input type="hidden" name="message" value="Hi! I'll be right with you. Give me just a moment.">
             <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent); color: var(--khaki-beige); white-space: nowrap;">⏱️ "Be right there"</button>
         </form>

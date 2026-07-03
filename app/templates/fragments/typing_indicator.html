@@ -1,0 +1,6 @@
+<div id="typing-indicator" class="message assistant slide-in" hx-swap-oob="beforeend:#messages-container">
+    <div class="msg-avatar" {% if has_avatar %}style="background-image: url('/avatar?v={{ app_version }}'); background-size: cover; background-position: center; color: transparent;"{% endif %}>AI</div>
+    <div class="msg-bubble typing-dots">
+        <span></span><span></span><span></span>
+    </div>
+</div>

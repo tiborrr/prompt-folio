@@ -1,4 +1,3 @@
-import os
 from functools import cache
 from typing import Annotated
 from fastapi import Depends, Cookie, Form, HTTPException
@@ -48,10 +47,7 @@ def get_notification_service(
 
 @cache
 def get_context_store() -> ContextStore:
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    private_dir = os.path.join(root_dir, "private")
-    os.makedirs(private_dir, exist_ok=True)
-    return ContextStore(base_dir=private_dir)
+    return ContextStore()
 
 
 def get_session_store() -> SessionStore:

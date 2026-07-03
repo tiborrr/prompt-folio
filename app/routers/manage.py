@@ -1,10 +1,10 @@
-from typing import List, Annotated
+from typing import Annotated
 import asyncio
 import random
 import secrets
 import uuid
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import (
     APIRouter,
     Request,
@@ -62,8 +62,8 @@ async def manage_get(
     ] = None,
 ):
     if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
-        return render_template(
-            request, "admin_login.html", context_store, LoginContext(next_url="/manage")
+        return await render_template(
+            request, "admin_login.html", context_store, db, LoginContext(next_url="/manage")
         )
 
     result = await db.execute(
@@ -71,11 +71,16 @@ async def manage_get(
     )
     recent_sessions = result.scalars().all()
 
-    raw_context = context_store.get_context()
-    return render_template(
+    from sqlalchemy import func
+    total_chats = (await db.execute(select(func.count()).select_from(ChatSession))).scalar_one() or 0
+    takeover_requests = (await db.execute(select(func.count()).select_from(ChatSession).where(ChatSession.human_takeover == True))).scalar_one() or 0
+
+    raw_context = await context_store.get_context(db)
+    return await render_template(
         request,
         "manage_conversations.html",
         context_store,
+        db,
         ManageContext(
             active_tab="conversations",
             recent_sessions=[
@@ -89,6 +94,8 @@ async def manage_get(
                 for s in recent_sessions
             ],
             raw_context=raw_context,
+            total_chats=total_chats,
+            takeover_requests=takeover_requests,
         ),
     )
 
@@ -97,23 +104,26 @@ async def manage_get(
 async def manage_context_get(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
     admin_session: Annotated[
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
     ] = None,
 ):
     if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
-        return render_template(
+        return await render_template(
             request,
             "admin_login.html",
             context_store,
+            db,
             LoginContext(next_url="/manage/context"),
         )
 
-    raw_context = context_store.get_context()
-    return render_template(
+    raw_context = await context_store.get_context(db)
+    return await render_template(
         request,
         "manage_context.html",
         context_store,
+        db,
         ManageContext(
             active_tab="context",
             raw_context=raw_context,
@@ -125,25 +135,28 @@ async def manage_context_get(
 async def manage_appearance_get(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
     admin_session: Annotated[
         str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
     ] = None,
 ):
     if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
-        return render_template(
+        return await render_template(
             request,
             "admin_login.html",
             context_store,
+            db,
             LoginContext(next_url="/manage/appearance"),
         )
 
-    return render_template(
+    return await render_template(
         request,
         "manage_appearance.html",
         context_store,
+        db,
         ManageContext(
             active_tab="appearance",
-            schedule_meeting_url=context_store.get_meeting_url(),
+            schedule_meeting_url=await context_store.get_meeting_url(db),
         ),
     )
 
@@ -172,7 +185,7 @@ async def manage_login(
             secure=SECURE_COOKIE,
             samesite="strict",
             path="/",
-            domain=settings.app_domain,
+            domain=settings.app_domain if settings.environment != "DEV" else None,
             max_age=COOKIE_MAX_AGE_SECONDS,
         )
         return response
@@ -203,6 +216,7 @@ async def manage_colors(
     muted_teal: Annotated[str, Form()],
     seaweed: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
     colors = ThemeColors(
@@ -213,11 +227,12 @@ async def manage_colors(
         seaweed=seaweed,
     )
 
-    context_store.save_colors(colors)
-    return render_template(
+    await context_store.save_colors(db, colors)
+    return await render_template(
         request,
         "status.html",
         context_store,
+        db,
         StatusContext(
             message="Colors updated successfully! Please hard refresh (Ctrl+F5) to see changes across all pages."
         ),
@@ -229,13 +244,15 @@ async def manage_update_raw(
     request: Request,
     raw_context: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
-    context_store.save_context(raw_context)
-    return render_template(
+    await context_store.save_context(db, raw_context)
+    return await render_template(
         request,
         "status.html",
         context_store,
+        db,
         StatusContext(message="Context updated successfully!"),
     )
 
@@ -245,13 +262,15 @@ async def manage_meeting_url(
     request: Request,
     meeting_url: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
-    context_store.save_meeting_url(meeting_url)
-    return render_template(
+    await context_store.save_meeting_url(db, meeting_url)
+    return await render_template(
         request,
         "status.html",
         context_store,
+        db,
         StatusContext(message="Meeting link updated successfully!"),
     )
 
@@ -262,14 +281,16 @@ async def manage_owner_name(
     owner_name: Annotated[str, Form()],
     owner_pronouns: Annotated[str, Form()],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
-    context_store.save_owner_name(owner_name)
-    context_store.save_owner_pronouns(owner_pronouns)
-    return render_template(
+    await context_store.save_owner_name(db, owner_name)
+    await context_store.save_owner_pronouns(db, owner_pronouns)
+    return await render_template(
         request,
         "status.html",
         context_store,
+        db,
         StatusContext(message="Owner identity updated successfully!"),
     )
 
@@ -278,6 +299,7 @@ async def manage_owner_name(
 async def manage_avatar(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
     file: Annotated[UploadFile, File(...)],
     _: Annotated[None, Depends(require_admin)],
 ):
@@ -285,13 +307,17 @@ async def manage_avatar(
     if not content:
         return PlainTextResponse("No file uploaded.", status_code=400)
 
-    with open(context_store.get_avatar_path(), "wb") as f:
-        f.write(content)
+    content_type = file.content_type or "image/png"
+    try:
+        await context_store.save_avatar(db, content, content_type)
+    except ValueError as e:
+        return PlainTextResponse(str(e), status_code=400)
 
-    return render_template(
+    return await render_template(
         request,
         "status.html",
         context_store,
+        db,
         StatusContext(
             message="Avatar updated successfully! Please hard refresh (Ctrl+F5) to see changes across all pages."
         ),
@@ -300,9 +326,10 @@ async def manage_avatar(
 
 @router.post("/manage/upload")
 async def manage_upload(
-    files: Annotated[List[UploadFile], File()],
+    files: Annotated[list[UploadFile], File()],
     mistral_service: Annotated[MistralService, Depends(get_mistral_service)],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
     pdf_files: list[UploadedDocument] = []
@@ -314,10 +341,10 @@ async def manage_upload(
     if not pdf_files:
         return PlainTextResponse("No valid PDFs uploaded.", status_code=400)
 
-    owner = context_store.get_owner_name()
+    owner = await context_store.get_owner_name(db)
     new_profile = await mistral_service.generate_profile_from_pdfs(pdf_files, owner)
 
-    old_context = context_store.get_context()
+    old_context = await context_store.get_context(db)
     repos_split = old_context.split("=== Repositories ===")
     if len(repos_split) > 1:
         repos_section = "=== Repositories ===" + repos_split[1]
@@ -384,10 +411,11 @@ async def manage_chat_get(
     ] = None,
 ):
     if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
-        return render_template(
+        return await render_template(
             request,
             "admin_login.html",
             context_store,
+            db,
             LoginContext(next_url=f"/manage/chat/{session_id}"),
         )
 
@@ -415,14 +443,15 @@ async def manage_chat_get(
         history=history,
     )
 
-    return render_template(
+    return await render_template(
         request,
         "manage_chat.html",
         context_store,
+        db,
         ManageChatContext(
             session_id=session_id,
             session_data=session_data,
-            schedule_meeting_url=context_store.get_meeting_url(),
+            schedule_meeting_url=await context_store.get_meeting_url(db),
         ),
     )
 
@@ -444,18 +473,19 @@ async def manage_chat_toggle_takeover(
         await db.commit()
 
         is_taken_over = session_obj.human_takeover
-        oob_html = get_takeover_oob_html(
-            session_id, is_taken_over, context_store.get_owner_name()
+        owner_name = await context_store.get_owner_name(db)
+        oob_html = await get_takeover_oob_html(
+            session_id, is_taken_over, owner_name, context_store, db
         )
         await session_store.broadcast(session_id, oob_html)
 
         msg = (
-            f"{context_store.get_owner_name()} has joined the chat."
+            f"{owner_name} has joined the chat."
             if is_taken_over
             else "You are now chatting with the AI again."
         )
-        msg_html = render_template_to_string(
-            "fragments/system_message.html", StatusContext(message=msg)
+        msg_html = await render_template_to_string(
+            "fragments/system_message.html", context_store, db, StatusContext(message=msg)
         )
         await session_store.broadcast(session_id, msg_html)
 
@@ -481,18 +511,19 @@ async def manage_chat_send(
     db.add(session_obj)
 
     assistant_msg = ChatMessage(
-        session_id=session_id, role="assistant", content=message
+        session_id=session_id, role="admin", content=message
     )
     db.add(assistant_msg)
     await db.commit()
 
     assistant_html = bytes(
-        render_template(
+        (await render_template(
             request,
             "message.html",
             context_store,
+            db,
             MessageContext(message=message, is_user=False, is_admin=True),
-        ).body
+        )).body
     ).decode("utf-8")
 
     await session_store.broadcast(session_id, assistant_html)
@@ -503,6 +534,7 @@ async def manage_chat_send(
 async def manage_chat_update_name(
     session_id: str,
     name: Annotated[str, Form()],
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
@@ -513,9 +545,11 @@ async def manage_chat_update_name(
         db.add(session_obj)
         await db.commit()
 
-    html = render_template_to_string(
+    html = await render_template_to_string(
         "fragments/session_name.html",
-        SessionListItemContext(id=session_id, name=name, created_at=datetime.utcnow()),
+        context_store,
+        db,
+        SessionListItemContext(id=session_id, name=name, created_at=datetime.now(timezone.utc)),
     )
     return HTMLResponse(content=html)
 
@@ -524,6 +558,7 @@ async def manage_chat_update_name(
 async def manage_chat_update_intent(
     session_id: str,
     intent: Annotated[str, Form()],
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
@@ -534,8 +569,10 @@ async def manage_chat_update_intent(
         db.add(session_obj)
         await db.commit()
 
-    html = render_template_to_string(
+    html = await render_template_to_string(
         "fragments/session_intent.html",
-        SessionListItemContext(id=session_id, intent=intent, created_at=datetime.utcnow()),
+        context_store,
+        db,
+        SessionListItemContext(id=session_id, intent=intent, created_at=datetime.now(timezone.utc)),
     )
     return HTMLResponse(content=html)

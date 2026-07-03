@@ -1,13 +1,14 @@
 from app.schemas import TakeoverControlsContext
-import os
 import time
 from functools import cache, lru_cache
 from pydantic import BaseModel
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from markdown_it import MarkdownIt
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.services import ContextStore
 from app.config import settings
+import os
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(base_dir, "templates"))
@@ -47,47 +48,64 @@ def get_contrast_color(hex_color: str) -> str:
         return "#ffffff"
 
 
-def render_template(
+async def render_template(
     request: Request,
     name: str,
     context_store: ContextStore,
+    db: AsyncSession,
     context: BaseModel | None = None,
 ):
     template_context = {}
     if context is not None:
         template_context = context.model_dump()
-        template_context = context.model_dump()
     template_context["request"] = request
-    colors = context_store.get_colors()
+    colors = await context_store.get_colors(db)
     template_context["colors"] = colors.model_dump()
     template_context["contrast_colors"] = {
         f"{k}_contrast": get_contrast_color(str(v)) for k, v in colors.model_dump().items()
     }
-    template_context["has_avatar"] = context_store.has_avatar()
+    template_context["has_avatar"] = await context_store.has_avatar(db)
     template_context["app_version"] = app_version
-    template_context["owner_name"] = context_store.get_owner_name()
-    template_context["owner_pronouns"] = context_store.get_owner_pronouns()
+    template_context["owner_name"] = await context_store.get_owner_name(db)
+    template_context["owner_pronouns"] = await context_store.get_owner_pronouns(db)
     template_context["recaptcha_client_side_key"] = settings.recaptcha_client_side_key
     return templates.TemplateResponse(
         request=request, name=name, context=template_context
     )
 
 
-def render_template_to_string(
+async def render_template_to_string(
     name: str,
+    context_store: ContextStore,
+    db: AsyncSession,
     context: BaseModel | None = None,
 ) -> str:
     """Renders a jinja template to a string without needing a Request object."""
     template_context = {}
     if context is not None:
         template_context = context.model_dump()
-        template_context = context.model_dump()
+    colors = await context_store.get_colors(db)
+    template_context["colors"] = colors.model_dump()
+    template_context["contrast_colors"] = {
+        f"{k}_contrast": get_contrast_color(str(v)) for k, v in colors.model_dump().items()
+    }
+    template_context["has_avatar"] = await context_store.has_avatar(db)
+    template_context["owner_name"] = await context_store.get_owner_name(db)
+    template_context["owner_pronouns"] = await context_store.get_owner_pronouns(db)
     return templates.get_template(name).render(template_context)
 
 
-def get_takeover_oob_html(session_id: str, is_taken_over: bool, owner_name: str) -> str:
-    return render_template_to_string(
+async def get_takeover_oob_html(
+    session_id: str,
+    is_taken_over: bool,
+    owner_name: str,
+    context_store: ContextStore,
+    db: AsyncSession,
+) -> str:
+    return await render_template_to_string(
         "fragments/takeover_controls.html",
+        context_store,
+        db,
         TakeoverControlsContext(
             session_id=session_id,
             is_taken_over=is_taken_over,

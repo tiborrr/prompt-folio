@@ -1,12 +1,14 @@
 # pyright: reportArgumentType=false
-import os
+from __future__ import annotations
 import typing
+from typing import TYPE_CHECKING
 import base64
 import json
 import httpx
 import asyncio
 import collections.abc
-from typing import Any
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 from mistralai.client import Mistral
 from mistralai.client.models import DocumentURLChunk
 from app.constants import MODEL_CHAT, MODEL_OCR, ROLE_ASSISTANT, ROLE_TOOL
@@ -16,7 +18,9 @@ from app.schemas import (
     ChatMessageData,
     RecaptchaVerifyResult,
 )
-from app.config import settings
+
+if TYPE_CHECKING:
+    from app.models import SiteSettings
 
 
 class MistralService:
@@ -116,7 +120,7 @@ class MistralService:
                                 args = json.loads(arguments)
                             else:
                                 args = arguments
-                            await tool_callback(args.get("name"), args.get("intent"))
+                            await tool_callback(args.get("name"), args.get("company"), args.get("intent"))
                             tool_result = "Profile updated successfully."
                         except Exception as e:
                             print(f"Tool error: {e}")
@@ -168,91 +172,104 @@ class RecaptchaService:
 
 
 class ContextStore:
-    context_path: str
-    colors_path: str
-    avatar_path: str
-    db_path: str
-    owner_name_path: str
-    owner_pronouns_path: str
-    meeting_url_path: str
+    """Database-backed site settings store (singleton row id=1)."""
 
-    def __init__(self, base_dir: str):
-        self.context_path = os.path.join(base_dir, "context.txt")
-        self.colors_path = os.path.join(base_dir, "colors.json")
-        self.avatar_path = os.path.join(base_dir, "avatar")
-        self.db_path = os.path.join(base_dir, "chat.db")
-        self.owner_name_path = os.path.join(base_dir, "owner_name.txt")
-        self.owner_pronouns_path = os.path.join(base_dir, "owner_pronouns.txt")
-        self.meeting_url_path = os.path.join(base_dir, "meeting_url.txt")
+    MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
 
-    def get_owner_name(self) -> str:
-        if os.path.exists(self.owner_name_path):
-            with open(self.owner_name_path, "r", encoding="utf-8") as f:
-                val = f.read().strip()
-                if val:
-                    return val
-        return settings.default_owner_name
+    async def _get_settings(self, db: AsyncSession) -> "SiteSettings":
+        from app.models import SiteSettings
 
-    def save_owner_name(self, name: str):
-        with open(self.owner_name_path, "w", encoding="utf-8") as f:
-            f.write(name.strip())
+        result = await db.execute(select(SiteSettings).where(SiteSettings.id == 1))
+        settings = result.scalar_one_or_none()
+        if not settings:
+            settings = SiteSettings(id=1)
+            db.add(settings)
+            await db.commit()
+            await db.refresh(settings)
+        return settings
 
-    def get_owner_pronouns(self) -> str:
-        if os.path.exists(self.owner_pronouns_path):
-            with open(self.owner_pronouns_path, "r", encoding="utf-8") as f:
-                content = f.read().strip()
-                if content:
-                    return content
-        return settings.default_owner_pronouns
+    async def get_owner_name(self, db: AsyncSession) -> str:
+        s = await self._get_settings(db)
+        return s.owner_name
 
-    def save_owner_pronouns(self, pronouns: str):
-        with open(self.owner_pronouns_path, "w", encoding="utf-8") as f:
-            f.write(pronouns.strip())
+    async def save_owner_name(self, db: AsyncSession, name: str) -> None:
+        s = await self._get_settings(db)
+        s.owner_name = name.strip()
+        db.add(s)
+        await db.commit()
 
-    def has_avatar(self) -> bool:
-        return os.path.exists(self.avatar_path)
+    async def get_owner_pronouns(self, db: AsyncSession) -> str:
+        s = await self._get_settings(db)
+        return s.owner_pronouns
 
-    def get_avatar_path(self) -> str:
-        return self.avatar_path
+    async def save_owner_pronouns(self, db: AsyncSession, pronouns: str) -> None:
+        s = await self._get_settings(db)
+        s.owner_pronouns = pronouns.strip()
+        db.add(s)
+        await db.commit()
 
-    def get_context(self) -> str:
-        if os.path.exists(self.context_path):
-            with open(self.context_path, "r", encoding="utf-8") as f:
-                return f.read()
-        return f"You are an assistant representing {self.get_owner_name()}."
+    async def has_avatar(self, db: AsyncSession) -> bool:
+        s = await self._get_settings(db)
+        return s.avatar is not None
 
-    def save_context(self, text: str):
-        with open(self.context_path, "w", encoding="utf-8") as f:
-            f.write(text)
+    async def get_avatar_bytes(self, db: AsyncSession) -> tuple[bytes, str] | None:
+        """Returns (avatar_bytes, content_type) or None."""
+        s = await self._get_settings(db)
+        if s.avatar is not None and s.avatar_content_type is not None:
+            return s.avatar, s.avatar_content_type
+        return None
 
-    def get_colors(self) -> ThemeColors:
-        if os.path.exists(self.colors_path):
-            try:
-                with open(self.colors_path, "r", encoding="utf-8") as f:
-                    return ThemeColors(**json.load(f))
-            except Exception:
-                pass
+    async def save_avatar(self, db: AsyncSession, content: bytes, content_type: str) -> None:
+        if len(content) > self.MAX_AVATAR_SIZE:
+            msg = f"Avatar too large ({len(content)} bytes). Max is {self.MAX_AVATAR_SIZE} bytes."
+            raise ValueError(msg)
+        s = await self._get_settings(db)
+        s.avatar = content
+        s.avatar_content_type = content_type
+        db.add(s)
+        await db.commit()
+
+    async def get_context(self, db: AsyncSession) -> str:
+        s = await self._get_settings(db)
+        if s.context:
+            return s.context
+        return f"You are an assistant representing {s.owner_name}."
+
+    async def save_context(self, db: AsyncSession, text: str) -> None:
+        s = await self._get_settings(db)
+        s.context = text
+        db.add(s)
+        await db.commit()
+
+    async def get_colors(self, db: AsyncSession) -> ThemeColors:
+        s = await self._get_settings(db)
         return ThemeColors(
-            shadow_grey=settings.default_color_shadow_grey,
-            sweet_salmon=settings.default_color_sweet_salmon,
-            khaki_beige=settings.default_color_khaki_beige,
-            muted_teal=settings.default_color_muted_teal,
-            seaweed=settings.default_color_seaweed,
+            shadow_grey=s.color_shadow_grey,
+            sweet_salmon=s.color_sweet_salmon,
+            khaki_beige=s.color_khaki_beige,
+            muted_teal=s.color_muted_teal,
+            seaweed=s.color_seaweed,
         )
 
-    def save_colors(self, colors: ThemeColors):
-        with open(self.colors_path, "w", encoding="utf-8") as f:
-            json.dump(colors.model_dump(), f)
+    async def save_colors(self, db: AsyncSession, colors: ThemeColors) -> None:
+        s = await self._get_settings(db)
+        s.color_shadow_grey = colors.shadow_grey
+        s.color_sweet_salmon = colors.sweet_salmon
+        s.color_khaki_beige = colors.khaki_beige
+        s.color_muted_teal = colors.muted_teal
+        s.color_seaweed = colors.seaweed
+        db.add(s)
+        await db.commit()
 
-    def get_meeting_url(self) -> str:
-        if os.path.exists(self.meeting_url_path):
-            with open(self.meeting_url_path, "r", encoding="utf-8") as f:
-                return f.read().strip()
-        return ""
+    async def get_meeting_url(self, db: AsyncSession) -> str:
+        s = await self._get_settings(db)
+        return s.meeting_url
 
-    def save_meeting_url(self, url: str):
-        with open(self.meeting_url_path, "w", encoding="utf-8") as f:
-            f.write(url.strip())
+    async def save_meeting_url(self, db: AsyncSession, url: str) -> None:
+        s = await self._get_settings(db)
+        s.meeting_url = url.strip()
+        db.add(s)
+        await db.commit()
 
 
 class NotificationService:

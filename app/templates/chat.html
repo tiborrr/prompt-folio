@@ -3,7 +3,13 @@
 {% block content %}
 <div class="glass-panel chat-panel slide-up">
     <div class="chat-header manage-header" style="border-bottom: none; padding-bottom: 0;">
-        <h2 style="font-size: 1.5rem;">Conversation</h2>
+        <h2 id="chat-title" style="font-size: 1.5rem; display: flex; align-items: center;">
+            {% if human_takeover %}
+                <span class="pulse-dot"></span> Chatting with {{ owner_name }}
+            {% else %}
+                Conversation
+            {% endif %}
+        </h2>
         <div class="manage-actions" style="display: flex; gap: 10px; align-items: center;">
             <a href="/manage" class="icon-btn" title="Settings" aria-label="Settings">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -21,9 +27,9 @@
         <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1;">
             {% if history %}
                 {% for msg in history %}
-                    {% if msg.role == 'assistant' %}
+                    {% if msg.role == 'assistant' or msg.role == 'admin' %}
                     <div class="message assistant slide-in">
-                        <div class="msg-avatar" {% if has_avatar %}style="background-image: url('/avatar?v={{ app_version }}'); background-size: cover; background-position: center; color: transparent;"{% endif %}>AI</div>
+                        <div class="msg-avatar" {% if has_avatar %}style="background-image: url('/avatar?v={{ app_version }}'); background-size: cover; background-position: center; color: transparent;"{% endif %}>{% if msg.role == 'admin' %}TC{% else %}AI{% endif %}</div>
                         <div class="msg-bubble">
                             {{ msg.content | markdown | safe }}
                         </div>
@@ -41,13 +47,18 @@
         <div class="indicator-bottom"></div>
     </div>
 
+    <button id="scroll-to-bottom-btn" class="scroll-to-bottom-btn" aria-label="Scroll to bottom">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+        New messages
+    </button>
+
     <form class="chat-input-form" id="chat-input-form"
           hx-post="/chat" 
           hx-swap="none"
           hx-trigger="{% if recaptcha_client_side_key %}recaptcha-verified{% else %}submit{% endif %}"
           hx-indicator="#htmx-indicator"
-          hx-on::after-request="this.reset(); setTimeout(() => { document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight; }, 100);">
-        <input type="text" name="message" id="chat-input" class="chat-input" placeholder="Ask me anything about {{ owner_name }}..." required autocomplete="off" autofocus aria-label="Message">
+          hx-on::after-request="this.reset()">
+        <input type="text" name="message" id="chat-input" class="chat-input" placeholder="{% if human_takeover %}Message {{ owner_name }}...{% else %}Ask me anything about {{ owner_name }}...{% endif %}" required autocomplete="off" autofocus aria-label="Message">
         <button type="submit" class="send-btn" aria-label="Send Message">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>

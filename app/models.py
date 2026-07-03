@@ -32,3 +32,20 @@ class ChatSession(SQLModel, table=True):
             "order_by": "ChatMessage.created_at",
         },
     )
+
+
+class SiteSettings(SQLModel, table=True):
+    """Singleton row (id=1) storing all site configuration."""
+
+    id: int = Field(default=1, primary_key=True)
+    owner_name: str = Field(default="Tibor")
+    owner_pronouns: str = Field(default="their")
+    context: str = Field(default="")
+    meeting_url: str = Field(default="")
+    color_shadow_grey: str = Field(default="#1e1e24")
+    color_sweet_salmon: str = Field(default="#fb9f89")
+    color_khaki_beige: str = Field(default="#c4af9a")
+    color_muted_teal: str = Field(default="#81ae9d")
+    color_seaweed: str = Field(default="#21a179")
+    avatar: bytes | None = Field(default=None)
+    avatar_content_type: str | None = Field(default=None)

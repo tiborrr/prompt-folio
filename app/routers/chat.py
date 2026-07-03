@@ -71,22 +71,23 @@ async def index(
                 for m in history_msgs
                 if m.role != ROLE_SYSTEM
             ]
-            return render_template(
+            return await render_template(
                 request,
                 "chat.html",
                 context_store,
+                db,
                 ChatSessionContext(session_id=session_id, history=history),
             )
 
     # Create new session
     new_session_id = str(uuid.uuid4())
-    system_context = context_store.get_context()
+    system_context = await context_store.get_context(db)
 
     new_session = ChatSession(id=new_session_id)
     db.add(new_session)
 
-    owner_name = context_store.get_owner_name()
-    owner_pronouns = context_store.get_owner_pronouns()
+    owner_name = await context_store.get_owner_name(db)
+    owner_pronouns = await context_store.get_owner_pronouns(db)
     msg1 = ChatMessage(
         session_id=new_session_id, role=ROLE_SYSTEM, content=system_context
     )
@@ -106,10 +107,11 @@ async def index(
 
     history = [ChatMessageData(role=ROLE_ASSISTANT, content=welcome_text)]
 
-    res = render_template(
+    res = await render_template(
         request,
         "chat.html",
         context_store,
+        db,
         ChatSessionContext(session_id=new_session_id, history=history),
     )
     res.set_cookie(
@@ -119,7 +121,7 @@ async def index(
         secure=SECURE_COOKIE,
         samesite="lax",
         path="/",
-        domain=settings.app_domain,
+        domain=settings.app_domain if settings.environment != "DEV" else None,
     )
     return res
 
@@ -185,12 +187,13 @@ async def takeover_request(
         url=admin_url,
     )
 
-    oob_html = get_takeover_oob_html(session_id, True, context_store.get_owner_name())
+    owner_name = await context_store.get_owner_name(db)
+    oob_html = await get_takeover_oob_html(session_id, True, owner_name, context_store, db)
     await session_store.broadcast(session_id, oob_html)
 
-    msg = f"{context_store.get_owner_name()} has been notified and can chat with you directly now."
-    msg_html = render_template_to_string(
-        "fragments/system_message.html", StatusContext(message=msg)
+    msg = f"{owner_name} has been notified and can chat with you directly now."
+    msg_html = await render_template_to_string(
+        "fragments/system_message.html", context_store, db, StatusContext(message=msg)
     )
     await session_store.broadcast(session_id, msg_html)
 
@@ -218,13 +221,16 @@ async def revert_takeover(
         db.add(session_obj)
         await db.commit()
 
-        oob_html = get_takeover_oob_html(
-            session_id, False, context_store.get_owner_name()
+        owner_name = await context_store.get_owner_name(db)
+        oob_html = await get_takeover_oob_html(
+            session_id, False, owner_name, context_store, db
         )
         await session_store.broadcast(session_id, oob_html)
 
-        msg_html = render_template_to_string(
+        msg_html = await render_template_to_string(
             "fragments/system_message.html",
+            context_store,
+            db,
             StatusContext(message="You are now chatting with the AI again."),
         )
         await session_store.broadcast(session_id, msg_html)
@@ -252,8 +258,10 @@ async def chat(
     ] = None,
 ):
     if not session_id:
-        error_html = render_template_to_string(
+        error_html = await render_template_to_string(
             "fragments/system_message.html",
+            context_store,
+            db,
             StatusContext(message="No active session found. Please refresh the page."),
         )
         return HTMLResponse(error_html, status_code=400)
@@ -262,8 +270,10 @@ async def chat(
     session_obj = result.scalar_one_or_none()
 
     if not session_obj:
-        error_html = render_template_to_string(
+        error_html = await render_template_to_string(
             "fragments/system_message.html",
+            context_store,
+            db,
             StatusContext(message="Session expired. Please refresh the page."),
         )
         return HTMLResponse(error_html, status_code=400)
@@ -274,12 +284,13 @@ async def chat(
     await db.commit()
 
     user_html = bytes(
-        render_template(
+        (await render_template(
             request,
             "message.html",
             context_store,
+            db,
             MessageContext(message=message, is_user=True),
-        ).body
+        )).body
     ).decode("utf-8")
     await session_store.broadcast(session_id, user_html)
 
@@ -288,83 +299,99 @@ async def chat(
 
     async def generate_ai_response():
         from app.database import get_engine
-        from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+        from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession as BgAsyncSession
 
         engine = get_engine(settings.sqlite_url)
-        async_session = async_sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
+        bg_session_factory = async_sessionmaker(
+            engine, class_=BgAsyncSession, expire_on_commit=False
         )
 
-        async with async_session() as bg_db:
-            # Get session
-            result = await bg_db.execute(
-                select(ChatSession).where(ChatSession.id == session_id)
-            )
-            bg_session_obj = result.scalar_one_or_none()
-            if not bg_session_obj:
-                return
-
-            # Get history for AI
-            msg_result = await bg_db.execute(
-                select(ChatMessage)
-                .where(ChatMessage.session_id == session_id)
-                .order_by(col(ChatMessage.created_at))
-            )
-            history_msgs = msg_result.scalars().all()
-            history = [
-                ChatMessageData(role=m.role, content=m.content) for m in history_msgs
-            ]
-
-            # Inject current profile so Mistral remembers it across messages
-            if bg_session_obj.name or bg_session_obj.intent:
-                profile_text = f"Current known user profile - Name: {bg_session_obj.name or 'Unknown'}, Intent: {bg_session_obj.intent or 'Unknown'}"
-                history.append(ChatMessageData(role=ROLE_SYSTEM, content=profile_text))
-
-            # Notify admin on first user message
-            if len(history_msgs) == NEW_SESSION_NOTIFICATION_MSG_COUNT:
-                admin_url = (
-                    str(request.base_url).rstrip("/") + f"/manage/chat/{session_id}"
-                )
-                await notification_service.send(
-                    f'New chat started! User says: "{message[:ADMIN_NOTIFICATION_TRUNCATE_LEN]}..."',
-                    url=admin_url,
-                )
-
-            tools = [UPDATE_USER_PROFILE_TOOL]
-
-            async def update_profile_callback(name: str | None, intent: str | None):
-                updated = False
-                if name and not bg_session_obj.name:
-                    bg_session_obj.name = name
-                    updated = True
-                if intent and not bg_session_obj.intent:
-                    bg_session_obj.intent = intent
-                    updated = True
-
-                if updated:
-                    bg_db.add(bg_session_obj)
-                    await bg_db.commit()
-
-            assistant_response = await mistral_service.ask_mistral(
-                history, tools=tools, tool_callback=update_profile_callback
-            )
-
-            # Save AI message
-            assistant_msg = ChatMessage(
-                session_id=session_id, role=ROLE_ASSISTANT, content=assistant_response
-            )
-            bg_db.add(assistant_msg)
-            await bg_db.commit()
-
-            assistant_html = bytes(
-                render_template(
-                    request,
-                    "message.html",
+        try:
+            async with bg_session_factory() as bg_db:
+                # Broadcast typing indicator
+                typing_html = await render_template_to_string(
+                    "fragments/typing_indicator.html",
                     context_store,
-                    MessageContext(message=assistant_response, is_user=False),
-                ).body
-            ).decode("utf-8")
-            await session_store.broadcast(session_id, assistant_html)
+                    bg_db,
+                )
+                await session_store.broadcast(session_id, typing_html)
+
+                # Get session
+                result = await bg_db.execute(
+                    select(ChatSession).where(ChatSession.id == session_id)
+                )
+                bg_session_obj = result.scalar_one_or_none()
+                if not bg_session_obj:
+                    return
+
+                # Get history for AI
+                msg_result = await bg_db.execute(
+                    select(ChatMessage)
+                    .where(ChatMessage.session_id == session_id)
+                    .order_by(col(ChatMessage.created_at))
+                )
+                history_msgs = msg_result.scalars().all()
+                history = [
+                    ChatMessageData(role=ROLE_ASSISTANT if m.role == "admin" else m.role, content=m.content) for m in history_msgs
+                ]
+
+                # Inject current profile so Mistral remembers it across messages
+                if bg_session_obj.name or bg_session_obj.intent:
+                    profile_text = f"Current known user profile - Name: {bg_session_obj.name or 'Unknown'}, Intent: {bg_session_obj.intent or 'Unknown'}"
+                    history.append(ChatMessageData(role=ROLE_SYSTEM, content=profile_text))
+
+                # Notify admin on first user message
+                if len(history_msgs) == NEW_SESSION_NOTIFICATION_MSG_COUNT:
+                    admin_url = (
+                        str(request.base_url).rstrip("/") + f"/manage/chat/{session_id}"
+                    )
+                    await notification_service.send(
+                        f'New chat started! User says: "{message[:ADMIN_NOTIFICATION_TRUNCATE_LEN]}..."',
+                        url=admin_url,
+                    )
+
+                tools = [UPDATE_USER_PROFILE_TOOL]
+
+                async def update_profile_callback(name: str | None, company: str | None, intent: str | None):
+                    updated = False
+                    if name and not bg_session_obj.name:
+                        bg_session_obj.name = name
+                        updated = True
+                    if company and not bg_session_obj.company:
+                        bg_session_obj.company = company
+                        updated = True
+                    if intent and not bg_session_obj.intent:
+                        bg_session_obj.intent = intent
+                        updated = True
+
+                    if updated:
+                        bg_db.add(bg_session_obj)
+                        await bg_db.commit()
+
+                assistant_response = await mistral_service.ask_mistral(
+                    history, tools=tools, tool_callback=update_profile_callback
+                )
+
+                # Save AI message
+                assistant_msg = ChatMessage(
+                    session_id=session_id, role=ROLE_ASSISTANT, content=assistant_response
+                )
+                bg_db.add(assistant_msg)
+                await bg_db.commit()
+
+                assistant_html = bytes(
+                    (await render_template(
+                        request,
+                        "message.html",
+                        context_store,
+                        bg_db,
+                        MessageContext(message=assistant_response, is_user=False),
+                    )).body
+                ).decode("utf-8")
+                await session_store.broadcast(session_id, assistant_html)
+        finally:
+            remove_typing_html = '<div id="typing-indicator" hx-swap-oob="outerHTML" style="display: none;"></div>'
+            await session_store.broadcast(session_id, remove_typing_html)
 
     background_tasks.add_task(generate_ai_response)
 

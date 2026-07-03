@@ -49,6 +49,10 @@ UPDATE_USER_PROFILE_TOOL: dict[str, object] = {
                     "type": "string",
                     "description": "The user's name, if they have provided it.",
                 },
+                "company": {
+                    "type": "string",
+                    "description": "The name of the company the user represents or works for, if they have provided it.",
+                },
                 "intent": {
                     "type": "string",
                     "description": "The user's intent or reason for visiting (e.g. 'hiring for frontend', 'just browsing', 'looking for AI engineer').",

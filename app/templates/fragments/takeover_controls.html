@@ -21,3 +21,13 @@
         {{ 'Return to AI (Unmute)' if is_taken_over else 'Take Over Chat (Mute AI)' }}
     </button>
 </div>
+
+<h2 id="chat-title" hx-swap-oob="outerHTML" style="font-size: 1.5rem; display: flex; align-items: center;">
+    {% if is_taken_over %}
+        <span class="pulse-dot"></span> Chatting with {{ owner_name }}
+    {% else %}
+        Conversation
+    {% endif %}
+</h2>
+
+<input id="chat-input" hx-swap-oob="outerHTML" type="text" name="message" class="chat-input" placeholder="{% if is_taken_over %}Message {{ owner_name }}...{% else %}Ask me anything about {{ owner_name }}...{% endif %}" required autocomplete="off" autofocus aria-label="Message">
