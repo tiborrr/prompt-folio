@@ -3,6 +3,21 @@ from typing import Any
 from datetime import datetime
 
 
+# ------------------------------------------------------------------------------
+# Tool Call Schemas
+# ------------------------------------------------------------------------------
+
+class FunctionCallData(BaseModel):
+    name: str
+    arguments: str
+
+
+class ToolCallData(BaseModel):
+    id: str
+    type: str = "function"
+    function: FunctionCallData
+
+
 class ThemeColors(BaseModel):
     shadow_grey: str
     sweet_salmon: str
@@ -32,7 +47,7 @@ class ChatMessageData(BaseModel):
     content: str
     name: str | None = None
     tool_call_id: str | None = None
-    tool_calls: list[dict[str, object]] | None = None
+    tool_calls: list[ToolCallData] | None = None
 
 
 class SessionDetail(BaseModel):

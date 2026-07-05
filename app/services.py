@@ -4,6 +4,7 @@ import typing
 from typing import TYPE_CHECKING
 import base64
 import json
+import re
 import httpx
 import asyncio
 import collections.abc
@@ -17,6 +18,8 @@ from app.schemas import (
     UploadedDocument,
     ChatMessageData,
     RecaptchaVerifyResult,
+    ToolCallData,
+    FunctionCallData,
 )
 
 if TYPE_CHECKING:
@@ -56,10 +59,11 @@ class MistralService:
         system_prompt = f"You are an expert summarizer. Take the following extracted documents and synthesize them into a rich, cohesive professional profile for {owner_name}. Do not include any meta-commentary, just the profile text."
 
         try:
-            dict_messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": combined_text},
+            messages = [
+                ChatMessageData(role="system", content=system_prompt),
+                ChatMessageData(role="user", content=combined_text),
             ]
+            dict_messages = [m.model_dump(exclude_none=True) for m in messages]
             response = await self.client.chat.complete_async(
                 model=MODEL_CHAT,
                 messages=dict_messages,
@@ -99,16 +103,15 @@ class MistralService:
                 )
                 assistant_msg.tool_calls = []
                 for tc in message.tool_calls:
-                    assistant_msg.tool_calls.append(
-                        {
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments,
-                            },
-                        }
+                    tool_call = ToolCallData(
+                        id=tc.id,
+                        type="function",
+                        function=FunctionCallData(
+                            name=tc.function.name,
+                            arguments=tc.function.arguments,
+                        ),
                     )
+                    assistant_msg.tool_calls.append(tool_call)
                 messages_history.append(assistant_msg)
 
                 for tool_call in message.tool_calls:
@@ -142,7 +145,25 @@ class MistralService:
                     max_depth=max_depth - 1,
                 )
 
-            return str(message.content)
+            content_str = str(message.content)
+            
+            # Text-based tool invocation fallback
+            if tool_callback and "update_user_profile" in content_str:
+                json_match = re.search(r'update_user_profile[^\{]*(\{.*?\})', content_str, re.DOTALL)
+                if json_match:
+                    try:
+                        json_block = json_match.group(1).strip()
+                        args = json.loads(json_block)
+                        
+                        # Execute fallback callback silently
+                        await tool_callback(args.get("name"), args.get("company"), args.get("intent"))
+                    except (json.JSONDecodeError, Exception) as e:
+                        print(f"Text-based tool parsing error: {e}")
+            
+            # Final sanitization: Strip the leaked tool call and clean up whitespace
+            content_str = re.sub(r'update_user_profile[^\{]*\{.*?\}', '', content_str, flags=re.DOTALL).strip()
+            
+            return content_str
         except Exception as e:
             print(f"Mistral API Error: {e}")
             return "I'm sorry, I'm having trouble connecting to my brain right now."
