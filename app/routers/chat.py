@@ -333,7 +333,8 @@ async def chat(
                 )
                 history_msgs = msg_result.scalars().all()
                 history = [
-                    ChatMessageData(role=ROLE_ASSISTANT if m.role == "admin" else m.role, content=m.content) for m in history_msgs
+                    ChatMessageData(role=ROLE_ASSISTANT if m.role == "admin" else m.role, content=m.content) 
+                    for m in history_msgs if m.content and m.content.strip() != ""
                 ]
 
                 # Inject current profile so Mistral remembers it across messages

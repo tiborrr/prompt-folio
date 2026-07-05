@@ -70,7 +70,8 @@ class MistralService:
             )
             message = response.choices[0].message
             assert message is not None
-            return str(message.content)
+            content = str(message.content) if message.content else None
+            return content if content else ""
         except Exception as e:
             print(f"Mistral chat error: {e}")
             return combined_text
@@ -97,9 +98,9 @@ class MistralService:
             assert message is not None
 
             if message.tool_calls and tool_callback:
-                content_str = str(message.content) if message.content else ""
+                content_val = message.content if message.content else None
                 assistant_msg = ChatMessageData(
-                    role=ROLE_ASSISTANT, content=content_str
+                    role=ROLE_ASSISTANT, content=content_val
                 )
                 assistant_msg.tool_calls = []
                 for tc in message.tool_calls:
@@ -162,6 +163,10 @@ class MistralService:
             
             # Final sanitization: Strip the leaked tool call and clean up whitespace
             content_str = re.sub(r'update_user_profile[^\{]*\{.*?\}', '', content_str, flags=re.DOTALL).strip()
+            
+            # Prevent saving empty strings to the DB which crashes future Mistral API calls
+            if not content_str:
+                return "Got it! How else can I help you today?"
             
             return content_str
         except Exception as e:
