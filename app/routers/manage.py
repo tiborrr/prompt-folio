@@ -286,6 +286,40 @@ async def manage_meeting_url(
     )
 
 
+@router.get("/manage/owner_name", response_class=HTMLResponse)
+async def get_manage_owner_name(
+    request: Request,
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(require_admin)],
+):
+    from app.schemas import EditModeContext
+    return await render_template(
+        request,
+        "fragments/appearance_identity.html",
+        context_store,
+        db,
+        EditModeContext(edit_mode=False),
+    )
+
+
+@router.get("/manage/owner_name/edit", response_class=HTMLResponse)
+async def get_manage_owner_name_edit(
+    request: Request,
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(require_admin)],
+):
+    from app.schemas import EditModeContext
+    return await render_template(
+        request,
+        "fragments/appearance_identity.html",
+        context_store,
+        db,
+        EditModeContext(edit_mode=True),
+    )
+
+
 @router.post("/manage/owner_name", response_class=HTMLResponse)
 async def manage_owner_name(
     request: Request,
@@ -297,12 +331,14 @@ async def manage_owner_name(
 ):
     await context_store.save_owner_name(db, owner_name)
     await context_store.save_owner_pronouns(db, owner_pronouns)
+    
+    from app.schemas import EditModeContext
     return await render_template(
         request,
-        "status.html",
+        "fragments/appearance_identity.html",
         context_store,
         db,
-        StatusContext(message="Owner identity updated successfully!"),
+        EditModeContext(edit_mode=False),
     )
 
 
@@ -335,15 +371,34 @@ async def manage_avatar(
     )
 
 
-@router.post("/manage/upload")
-async def manage_upload(
+@router.delete("/manage/avatar", response_class=HTMLResponse)
+async def manage_avatar_delete(
+    request: Request,
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(require_admin)],
+):
+    await context_store.delete_avatar(db)
+    return await render_template(
+        request,
+        "status.html",
+        context_store,
+        db,
+        StatusContext(
+            message="Avatar deleted successfully! The default SVG will now be used. Please hard refresh (Ctrl+F5) to see changes."
+        ),
+    )
+
+
+@router.post("/manage/upload", response_class=HTMLResponse)
+async def upload_files(
+    request: Request,
     files: Annotated[list[UploadFile], File()],
     mistral_service: Annotated[MistralService, Depends(get_mistral_service)],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
-    pdf_files: list[UploadedDocument] = []
     for file in files:
         if file.filename and file.filename.endswith(".pdf"):
             content = await file.read()
@@ -351,7 +406,6 @@ async def manage_upload(
             db.add(doc)
     await db.commit()
 
-    # Fetch all source documents to rebuild context
     result = await db.execute(select(SourceDocument).order_by(col(SourceDocument.created_at).desc()))
     all_docs = result.scalars().all()
 
@@ -373,11 +427,25 @@ async def manage_upload(
     final_context += new_profile + "\n\n" + repos_section
 
     await context_store.save_context(db, final_context)
-    return PlainTextResponse(final_context)
+    
+    from app.schemas import ManageContext
+    return await render_template(
+        request,
+        "fragments/context_update_response.html",
+        context_store,
+        db,
+        ManageContext(
+            active_tab="context",
+            raw_context=final_context,
+            source_documents=all_docs,
+            is_upload=True
+        ),
+    )
 
 
-@router.post("/manage/rebuild_context")
+@router.post("/manage/rebuild_context", response_class=HTMLResponse)
 async def manage_rebuild_context(
+    request: Request,
     mistral_service: Annotated[MistralService, Depends(get_mistral_service)],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
@@ -403,7 +471,20 @@ async def manage_rebuild_context(
     final_context += new_profile + "\n\n" + repos_section
 
     await context_store.save_context(db, final_context)
-    return PlainTextResponse(final_context)
+    
+    from app.schemas import ManageContext
+    return await render_template(
+        request,
+        "fragments/context_update_response.html",
+        context_store,
+        db,
+        ManageContext(
+            active_tab="context",
+            raw_context=final_context,
+            source_documents=all_docs,
+            is_upload=False
+        ),
+    )
 
 
 @router.get("/manage/document/{document_id}")
@@ -502,9 +583,7 @@ async def delete_chat_session(
                 takeover_requests=takeover_requests,
             ),
         )
-        response = HTMLResponse(content=stats_html)
-        response.headers["HX-Reswap"] = "none"
-        return response
+        return HTMLResponse(content=stats_html)
     else:
         # Delete from detailed view: redirect back to list view
         response = Response(status_code=204)

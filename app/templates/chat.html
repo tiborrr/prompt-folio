@@ -23,13 +23,12 @@
     </div>
     
     <div id="chat-history" class="chat-history scroller" style="gap: 0;" hx-ext="sse" sse-connect="/stream/{{ session_id }}">
-        <div class="indicator-top"></div>
-        <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend scroll:#chat-history:bottom" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1;">
+        <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend scroll:#chat-history:bottom" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1; padding: 15px 0;">
             {% if history %}
                 {% for msg in history %}
                     {% if msg.role == 'assistant' or msg.role == 'admin' %}
                     <div class="message assistant slide-in">
-                        <div class="msg-avatar" {% if has_avatar %}style="background-image: url('/avatar?v={{ app_version }}'); background-size: cover; background-position: center; color: transparent;"{% endif %}>{% if msg.role == 'admin' %}TC{% else %}AI{% endif %}</div>
+                        <div class="msg-avatar" style="background-image: url('/avatar?v={{ app_version }}'); background-size: cover; background-position: center; color: transparent;"></div>
                         <div class="msg-bubble">
                             {{ msg.content | markdown | safe }}
                         </div>
@@ -44,7 +43,6 @@
                 {% endfor %}
             {% endif %}
         </div>
-        <div class="indicator-bottom"></div>
     </div>
 
     <button id="scroll-to-bottom-btn" class="scroll-to-bottom-btn" aria-label="Scroll to bottom">

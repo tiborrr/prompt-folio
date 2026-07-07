@@ -1,0 +1,42 @@
+<div id="owner-section" style="margin-bottom: 30px; scroll-margin-top: 30px;">
+    <h3 style="margin-bottom: 5px; font-size: 1.2rem; color: var(--text-primary); font-weight: 600;">1. Profile Identity</h3>
+    <p class="subtitle" style="margin-bottom: 20px; font-size: 0.95rem; color: var(--text-secondary);">Customize how the AI refers to you during conversations.</p>
+    
+    {% if edit_mode %}
+    <form hx-post="/manage/owner_name" hx-target="#owner-section" hx-swap="outerHTML" class="glass-panel slide-in" style="padding: 20px; background: color-mix(in srgb, var(--bg-dark) 50%, transparent); border: 1px solid var(--primary-color); border-radius: 12px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.2);">
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+            <div class="form-group" style="flex: 1 1 200px; min-width: 0;">
+                <label>Display Name</label>
+                <input type="text" name="owner_name" value="{{ owner_name }}" placeholder="E.g. Alex" required autofocus>
+            </div>
+            
+            <div class="form-group" style="flex: 1 1 200px; min-width: 0;">
+                <label>Pronouns</label>
+                <input type="text" name="owner_pronouns" value="{{ owner_pronouns }}" placeholder="E.g. they/them" required>
+            </div>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 5px;">
+            <button type="button" hx-get="/manage/owner_name" hx-target="#owner-section" hx-swap="outerHTML" class="secondary-btn">Cancel</button>
+            <button type="submit" class="primary-btn">Save Changes</button>
+        </div>
+    </form>
+    {% else %}
+    <div class="glass-panel" style="padding: 20px; background: color-mix(in srgb, var(--shadow-grey-contrast) 2%, transparent); border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; transition: all 0.2s;">
+        <div style="display: flex; flex-direction: row; align-items: center; gap: 20px;">
+
+            <div style="display: flex; flex-direction: column;">
+                <div style="display: flex; flex-direction: row; align-items: center; gap: 12px;">
+                    <strong style="font-size: 1.25rem; color: var(--text-primary); font-weight: 600;">{{ owner_name }}</strong>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary); background: color-mix(in srgb, var(--shadow-grey-contrast) 10%, transparent); padding: 3px 10px; border-radius: 20px; border: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent); font-weight: 500; letter-spacing: 0.02em;">{{ owner_pronouns }}</span>
+                </div>
+                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 6px;">This is how the AI addresses you.</div>
+            </div>
+        </div>
+        <button hx-get="/manage/owner_name/edit" hx-target="#owner-section" hx-swap="outerHTML" class="icon-btn" title="Edit Identity" style="width: 42px; height: 42px; flex-shrink: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        </button>
+    </div>
+    {% endif %}
+</div>

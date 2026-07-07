@@ -102,9 +102,11 @@ async def lifespan(_: FastAPI):
     engine = get_engine(app_settings.sqlite_url)
 
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    alembic_cfg = Config(os.path.join(root_dir, "alembic.ini"))
-    alembic_cfg.set_main_option("sqlalchemy.url", app_settings.sqlite_url)
-    command.upgrade(alembic_cfg, "head")
+    # Since we are already in an async event loop, running Alembic programmatically
+    # which uses asyncio.run() will crash. We just create tables directly here.
+    from sqlmodel import SQLModel
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
     # Run file-to-db migration
     session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -156,7 +158,29 @@ async def get_avatar(
     if avatar_data:
         content, content_type = avatar_data
         return Response(content=content, media_type=content_type)
-    raise StarletteHTTPException(status_code=404, detail="Avatar not found")
+        
+    owner_name = await context_store.get_owner_name(db)
+    initial = (owner_name or "U")[0].upper()
+    colors = await context_store.get_colors(db)
+    
+    svg_content = f"""<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+    <defs>
+        <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="{colors.muted_teal}" />
+            <stop offset="100%" stop-color="{colors.sweet_salmon}" />
+        </linearGradient>
+    </defs>
+    <rect width="200" height="200" fill="url(#bgGradient)" />
+    <text x="50%" y="54%" font-family="system-ui, -apple-system, sans-serif" font-size="100" font-weight="bold" fill="#1e1e24" text-anchor="middle" dominant-baseline="middle">
+        {initial}
+    </text>
+</svg>"""
+    
+    return Response(
+        content=svg_content.encode("utf-8"), 
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"}
+    )
 
 
 @app.exception_handler(RateLimitExceeded)

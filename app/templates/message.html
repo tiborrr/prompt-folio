@@ -6,7 +6,7 @@
 </div>
 {% else %}
 <div class="message assistant slide-in">
-    <div class="msg-avatar" {% if has_avatar %}style="background-image: url('/avatar?v={{ app_version }}'); background-size: cover; background-position: center; color: transparent;"{% endif %}>{% if is_admin %}TC{% else %}AI{% endif %}</div>
+    <div class="msg-avatar" style="background-image: url('/avatar?v={{ app_version }}'); background-size: cover; background-position: center; color: transparent;"></div>
     <div class="msg-bubble">
         {{ message | markdown | safe }}
     </div>

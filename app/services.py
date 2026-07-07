@@ -202,6 +202,9 @@ class ContextStore:
 
     MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
 
+    def __init__(self, storage_path: str | None = None):
+        self.storage_path = storage_path
+
     async def _get_settings(self, db: AsyncSession) -> "SiteSettings":
         from app.models import SiteSettings
 
@@ -252,6 +255,13 @@ class ContextStore:
         s = await self._get_settings(db)
         s.avatar = content
         s.avatar_content_type = content_type
+        db.add(s)
+        await db.commit()
+
+    async def delete_avatar(self, db: AsyncSession) -> None:
+        s = await self._get_settings(db)
+        s.avatar = None
+        s.avatar_content_type = None
         db.add(s)
         await db.commit()
 
