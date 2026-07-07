@@ -8,6 +8,11 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
+class AdminSession(SQLModel, table=True):
+    token: str = Field(primary_key=True)
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 class ChatMessage(SQLModel, table=True):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     session_id: str = Field(foreign_key="chatsession.id", index=True)

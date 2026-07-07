@@ -79,6 +79,7 @@ class LoginContext(BaseModel):
 
 
 class ManageContext(BaseModel):
+    is_upload: bool = False
     active_tab: str
     raw_context: str | None = None
     recent_sessions: list["SessionListItemContext"] | None = None
@@ -126,3 +127,6 @@ class TakeoverControlsContext(BaseModel):
     session_id: str
     is_taken_over: bool
     owner_name: str
+
+class EditModeContext(BaseModel):
+    edit_mode: bool = False
