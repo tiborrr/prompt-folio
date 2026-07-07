@@ -12,6 +12,10 @@
     <script src="/static/js/htmx/htmx.min.js?v={{ app_version }}"></script>
     <script src="/static/js/htmx/response-targets.js?v={{ app_version }}"></script>
     <script src="/static/js/htmx/sse.js?v={{ app_version }}"></script>
+    <!-- Cropper.js for avatar cropping -->
+    <link href="/static/css/cropper/cropper.min.css?v={{ app_version }}" rel="stylesheet">
+    <script src="/static/js/cropper/cropper.min.js?v={{ app_version }}"></script>
+    <script defer src="/static/js/avatar-cropper.js?v={{ app_version }}"></script>
     
     <!-- Alpine.js for lightweight UI interactions -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -44,7 +48,7 @@
         {% block header %}
         <header class="app-header">
             <div class="avatar">
-                <span>{{ (owner_name or 'U')[0]|upper }}</span>
+                <img src="/avatar?v={{ app_version }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
             <div class="header-text">
                 <h1>{{ owner_name }}</h1>
@@ -93,7 +97,7 @@ document.addEventListener('htmx:confirm', function(evt) {
             if (evt.target) {
                 evt.target.setAttribute('data-confirmed', 'true');
             }
-            evt.detail.issueRequest();
+            evt.detail.issueRequest(true); // true prevents native window.confirm()
             cleanup();
         };
         
@@ -126,37 +130,6 @@ document.addEventListener('htmx:confirm', function(evt) {
     #custom-confirm-modal.visible { opacity: 1 !important; }
     #custom-confirm-modal.visible .modal-content { transform: translateY(0) !important; }
 </style>
-
-<script>
-// Click-to-edit utility function
-function initClickToEdit() {
-    document.querySelectorAll('.editable-display').forEach(function(display) {
-        display.addEventListener('click', function() {
-            var displayId = this.id;
-            var container = this.closest('[id$="-container"]') || this.parentElement;
-            
-            // Hide display and show edit
-            this.classList.add('hidden');
-            
-            // Find the corresponding edit element
-            var editId = displayId.replace('-display', '-edit');
-            var editEl = container.querySelector('#' + editId);
-            if (editEl) {
-                editEl.classList.add('active');
-                // Focus the input if it exists
-                var input = editEl.querySelector('input');
-                if (input) {
-                    input.focus();
-                }
-            }
-        });
-    });
-}
-
-// Initialize on page load and after HTMX swaps
-document.addEventListener('DOMContentLoaded', initClickToEdit);
-document.body.addEventListener('htmx:afterSwap', initClickToEdit);
-</script>
 
 </body>
 </html>

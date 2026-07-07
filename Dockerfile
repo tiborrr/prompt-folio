@@ -20,6 +20,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-install-project
 
+# Copy scripts and run them first to cache the downloads
+COPY update_htmx.sh /workspace/
+COPY update_editorjs.sh /workspace/
+COPY update_cropper.sh /workspace/
+RUN chmod +x update_htmx.sh update_editorjs.sh update_cropper.sh && ./update_htmx.sh && ./update_editorjs.sh && ./update_cropper.sh
+
 # Copy project files
 COPY pyproject.toml /workspace/
 COPY uv.lock /workspace/
@@ -27,10 +33,6 @@ COPY alembic.ini /workspace/
 COPY alembic /workspace/alembic
 COPY app /workspace/app
 COPY start.sh /workspace/
-COPY update_htmx.sh /workspace/
-COPY update_editorjs.sh /workspace/
-
-RUN chmod +x update_htmx.sh update_editorjs.sh && ./update_htmx.sh && ./update_editorjs.sh
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked

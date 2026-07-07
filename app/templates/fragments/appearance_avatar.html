@@ -1,0 +1,70 @@
+<div id="avatar-section" style="margin-bottom: 25px; scroll-margin-top: 30px;">
+    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">2. Avatar Customization</h3>
+    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Upload a profile picture to replace the default initials.</p>
+    
+    <form hx-post="/manage/avatar" hx-encoding="multipart/form-data" hx-target="#avatar-save-status" class="styled-form" x-ref="form"
+          x-data="avatarUpload('/avatar?v={{ app_version }}')">
+        <style>
+            .file-drop-area {
+                border: 2px dashed var(--shadow-contrast-20);
+                border-radius: 8px; padding: 40px 20px; text-align: center; transition: all 0.3s ease; margin-bottom: 15px; background: rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center;
+            }
+            .file-drop-area.clickable { cursor: pointer; }
+            .file-drop-area:hover, .file-drop-area:has(:focus-visible) {
+                background: rgba(0,0,0,0.2);
+                border-color: var(--sweet-salmon);
+            }
+            /* Make the cropper guide circular */
+            .cropper-view-box, .cropper-face {
+                border-radius: 50%;
+            }
+            .cropper-container-wrapper {
+                width: 100%;
+                max-height: 400px;
+                display: flex;
+                justify-content: center;
+                margin-bottom: 20px;
+            }
+            .cropper-container-wrapper img {
+                display: block;
+                max-width: 100%;
+            }
+        </style>
+        
+        <div class="file-drop-area" :class="{ 'clickable': !isCropping }"
+             @dragover.prevent="if(!isCropping) isHovering = true"
+             @dragleave.prevent="isHovering = false"
+             @drop.prevent="
+                 isHovering = false;
+                 if(!isCropping && $event.dataTransfer.files.length > 0) {
+                     handleFile($event.dataTransfer.files[0]);
+                 }
+             "
+             @click="if(!isCropping) $refs.fileInput.click()"
+             :style="isHovering ? 'border-color: var(--sweet-salmon); background: rgba(0,0,0,0.3);' : ''">
+             
+            <div x-show="!isCropping" style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; border: 3px solid var(--shadow-contrast-10); margin-bottom: 20px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2);">
+                <img :src="previewSrc" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            
+            <div x-show="isCropping" class="cropper-container-wrapper" @click.stop>
+                <img :src="previewSrc" id="avatar-preview-img">
+            </div>
+            
+            <p x-show="!isCropping" style="color: var(--shadow-contrast-70); margin-bottom: 5px; font-weight: 500; font-size: 1.05rem;">Click to select a different image</p>
+            <p x-show="isCropping" style="color: var(--shadow-contrast-70); margin-bottom: 5px; font-weight: 500; font-size: 1.05rem;">Drag to position and crop your avatar</p>
+            
+            <input type="file" name="file" x-ref="fileInput" accept="image/*" style="display: none;"
+                   @change="if ($event.target.files.length > 0) handleFile($event.target.files[0])">
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 15px; align-items: center;">
+            <div id="avatar-save-status" style="color: var(--color-success); font-size: 0.95rem; font-weight: 500;"></div>
+            {% if has_avatar %}
+            <button type="button" hx-delete="/manage/avatar" hx-target="#avatar-save-status" class="secondary-btn" style="border-color: var(--color-error); color: var(--color-error);" x-show="!isCropping">Delete</button>
+            {% endif %}
+            <button type="button" class="secondary-btn" x-show="isCropping" @click="cropper.destroy(); cropper = null; isCropping = false; previewSrc = '/avatar?v={{ app_version }}'">Cancel</button>
+            <button type="button" id="avatar-submit-btn" class="primary-btn" @click="isCropping ? uploadAvatar() : $refs.fileInput.click()" x-text="isCropping ? 'Save Avatar' : 'Upload Avatar'"></button>
+        </div>
+    </form>
+</div>
