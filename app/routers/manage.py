@@ -26,7 +26,6 @@ from app.dependencies import (
     require_admin,
     limiter,
     get_admin_session_cookie,
-    get_cookie_prefix,
     get_settings,
     create_admin_session,
     delete_admin_session,
@@ -181,22 +180,16 @@ async def manage_login(
         session_token = password
         await create_admin_session(db, session_token)
 
-        cookie_domain = (
-            settings.app_domain
-            if settings.environment not in {"DEV", "TEST"} and settings.app_domain not in {None, "localhost"}
-            else None
-        )
-
         response = Response(status_code=204)
         response.headers["HX-Redirect"] = next_url if next_url else "/manage"
         response.set_cookie(
-            key=f"{get_cookie_prefix(settings)}{ADMIN_SESSION_COOKIE_NAME}",
+            key=f"{settings.cookie_prefix}{ADMIN_SESSION_COOKIE_NAME}",
             value=session_token,
             httponly=True,
-            secure=settings.environment not in {"DEV", "TEST"},
+            secure=settings.secure_cookie,
             samesite="strict",
             path="/",
-            domain=cookie_domain,
+            domain=settings.cookie_domain,
             max_age=COOKIE_MAX_AGE_SECONDS,
         )
         return response
@@ -213,18 +206,13 @@ async def manage_logout(
     await delete_admin_session(db, admin_session)
 
     res = RedirectResponse(url="/", status_code=303)
-    cookie_domain = (
-        settings.app_domain
-        if settings.environment not in {"DEV", "TEST"} and settings.app_domain not in {None, "localhost"}
-        else None
-    )
     res.delete_cookie(
-        f"{get_cookie_prefix(settings)}admin_session",
+        f"{settings.cookie_prefix}admin_session",
         path="/",
-        secure=settings.environment not in {"DEV", "TEST"},
+        secure=settings.secure_cookie,
         httponly=True,
         samesite="lax",
-        domain=cookie_domain,
+        domain=settings.cookie_domain,
     )
     res.headers["Clear-Site-Data"] = '"cookies", "storage", "cache"'
     return res

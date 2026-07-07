@@ -25,5 +25,22 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
+    @property
+    def is_dev(self) -> bool:
+        return self.environment in {"DEV", "TEST"}
+
+    @property
+    def secure_cookie(self) -> bool:
+        return not self.is_dev
+
+    @property
+    def cookie_prefix(self) -> str:
+        return "" if self.is_dev else "__Secure-"
+
+    @property
+    def cookie_domain(self) -> str | None:
+        if self.is_dev or self.app_domain in {None, "localhost", ""}:
+            return None
+        return self.app_domain
 
 settings = Settings()

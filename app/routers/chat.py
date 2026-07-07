@@ -40,9 +40,6 @@ from app.schemas import (
 )
 from app.config import settings
 
-COOKIE_PREFIX = "" if settings.environment == "DEV" else "__Secure-"
-SECURE_COOKIE = settings.environment != "DEV"
-
 router = APIRouter()
 
 
@@ -54,7 +51,7 @@ async def index(
     db: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
     session_id: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}session_id")
+        str | None, Cookie(alias=f"{settings.cookie_prefix}session_id")
     ] = None,
 ):
     if session_id:
@@ -117,13 +114,13 @@ async def index(
         ChatSessionContext(session_id=new_session_id, history=history),
     )
     res.set_cookie(
-        key=f"{COOKIE_PREFIX}session_id",
+        key=f"{settings.cookie_prefix}session_id",
         value=new_session_id,
         httponly=True,
-        secure=SECURE_COOKIE,
+        secure=settings.secure_cookie,
         samesite="lax",
         path="/",
-        domain=settings.app_domain if settings.environment != "DEV" else None,
+        domain=settings.cookie_domain,
     )
     return res
 
@@ -167,7 +164,7 @@ async def takeover_request(
     db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_recaptcha)],
     session_id: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}session_id")
+        str | None, Cookie(alias=f"{settings.cookie_prefix}session_id")
     ] = None,
 ):
     if not session_id:
@@ -209,7 +206,7 @@ async def revert_takeover(
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
     session_id: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}session_id")
+        str | None, Cookie(alias=f"{settings.cookie_prefix}session_id")
     ] = None,
 ):
     if not session_id:
@@ -257,7 +254,7 @@ async def chat(
     background_tasks: BackgroundTasks,
     _: Annotated[None, Depends(require_recaptcha)],
     session_id: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}session_id")
+        str | None, Cookie(alias=f"{settings.cookie_prefix}session_id")
     ] = None,
 ):
     if not session_id:
@@ -409,7 +406,7 @@ async def clear_session(
     session_store: Annotated[SessionStore, Depends(get_session_store)],
     settings: Annotated[Settings, Depends(get_settings)],
     session_id: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}session_id")
+        str | None, Cookie(alias=f"{settings.cookie_prefix}session_id")
     ] = None,
 ):
     if session_id:
@@ -425,11 +422,11 @@ async def clear_session(
 
     res = RedirectResponse(url="/", status_code=303)
     res.delete_cookie(
-        f"{COOKIE_PREFIX}session_id",
+        f"{settings.cookie_prefix}session_id",
         path="/",
-        secure=SECURE_COOKIE,
+        secure=settings.secure_cookie,
         httponly=True,
         samesite="lax",
-        domain=settings.app_domain,
+        domain=settings.cookie_domain,
     )
     return res

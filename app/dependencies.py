@@ -42,11 +42,6 @@ async def get_db_session(
         yield session
 
 
-def get_cookie_prefix(config: Settings | None = None) -> str:
-    active_config = config or get_settings()
-    return "" if active_config.environment in {"DEV", "TEST"} else "__Secure-"
-
-
 def get_admin_session_cookie(
     request: Request,
     config: Annotated[Settings, Depends(get_settings)],
