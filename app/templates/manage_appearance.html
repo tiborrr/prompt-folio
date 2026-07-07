@@ -25,7 +25,8 @@
     <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">2. Avatar Customization</h3>
     <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Upload a profile picture to replace the default initials.</p>
     
-    <form hx-post="/manage/avatar" hx-encoding="multipart/form-data" hx-target="#avatar-save-status" class="styled-form">
+    <form hx-post="/manage/avatar" hx-encoding="multipart/form-data" hx-target="#avatar-save-status" class="styled-form"
+          x-data="{ isHovering: false, previewSrc: '' }">
         <style>
             .file-drop-area {
                 border: 2px dashed var(--shadow-contrast-20);
@@ -44,18 +45,39 @@
                 border-color: var(--seaweed);
             }
         </style>
-        <div class="file-drop-area" id="avatar-drop-area">
+        <div class="file-drop-area" id="avatar-drop-area"
+             @dragover.prevent="isHovering = true"
+             @dragleave.prevent="isHovering = false"
+             @drop.prevent="
+                 isHovering = false;
+                 let dt = $event.dataTransfer;
+                 if(dt.files.length > 0 && dt.files[0].type.startsWith('image/')) {
+                     $refs.fileInput.files = dt.files;
+                     let reader = new FileReader();
+                     reader.onload = (e) => previewSrc = e.target.result;
+                     reader.readAsDataURL(dt.files[0]);
+                 }
+             "
+             @click="$refs.fileInput.click()"
+             :style="isHovering ? 'border-color: var(--sweet-salmon); background: rgba(0,0,0,0.3);' : ''">
              
             <div id="avatar-preview-container" style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; border: 3px solid var(--shadow-contrast-10); margin-bottom: 20px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2);">
                 <!-- Default SVG Icon before upload -->
-                <svg id="avatar-placeholder-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--shadow-contrast-50)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                <img id="avatar-preview-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                <svg x-show="!previewSrc" id="avatar-placeholder-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--shadow-contrast-50)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <img x-show="previewSrc" :src="previewSrc" id="avatar-preview-img" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
             
-            <p style="color: var(--shadow-contrast-70); margin-bottom: 5px; font-weight: 500; font-size: 1.05rem;" id="avatar-drop-text">Drag & drop your profile picture here</p>
-            <p style="color: var(--shadow-contrast-40); font-size: 0.85rem;">or click to browse files</p>
+            <p style="color: var(--shadow-contrast-70); margin-bottom: 5px; font-weight: 500; font-size: 1.05rem;" id="avatar-drop-text" x-text="previewSrc ? 'Click to select a different image' : 'Drag & drop your profile picture here'"></p>
+            <p style="color: var(--shadow-contrast-40); font-size: 0.85rem;" x-show="!previewSrc">or click to browse files</p>
             
-            <input type="file" name="file" id="avatar-file-input" accept="image/*" required style="opacity: 0; width: 0.1px; height: 0.1px; position: absolute; z-index: -1;">
+            <input type="file" name="file" id="avatar-file-input" x-ref="fileInput" accept="image/*" required style="opacity: 0; width: 0.1px; height: 0.1px; position: absolute; z-index: -1;"
+                   @change="
+                       if ($event.target.files.length > 0) {
+                           let reader = new FileReader();
+                           reader.onload = (e) => previewSrc = e.target.result;
+                           reader.readAsDataURL($event.target.files[0]);
+                       }
+                   ">
         </div>
         
         <div class="flex-row-center">
@@ -63,74 +85,6 @@
             <div id="avatar-save-status" style="color: var(--color-success); font-size: 0.95rem; font-weight: 500;"></div>
         </div>
     </form>
-</div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const dropArea = document.getElementById('avatar-drop-area');
-    const fileInput = document.getElementById('avatar-file-input');
-    const previewImg = document.getElementById('avatar-preview-img');
-    const placeholderIcon = document.getElementById('avatar-placeholder-icon');
-    const dropText = document.getElementById('avatar-drop-text');
-
-    if(!dropArea) return;
-
-    dropArea.addEventListener('click', () => fileInput.click());
-
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, preventDefaults, false);
-    });
-
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropArea.addEventListener(eventName, highlight, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, unhighlight, false);
-    });
-
-    function highlight(e) {
-        dropArea.style.borderColor = 'var(--sweet-salmon)';
-        dropArea.style.background = 'rgba(0,0,0,0.3)';
-    }
-
-    function unhighlight(e) {
-        dropArea.style.borderColor = 'var(--shadow-contrast-20)';
-        dropArea.style.background = 'rgba(0,0,0,0.1)';
-    }
-
-    dropArea.addEventListener('drop', handleDrop, false);
-
-    function handleDrop(e) {
-        let dt = e.dataTransfer;
-        let files = dt.files;
-        if(files.length > 0 && files[0].type.startsWith('image/')) {
-            fileInput.files = files;
-            updatePreview();
-        }
-    }
-
-    fileInput.addEventListener('change', updatePreview);
-
-    function updatePreview() {
-        if (fileInput.files && fileInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                previewImg.src = e.target.result;
-                previewImg.style.display = 'block';
-                placeholderIcon.style.display = 'none';
-                dropText.textContent = "Click to select a different image";
-            }
-            reader.readAsDataURL(fileInput.files[0]);
-        }
-    }
-});
-</script>
 
 <hr style="border: none; border-top: 1px solid var(--border-color); margin: 25px 0;">
 

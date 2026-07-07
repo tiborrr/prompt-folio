@@ -57,7 +57,31 @@
           hx-swap="none"
           hx-trigger="{% if recaptcha_client_side_key %}recaptcha-verified{% else %}submit{% endif %}"
           hx-indicator="#htmx-indicator"
-          hx-on::after-request="this.reset()">
+          hx-on::after-request="this.reset()"
+          {% if recaptcha_client_side_key %}
+          hx-on:submit="
+              if (window.grecaptcha) {
+                  event.preventDefault();
+                  document.getElementById('htmx-indicator').classList.add('htmx-request');
+                  grecaptcha.ready(() => {
+                      grecaptcha.execute('{{ recaptcha_client_side_key }}', {action: 'chat_message'}).then((token) => {
+                          let hidden = this.querySelector('input[name=\'g-recaptcha-response\']');
+                          if (!hidden) {
+                              hidden = document.createElement('input');
+                              hidden.type = 'hidden';
+                              hidden.name = 'g-recaptcha-response';
+                              this.appendChild(hidden);
+                          }
+                          hidden.value = token;
+                          htmx.trigger(this, 'recaptcha-verified');
+                      }).catch(() => {
+                          document.getElementById('htmx-indicator').classList.remove('htmx-request');
+                          alert('ReCaptcha failed to load. Please try again or disable ad-blockers.');
+                      });
+                  });
+              }
+          "
+          {% endif %}>
         <input type="text" name="message" id="chat-input" class="chat-input" placeholder="{% if human_takeover %}Message {{ owner_name }}...{% else %}Ask me anything about {{ owner_name }}...{% endif %}" required autocomplete="off" autofocus aria-label="Message">
         <button type="submit" class="send-btn" aria-label="Send Message">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -87,33 +111,4 @@
     </div>
 </div>
 
-{% if recaptcha_client_side_key %}
-<script>
-    document.addEventListener('submit', function(e) {
-        var form = e.target;
-        if (form.id === 'chat-input-form') {
-            if (window.grecaptcha) {
-                e.preventDefault();
-                document.getElementById('htmx-indicator').classList.add('htmx-request');
-                grecaptcha.ready(function() {
-                    grecaptcha.execute('{{ recaptcha_client_side_key }}', {action: 'chat_message'}).then(function(token) {
-                        let hidden = form.querySelector('input[name="g-recaptcha-response"]');
-                        if (!hidden) {
-                            hidden = document.createElement('input');
-                            hidden.type = 'hidden';
-                            hidden.name = 'g-recaptcha-response';
-                            form.appendChild(hidden);
-                        }
-                        hidden.value = token;
-                        htmx.trigger(form, 'recaptcha-verified');
-                    }).catch(function() {
-                        document.getElementById('htmx-indicator').classList.remove('htmx-request');
-                        alert("ReCaptcha failed to load. Please try again or disable ad-blockers.");
-                    });
-                });
-            }
-        }
-    });
-</script>
-{% endif %}
 {% endblock %}

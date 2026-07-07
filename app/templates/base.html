@@ -12,6 +12,9 @@
     <script src="/static/js/htmx/htmx.min.js?v={{ app_version }}"></script>
     <script src="/static/js/htmx/response-targets.js?v={{ app_version }}"></script>
     <script src="/static/js/htmx/sse.js?v={{ app_version }}"></script>
+    
+    <!-- Alpine.js for lightweight UI interactions -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     {% if recaptcha_client_side_key %}
     <script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_client_side_key }}"></script>

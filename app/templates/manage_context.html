@@ -20,19 +20,42 @@
                   if(window.editor) {
                       window.editor.render(markdownToEditorJs(newText));
                   }
-                  document.getElementById('file-list').innerHTML = '';
+                  files = [];
                   document.getElementById('file-input').value = '';
               }
               document.getElementById('editorjs-container').style.opacity = '1'; 
               document.getElementById('editorjs-container').style.pointerEvents = 'auto';
           "
-          class="styled-form">
-        <div class="file-drop-area" id="file-drop-area">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--shadow-contrast-50)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px; transition: stroke 0.3s;" id="drop-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          class="styled-form"
+          x-data="{ isHovering: false, files: [] }">
+        <div class="file-drop-area" id="file-drop-area"
+             @dragover.prevent="isHovering = true"
+             @dragleave.prevent="isHovering = false"
+             @drop.prevent="
+                 isHovering = false;
+                 let dt = $event.dataTransfer;
+                 if(dt.files.length > 0) {
+                     $refs.fileInput.files = dt.files;
+                     files = Array.from(dt.files).map(f => f.name);
+                 }
+             "
+             @click="$refs.fileInput.click()"
+             :style="isHovering ? 'border-color: var(--sweet-salmon); background: rgba(0,0,0,0.3);' : ''">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" :stroke="isHovering ? 'var(--sweet-salmon)' : 'var(--shadow-contrast-50)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px; transition: stroke 0.3s;" id="drop-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
             <p style="color: var(--shadow-contrast-70); margin-bottom: 5px; font-weight: 500; font-size: 1.05rem;">Drag & drop PDFs here</p>
             <p style="color: var(--shadow-contrast-40); font-size: 0.85rem;">or click to browse files</p>
-            <input type="file" name="files" id="file-input" multiple accept=".pdf" required style="display: none;">
-            <div id="file-list" style="margin-top: 15px; text-align: center; font-size: 0.9rem; color: var(--sweet-salmon); font-weight: 600;"></div>
+            <input type="file" name="files" id="file-input" x-ref="fileInput" multiple accept=".pdf" required style="display: none;"
+                   @change="
+                       if ($event.target.files.length > 0) {
+                           files = Array.from($event.target.files).map(f => f.name);
+                       } else {
+                           files = [];
+                       }
+                   ">
+            <div id="file-list" style="margin-top: 15px; text-align: center; font-size: 0.9rem; color: var(--sweet-salmon); font-weight: 600;" x-show="files.length > 0">
+                Selected Files:<br>
+                <span style="color: var(--shadow-grey-contrast); font-weight:normal;" x-html="files.join('<br>')"></span>
+            </div>
         </div>
         <button type="submit" class="primary-btn" style="width: auto;">Upload & Generate</button>
     </form>
@@ -239,61 +262,6 @@
                 console.error('EditorJS saving failed: ', error);
             });
         });
-
-        const dropArea = document.getElementById('file-drop-area');
-        const fileInput = document.getElementById('file-input');
-        const fileList = document.getElementById('file-list');
-        const dropIcon = document.getElementById('drop-icon');
-
-        dropArea.addEventListener('click', () => fileInput.click());
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, highlight, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, unhighlight, false);
-        });
-
-        function highlight(e) {
-            dropArea.style.borderColor = 'var(--sweet-salmon)';
-            dropArea.style.background = 'rgba(0,0,0,0.3)';
-            dropIcon.style.stroke = 'var(--sweet-salmon)';
-        }
-
-        function unhighlight(e) {
-            dropArea.style.borderColor = 'var(--shadow-contrast-20)';
-            dropArea.style.background = 'rgba(0,0,0,0.1)';
-            dropIcon.style.stroke = 'var(--shadow-contrast-50)';
-        }
-
-        dropArea.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-            let dt = e.dataTransfer;
-            let files = dt.files;
-            fileInput.files = files;
-            updateFileList();
-        }
-
-        fileInput.addEventListener('change', updateFileList);
-
-        function updateFileList() {
-            fileList.innerHTML = '';
-            if (fileInput.files.length > 0) {
-                const names = Array.from(fileInput.files).map(f => f.name).join('<br>');
-                fileList.innerHTML = `Selected Files:<br><span style="color: var(--shadow-grey-contrast); font-weight:normal;">${names}</span>`;
-            }
-        }
     });
 </script>
 {% endblock %}
