@@ -17,12 +17,15 @@ from app.routers import chat, manage
 from app.dependencies import get_context_store, limiter
 from app.utils import render_template
 from app.services import ContextStore
-from app.database import get_engine, get_db_session
-from sqlmodel import SQLModel, select
+from app.database import get_engine
+from app.dependencies import get_db_session
+from sqlmodel import select
 from app.dependencies import get_settings
 from app.constants import SECURITY_HEADERS
 from app.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from alembic.config import Config
+from alembic import command
 
 
 async def migrate_files_to_db(db: AsyncSession) -> None:
@@ -98,8 +101,10 @@ async def lifespan(_: FastAPI):
     app_settings = get_settings()
     engine = get_engine(app_settings.sqlite_url)
 
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    alembic_cfg = Config(os.path.join(root_dir, "alembic.ini"))
+    alembic_cfg.set_main_option("sqlalchemy.url", app_settings.sqlite_url)
+    command.upgrade(alembic_cfg, "head")
 
     # Run file-to-db migration
     session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

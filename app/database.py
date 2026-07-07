@@ -18,15 +18,4 @@ def get_engine(db_url: str):
     return engine
 
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    from app.dependencies import get_settings
 
-    settings = get_settings()
-    engine = get_engine(settings.sqlite_url)
-
-    async_session = async_sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
-
-    async with async_session() as session:
-        yield session

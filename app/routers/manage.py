@@ -25,14 +25,18 @@ from app.dependencies import (
     get_session_store,
     require_admin,
     limiter,
-    COOKIE_PREFIX,
-    ACTIVE_ADMIN_SESSIONS,
+    get_admin_session_cookie,
+    get_cookie_prefix,
+    get_settings,
+    create_admin_session,
+    delete_admin_session,
+    is_admin_session_active,
 )
 from app.utils import render_template, get_takeover_oob_html, render_template_to_string
 from app.constants import ADMIN_SESSION_COOKIE_NAME, COOKIE_MAX_AGE_SECONDS
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, col
-from app.database import get_db_session
+from app.dependencies import get_db_session
 from app.models import ChatSession, ChatMessage, SourceDocument
 from app.schemas import (
     ThemeColors,
@@ -45,9 +49,7 @@ from app.schemas import (
     SessionListItemContext,
 )
 from app.schemas import SessionDetail, UploadedDocument
-from app.config import settings
-
-SECURE_COOKIE = settings.environment != "DEV"
+from app.config import Settings
 
 router = APIRouter()
 
@@ -57,11 +59,10 @@ async def manage_get(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    admin_session: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
-    ] = None,
+    settings: Annotated[Settings, Depends(get_settings)],
 ):
-    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
+    admin_session = get_admin_session_cookie(request, settings)
+    if not admin_session or not await is_admin_session_active(db, admin_session):
         return await render_template(
             request, "admin_login.html", context_store, db, LoginContext(next_url="/manage")
         )
@@ -105,11 +106,10 @@ async def manage_context_get(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    admin_session: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
-    ] = None,
+    settings: Annotated[Settings, Depends(get_settings)],
 ):
-    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
+    admin_session = get_admin_session_cookie(request, settings)
+    if not admin_session or not await is_admin_session_active(db, admin_session):
         return await render_template(
             request,
             "admin_login.html",
@@ -140,11 +140,10 @@ async def manage_appearance_get(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    admin_session: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
-    ] = None,
+    settings: Annotated[Settings, Depends(get_settings)],
 ):
-    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
+    admin_session = get_admin_session_cookie(request, settings)
+    if not admin_session or not await is_admin_session_active(db, admin_session):
         return await render_template(
             request,
             "admin_login.html",
@@ -170,6 +169,8 @@ async def manage_appearance_get(
 async def manage_login(
     request: Request,
     password: Annotated[str, Form()],
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
     next_url: Annotated[str | None, Form()] = None,
 ):
     _ = request
@@ -177,19 +178,25 @@ async def manage_login(
     await asyncio.sleep(random.uniform(0.6, 1.5))
 
     if secrets.compare_digest(password, settings.admin_password):
-        session_token = uuid.uuid4().hex
-        ACTIVE_ADMIN_SESSIONS.add(session_token)
+        session_token = password
+        await create_admin_session(db, session_token)
+
+        cookie_domain = (
+            settings.app_domain
+            if settings.environment not in {"DEV", "TEST"} and settings.app_domain not in {None, "localhost"}
+            else None
+        )
 
         response = Response(status_code=204)
         response.headers["HX-Redirect"] = next_url if next_url else "/manage"
         response.set_cookie(
-            key=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}",
+            key=f"{get_cookie_prefix(settings)}{ADMIN_SESSION_COOKIE_NAME}",
             value=session_token,
             httponly=True,
-            secure=SECURE_COOKIE,
+            secure=settings.environment not in {"DEV", "TEST"},
             samesite="strict",
             path="/",
-            domain=settings.app_domain if settings.environment != "DEV" else None,
+            domain=cookie_domain,
             max_age=COOKIE_MAX_AGE_SECONDS,
         )
         return response
@@ -197,15 +204,27 @@ async def manage_login(
 
 
 @router.post("/manage/logout")
-async def manage_logout():
+async def manage_logout(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    admin_session = get_admin_session_cookie(request, settings)
+    await delete_admin_session(db, admin_session)
+
     res = RedirectResponse(url="/", status_code=303)
+    cookie_domain = (
+        settings.app_domain
+        if settings.environment not in {"DEV", "TEST"} and settings.app_domain not in {None, "localhost"}
+        else None
+    )
     res.delete_cookie(
-        f"{COOKIE_PREFIX}admin_session",
+        f"{get_cookie_prefix(settings)}admin_session",
         path="/",
-        secure=SECURE_COOKIE,
+        secure=settings.environment not in {"DEV", "TEST"},
         httponly=True,
         samesite="lax",
-        domain=settings.app_domain,
+        domain=cookie_domain,
     )
     res.headers["Clear-Site-Data"] = '"cookies", "storage", "cache"'
     return res
@@ -437,11 +456,11 @@ async def delete_chat_session(
     session_id: str,
     db: Annotated[AsyncSession, Depends(get_db_session)],
     session_store: Annotated[SessionStore, Depends(get_session_store)],
-    admin_session: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
-    ] = None,
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ):
-    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
+    admin_session = get_admin_session_cookie(request, settings)
+    if not admin_session or not await is_admin_session_active(db, admin_session):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
@@ -467,8 +486,37 @@ async def delete_chat_session(
 
     # Determine response based on where the delete was triggered from
     if request.headers.get("HX-Target") == "closest .conversation-card":
-        # Delete from list view: return empty 200 to remove the card from the DOM
-        return Response(status_code=200)
+        from app.utils import render_template_to_string
+
+        result = await db.execute(select(ChatSession).order_by(col(ChatSession.created_at).desc()).limit(20))
+        recent_sessions = result.scalars().all()
+        from sqlalchemy import func
+        total_chats = (await db.execute(select(func.count()).select_from(ChatSession))).scalar_one() or 0
+        takeover_requests = (await db.execute(select(func.count()).select_from(ChatSession).where(ChatSession.human_takeover == True))).scalar_one() or 0
+
+        stats_html = await render_template_to_string(
+            "fragments/conversation_stats.html",
+            context_store,
+            db,
+            ManageContext(
+                active_tab="conversations",
+                recent_sessions=[
+                    SessionListItemContext(
+                        id=s.id,
+                        name=s.name,
+                        intent=s.intent,
+                        company=s.company,
+                        created_at=s.created_at,
+                    )
+                    for s in recent_sessions
+                ],
+                total_chats=total_chats,
+                takeover_requests=takeover_requests,
+            ),
+        )
+        response = HTMLResponse(content=stats_html)
+        response.headers["HX-Reswap"] = "none"
+        return response
     else:
         # Delete from detailed view: redirect back to list view
         response = Response(status_code=204)
@@ -482,11 +530,10 @@ async def manage_chat_get(
     session_id: str,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    admin_session: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}{ADMIN_SESSION_COOKIE_NAME}")
-    ] = None,
+    settings: Annotated[Settings, Depends(get_settings)],
 ):
-    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
+    admin_session = get_admin_session_cookie(request, settings)
+    if not admin_session or not await is_admin_session_active(db, admin_session):
         return await render_template(
             request,
             "admin_login.html",
@@ -606,6 +653,25 @@ async def manage_chat_send(
     return Response(status_code=204)
 
 
+@router.get("/manage/chat/{session_id}/edit_name", response_class=HTMLResponse)
+async def manage_chat_edit_name(
+    session_id: str,
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(require_admin)],
+):
+    result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
+    session_obj = result.scalar_one_or_none()
+    name = session_obj.name if session_obj else None
+    html = await render_template_to_string(
+        "fragments/session_name_edit.html",
+        context_store,
+        db,
+        SessionListItemContext(id=session_id, name=name, created_at=datetime.now(timezone.utc)),
+    )
+    return HTMLResponse(content=html)
+
+
 @router.post("/manage/chat/{session_id}/update_name")
 async def manage_chat_update_name(
     session_id: str,
@@ -626,6 +692,25 @@ async def manage_chat_update_name(
         context_store,
         db,
         SessionListItemContext(id=session_id, name=name, created_at=datetime.now(timezone.utc)),
+    )
+    return HTMLResponse(content=html)
+
+
+@router.get("/manage/chat/{session_id}/edit_intent", response_class=HTMLResponse)
+async def manage_chat_edit_intent(
+    session_id: str,
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(require_admin)],
+):
+    result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
+    session_obj = result.scalar_one_or_none()
+    intent = session_obj.intent if session_obj else None
+    html = await render_template_to_string(
+        "fragments/session_intent_edit.html",
+        context_store,
+        db,
+        SessionListItemContext(id=session_id, intent=intent, created_at=datetime.now(timezone.utc)),
     )
     return HTMLResponse(content=html)
 

@@ -1,10 +1,16 @@
 from functools import cache
 from typing import Annotated
-from fastapi import Depends, Cookie, Form, HTTPException
+from fastapi import Depends, Form, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 from app.config import settings, Settings
 from app.constants import RATE_LIMIT_GLOBAL
+from app.database import get_engine
+from collections.abc import AsyncGenerator
+from sqlalchemy.ext.asyncio import async_sessionmaker
+from app.models import AdminSession
 from app.services import (
     MistralService,
     RecaptchaService,
@@ -14,10 +20,6 @@ from app.services import (
     NotificationService,
 )
 
-COOKIE_PREFIX = "" if settings.environment == "DEV" else "__Secure-"
-
-ACTIVE_ADMIN_SESSIONS: set[str] = set()
-
 limiter = Limiter(key_func=get_remote_address, default_limits=[RATE_LIMIT_GLOBAL])
 
 
@@ -25,6 +27,56 @@ limiter = Limiter(key_func=get_remote_address, default_limits=[RATE_LIMIT_GLOBAL
 def get_settings() -> Settings:
     return settings
 
+
+def get_db_session_factory(
+    config: Annotated[Settings, Depends(get_settings)]
+) -> async_sessionmaker[AsyncSession]:
+    engine = get_engine(config.sqlite_url)
+    return async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def get_db_session(
+    factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_db_session_factory)]
+) -> AsyncGenerator[AsyncSession, None]:
+    async with factory() as session:
+        yield session
+
+
+def get_cookie_prefix(config: Settings | None = None) -> str:
+    active_config = config or get_settings()
+    return "" if active_config.environment in {"DEV", "TEST"} else "__Secure-"
+
+
+def get_admin_session_cookie(
+    request: Request,
+    config: Annotated[Settings, Depends(get_settings)],
+) -> str | None:
+    prefix = config.cookie_prefix
+    return request.cookies.get(f"{prefix}admin_session")
+
+
+async def is_admin_session_active(db: AsyncSession, token: str | None) -> bool:
+    if not token:
+        return False
+    result = await db.execute(select(AdminSession).where(AdminSession.token == token))
+    return result.scalar_one_or_none() is not None
+
+
+async def create_admin_session(db: AsyncSession, token: str) -> None:
+    existing = await db.execute(select(AdminSession).where(AdminSession.token == token))
+    if existing.scalar_one_or_none() is None:
+        db.add(AdminSession(token=token))
+        await db.commit()
+
+
+async def delete_admin_session(db: AsyncSession, token: str | None) -> None:
+    if not token:
+        return
+    result = await db.execute(select(AdminSession).where(AdminSession.token == token))
+    session_obj = result.scalar_one_or_none()
+    if session_obj:
+        await db.delete(session_obj)
+        await db.commit()
 
 def get_mistral_service(
     config: Annotated[Settings, Depends(get_settings)],
@@ -55,11 +107,12 @@ def get_session_store() -> SessionStore:
 
 
 async def require_admin(
-    admin_session: Annotated[
-        str | None, Cookie(alias=f"{COOKIE_PREFIX}admin_session")
-    ] = None,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    config: Annotated[Settings, Depends(get_settings)],
 ) -> str:
-    if not admin_session or admin_session not in ACTIVE_ADMIN_SESSIONS:
+    admin_session = get_admin_session_cookie(request, config)
+    if not admin_session or not await is_admin_session_active(db, admin_session):
         raise HTTPException(status_code=401, detail="Invalid or expired admin session.")
     return admin_session
 

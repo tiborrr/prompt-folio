@@ -17,8 +17,10 @@ from app.dependencies import (
     require_recaptcha,
     limiter,
     get_notification_service,
+    get_db_session,
+    get_db_session_factory,
 )
-from app.database import get_db_session
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from app.models import ChatSession, ChatMessage
 from app.utils import render_template, get_takeover_oob_html, render_template_to_string
 from app.constants import (
@@ -250,6 +252,7 @@ async def chat(
         NotificationService, Depends(get_notification_service)
     ],
     db: Annotated[AsyncSession, Depends(get_db_session)],
+    bg_session_factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_db_session_factory)],
     settings: Annotated[Settings, Depends(get_settings)],
     background_tasks: BackgroundTasks,
     _: Annotated[None, Depends(require_recaptcha)],
@@ -298,14 +301,6 @@ async def chat(
         return Response(status_code=204)
 
     async def generate_ai_response():
-        from app.database import get_engine
-        from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession as BgAsyncSession
-
-        engine = get_engine(settings.sqlite_url)
-        bg_session_factory = async_sessionmaker(
-            engine, class_=BgAsyncSession, expire_on_commit=False
-        )
-
         try:
             async with bg_session_factory() as bg_db:
                 # Step 1: Inject the typing indicator normally
