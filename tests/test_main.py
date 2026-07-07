@@ -8,8 +8,11 @@ from app.dependencies import (
     get_session_store,
 )
 from app.config import Settings
+from app.models import AdminSession
 from app.services import SessionStore, MistralService, RecaptchaService, ContextStore
 from app.schemas import ChatMessageData, ThemeColors, UploadedDocument
+from sqlmodel import Session
+from sqlalchemy import create_engine
 
 from typing import Any, override
 
@@ -44,15 +47,15 @@ class FakeContextStore(ContextStore):
         super().__init__("/fake")
 
     @override
-    def get_context(self) -> str:
+    async def get_context(self, db: Any) -> str:
         return "Fake Context"
 
     @override
-    def save_context(self, text: str):
-        pass
+    async def save_context(self, db: Any, text: str):
+        return None
 
     @override
-    def get_colors(self) -> ThemeColors:
+    async def get_colors(self, db: Any) -> ThemeColors:
         return ThemeColors(
             shadow_grey="#4a4a4a",
             sweet_salmon="#fb9f89",
@@ -62,8 +65,44 @@ class FakeContextStore(ContextStore):
         )
 
     @override
-    def save_colors(self, colors: ThemeColors):
-        pass
+    async def save_colors(self, db: Any, colors: ThemeColors):
+        return None
+
+    @override
+    async def get_owner_name(self, db: Any) -> str:
+        return "Test Owner"
+
+    @override
+    async def save_owner_name(self, db: Any, name: str):
+        return None
+
+    @override
+    async def get_owner_pronouns(self, db: Any) -> str:
+        return "they"
+
+    @override
+    async def save_owner_pronouns(self, db: Any, pronouns: str):
+        return None
+
+    @override
+    async def has_avatar(self, db: Any) -> bool:
+        return False
+
+    @override
+    async def get_avatar_bytes(self, db: Any) -> tuple[bytes, str] | None:
+        return None
+
+    @override
+    async def save_avatar(self, db: Any, content: bytes, content_type: str):
+        return None
+
+    @override
+    async def get_meeting_url(self, db: Any) -> str:
+        return ""
+
+    @override
+    async def save_meeting_url(self, db: Any, url: str):
+        return None
 
 
 def get_fake_session_store():
@@ -120,18 +159,48 @@ def test_manage_login_failure():
 
 
 def test_manage_authenticated_get():
-    response = client.get("/manage", cookies={"admin_session": "test_secure_password"})
+    login_response = client.post("/manage/login", data={"password": "test_secure_password"})
+    response = client.get("/manage", cookies={"admin_session": login_response.cookies.get("admin_session")})
     assert response.status_code == 200
-    assert "1. AI Context Generation" in response.text
+    assert "Total Chats" in response.text
     assert "Admin Login" not in response.text
 
 
 def test_manage_logout():
+    login_response = client.post("/manage/login", data={"password": "test_secure_password"})
     response = client.post(
         "/manage/logout",
-        cookies={"admin_session": "test_secure_password"},
+        cookies={"admin_session": login_response.cookies.get("admin_session")},
         follow_redirects=False,
     )
     assert response.status_code == 303
     assert response.headers.get("location") == "/"
     assert "admin_session" not in response.cookies
+
+
+def test_manage_chat_name_update_returns_display_fragment():
+    login_response = client.post("/manage/login", data={"password": "test_secure_password"})
+    response = client.post(
+        "/manage/chat/demo/update_name",
+        data={"name": "Alex"},
+        cookies={"admin_session": login_response.cookies.get("admin_session")},
+    )
+    assert response.status_code == 200
+    assert 'hx-get="/manage/chat/demo/edit_name"' in response.text
+    assert 'id="name-display"' in response.text
+
+
+def test_manage_chat_delete_returns_oob_updates():
+    sync_engine = create_engine("sqlite:///file:testdb?mode=memory&cache=shared&uri=true")
+    with Session(sync_engine) as session:
+        session.add(AdminSession(token="test_secure_password"))
+        session.commit()
+
+    response = client.delete(
+        "/manage/chat/demo",
+        headers={"HX-Target": "closest .conversation-card"},
+        cookies={"admin_session": "test_secure_password"}
+    )
+    assert response.status_code == 200
+    assert 'hx-swap-oob="true"' in response.text
+    assert 'id="conversation-stats"' in response.text

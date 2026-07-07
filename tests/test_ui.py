@@ -10,6 +10,7 @@ async def test_ui_chat_message():
     env = os.environ.copy()
     env["ENVIRONMENT"] = "TEST"
     env["DB_PATH"] = "sqlite+aiosqlite:///:memory:"
+    env["RECAPTCHA_CLIENT_SIDE_KEY"] = ""
 
     process = subprocess.Popen(
         ["uv", "run", "uvicorn", "app.main:app", "--port", "3006"], env=env
