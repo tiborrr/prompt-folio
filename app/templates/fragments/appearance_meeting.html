@@ -1,0 +1,13 @@
+<div id="meeting-link-section" style="margin-bottom: 25px; scroll-margin-top: 30px;">
+    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">4. Meeting Link</h3>
+    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Set the URL for your meeting scheduling tool (Calendly, Cal.com, etc.).</p>
+    
+    <form hx-post="/manage/meeting_url" hx-target="#meeting-save-status" class="styled-form">
+        <input type="url" name="meeting_url" value="{{ schedule_meeting_url }}" placeholder="https://calendly.com/your-link" class="admin-input">
+        
+        <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 15px; align-items: center;">
+            <div id="meeting-save-status" style="color: var(--color-success); font-size: 0.95rem; font-weight: 500;"></div>
+            <button type="submit" class="primary-btn">Save Link</button>
+        </div>
+    </form>
+</div>

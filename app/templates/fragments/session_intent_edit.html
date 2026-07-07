@@ -1,0 +1,9 @@
+<div id="intent-container" style="display: flex; align-items: center; gap: 5px; margin-top: 3px;">
+    Intent:
+    <form hx-post="/manage/chat/{{ id }}/update_intent" hx-target="#intent-container" hx-swap="outerHTML" style="display: flex; align-items: center; gap: 6px; flex: 1;">
+        <input type="text" id="intent-input" name="intent" value="{{ intent if intent else '' }}" placeholder="No specific intent"
+               autofocus
+               style="background:transparent; border:none; border-bottom:1px dashed var(--shadow-contrast-30); color:var(--text-primary); font-size:1em; width: 100%; outline:none; padding:2px; font-family: inherit;">
+        <button type="submit" class="clear-btn" style="padding: 2px 8px; border-radius: 4px; color: var(--sweet-salmon);">Save</button>
+    </form>
+</div>

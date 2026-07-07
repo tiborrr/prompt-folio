@@ -4,9 +4,8 @@
 <div id="conversations-section" style="scroll-margin-top: 30px;">
     <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">Recent Conversations</h3>
     <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">View and manage user chat sessions.</p>
-    
     <!-- Statistics Grid -->
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+    <div id="conversation-stats" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
         <div class="glass-panel" style="padding: 15px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; display: flex; flex-direction: column; gap: 5px; height: auto;">
             <span style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); opacity: 0.8;">Total Chats</span>
             <strong style="font-size: 1.8rem; color: var(--text-primary); font-family: 'Outfit', sans-serif;">{{ total_chats }}</strong>
@@ -17,8 +16,7 @@
         </div>
     </div>
 
-    <div class="scroller" style="padding: 5px 10px 5px 5px; margin: -5px -10px -5px -5px; max-height: 400px; overflow-y: auto; position: relative;">
-        <div class="indicator-top"></div>
+    <div style="position: relative;">
         {% if recent_sessions %}
             <div class="flex-col">
             {% for session in recent_sessions %}
@@ -41,6 +39,7 @@
                                 hx-confirm="Are you sure you want to permanently delete this conversation?" 
                                 hx-target="closest .conversation-card" 
                                 hx-swap="outerHTML"
+                                onclick="event.stopPropagation()"
                                 class="clear-btn hover-salmon-bg" 
                                 style="padding: 5px; color: var(--sweet-salmon); border-radius: 4px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>

@@ -1,0 +1,105 @@
+<div id="theme-section" style="margin-bottom: 25px; scroll-margin-top: 30px;">
+    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">3. Theme Customization</h3>
+    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Adjust the application's color palette. Click on any color to edit it.</p>
+    
+    <form hx-post="/manage/colors" hx-target="#color-save-status" class="styled-form">
+        <style>
+            .color-picker-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 20px;
+                margin-bottom: 30px;
+            }
+            .color-card {
+                background: rgba(0,0,0,0.2);
+                border: 1px solid var(--shadow-contrast-5);
+                border-radius: 12px;
+                padding: 20px 15px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.2s, background 0.2s;
+            }
+            .color-card:hover {
+                background: rgba(0,0,0,0.3);
+                transform: translateY(-2px);
+            }
+            .color-card label {
+                font-size: 0.9rem;
+                color: var(--shadow-contrast-90);
+                text-align: center;
+                margin-bottom: 15px;
+                font-weight: 600;
+                min-height: 45px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 4px;
+            }
+            .color-card label span {
+                font-size: 0.75rem;
+                color: var(--shadow-contrast-50);
+                font-weight: 400;
+            }
+            .modern-color-input {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 55px;
+                height: 55px;
+                border: none;
+                border-radius: 50%;
+                cursor: pointer;
+                padding: 0;
+                background: transparent;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                transition: transform 0.2s, box-shadow 0.2s;
+                overflow: hidden;
+            }
+            .modern-color-input::-webkit-color-swatch-wrapper {
+                padding: 0;
+            }
+            .modern-color-input::-webkit-color-swatch {
+                border: 2px solid var(--shadow-contrast-10);
+                border-radius: 50%;
+            }
+            .modern-color-input::-moz-color-swatch {
+                border: 2px solid var(--shadow-contrast-10);
+                border-radius: 50%;
+            }
+            .modern-color-input:hover {
+                transform: scale(1.1);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+            }
+        </style>
+        
+        <div class="color-picker-grid">
+            <div class="color-card">
+                <label>Shadow Grey <span>(Background)</span></label>
+                <input type="color" name="shadow_grey" value="{{ colors.shadow_grey }}" class="modern-color-input">
+            </div>
+            <div class="color-card">
+                <label>Sweet Salmon <span>(Primary)</span></label>
+                <input type="color" name="sweet_salmon" value="{{ colors.sweet_salmon }}" class="modern-color-input">
+            </div>
+            <div class="color-card">
+                <label>Khaki Beige <span>(Text)</span></label>
+                <input type="color" name="khaki_beige" value="{{ colors.khaki_beige }}" class="modern-color-input">
+            </div>
+            <div class="color-card">
+                <label>Muted Teal <span>(Accent)</span></label>
+                <input type="color" name="muted_teal" value="{{ colors.muted_teal }}" class="modern-color-input">
+            </div>
+            <div class="color-card">
+                <label>Seaweed <span>(User Bubble)</span></label>
+                <input type="color" name="seaweed" value="{{ colors.seaweed }}" class="modern-color-input">
+            </div>
+        </div>
+        
+        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 15px; margin-top: 15px;">
+            <div id="color-save-status" style="color: var(--color-success); font-size: 0.95rem; font-weight: 500;"></div>
+            <button type="submit" class="primary-btn">Save Theme Colors</button>
+        </div>
+    </form>
+</div>

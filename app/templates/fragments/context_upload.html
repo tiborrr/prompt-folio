@@ -1,0 +1,51 @@
+<div id="upload-section" style="margin-bottom: 25px; scroll-margin-top: 30px;">
+    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">1. AI Context Generation</h3>
+    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Upload one or more PDFs to automatically generate a new profile using Mistral OCR.</p>
+    
+    <form hx-post="/manage/upload" 
+          hx-encoding="multipart/form-data" 
+          hx-target="#upload-section"
+          hx-swap="outerHTML"
+          hx-indicator="#upload-indicator" 
+          class="styled-form"
+          x-data="{ isHovering: false, files: [] }">
+        <div class="file-drop-area" id="file-drop-area"
+             @dragover.prevent="isHovering = true"
+             @dragleave.prevent="isHovering = false"
+             @drop.prevent="
+                 isHovering = false;
+                 let dt = $event.dataTransfer;
+                 if(dt.files.length > 0) {
+                     $refs.fileInput.files = dt.files;
+                     files = Array.from(dt.files).map(f => f.name);
+                 }
+             "
+             @click="$refs.fileInput.click()"
+             :style="isHovering ? 'border-color: var(--sweet-salmon); background: rgba(0,0,0,0.3);' : ''">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" :stroke="isHovering ? 'var(--sweet-salmon)' : 'var(--shadow-contrast-50)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px; transition: stroke 0.3s;" id="drop-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <p style="color: var(--shadow-contrast-70); margin-bottom: 5px; font-weight: 500; font-size: 1.05rem;">Drag & drop PDFs here</p>
+            <p style="color: var(--shadow-contrast-40); font-size: 0.85rem;">or click to browse files</p>
+            <input type="file" name="files" id="file-input" x-ref="fileInput" multiple accept=".pdf" required style="display: none;"
+                   @change="
+                       if ($event.target.files.length > 0) {
+                           files = Array.from($event.target.files).map(f => f.name);
+                       } else {
+                           files = [];
+                       }
+                   ">
+            <div id="file-list" style="margin-top: 15px; text-align: center; font-size: 0.9rem; color: var(--sweet-salmon); font-weight: 600;" x-show="files.length > 0">
+                Selected Files:<br>
+                <span style="color: var(--shadow-grey-contrast); font-weight:normal;" x-html="files.join('<br>')"></span>
+            </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 15px; align-items: center;">
+            <button type="submit" class="primary-btn">Upload & Generate</button>
+        </div>
+    </form>
+    <div id="upload-indicator" class="htmx-indicator" style="margin-top: 15px;">
+        <div class="typing-indicator">
+            <span></span><span></span><span></span>
+        </div>
+        <span style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 10px;">Uploading and generating context... This might take a minute.</span>
+    </div>
+</div>

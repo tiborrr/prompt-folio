@@ -1,145 +1,13 @@
 {% extends "manage_layout.html" %}
 
 {% block manage_content %}
-<div id="upload-section" style="margin-bottom: 25px; scroll-margin-top: 30px;">
-    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">1. AI Context Generation</h3>
-    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Upload one or more PDFs to automatically generate a new profile using Mistral OCR.</p>
+    {% include "fragments/context_upload.html" %}
     
-    <form hx-post="/manage/upload" 
-          hx-encoding="multipart/form-data" 
-          hx-swap="none"
-          hx-indicator="#upload-indicator" 
-          hx-on:htmx:before-request="
-              document.getElementById('editorjs-container').style.opacity = '0.5'; 
-              document.getElementById('editorjs-container').style.pointerEvents = 'none';
-          "
-          hx-on:htmx:after-request="
-              if(event.detail.successful) {
-                  const newText = event.detail.xhr.responseText;
-                  document.getElementById('hidden-raw-context').value = newText;
-                  if(window.editor) {
-                      window.editor.render(markdownToEditorJs(newText));
-                  }
-                  files = [];
-                  document.getElementById('file-input').value = '';
-              }
-              document.getElementById('editorjs-container').style.opacity = '1'; 
-              document.getElementById('editorjs-container').style.pointerEvents = 'auto';
-          "
-          class="styled-form"
-          x-data="{ isHovering: false, files: [] }">
-        <div class="file-drop-area" id="file-drop-area"
-             @dragover.prevent="isHovering = true"
-             @dragleave.prevent="isHovering = false"
-             @drop.prevent="
-                 isHovering = false;
-                 let dt = $event.dataTransfer;
-                 if(dt.files.length > 0) {
-                     $refs.fileInput.files = dt.files;
-                     files = Array.from(dt.files).map(f => f.name);
-                 }
-             "
-             @click="$refs.fileInput.click()"
-             :style="isHovering ? 'border-color: var(--sweet-salmon); background: rgba(0,0,0,0.3);' : ''">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" :stroke="isHovering ? 'var(--sweet-salmon)' : 'var(--shadow-contrast-50)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px; transition: stroke 0.3s;" id="drop-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            <p style="color: var(--shadow-contrast-70); margin-bottom: 5px; font-weight: 500; font-size: 1.05rem;">Drag & drop PDFs here</p>
-            <p style="color: var(--shadow-contrast-40); font-size: 0.85rem;">or click to browse files</p>
-            <input type="file" name="files" id="file-input" x-ref="fileInput" multiple accept=".pdf" required style="display: none;"
-                   @change="
-                       if ($event.target.files.length > 0) {
-                           files = Array.from($event.target.files).map(f => f.name);
-                       } else {
-                           files = [];
-                       }
-                   ">
-            <div id="file-list" style="margin-top: 15px; text-align: center; font-size: 0.9rem; color: var(--sweet-salmon); font-weight: 600;" x-show="files.length > 0">
-                Selected Files:<br>
-                <span style="color: var(--shadow-grey-contrast); font-weight:normal;" x-html="files.join('<br>')"></span>
-            </div>
-        </div>
-        <button type="submit" class="primary-btn" style="width: auto;">Upload & Generate</button>
-    </form>
-    
-    <div id="upload-indicator" class="htmx-indicator" style="margin-top: 15px;">
-        <div class="typing-indicator">
-            <span></span><span></span><span></span>
-        </div>
-        <span style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 10px;">Uploading and generating context... This might take a minute.</span>
-    </div>
+    {% include "fragments/context_documents_section.html" %}
 
-    {% if source_documents %}
-    <div style="margin-top: 25px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 20px;">
-        <h4 style="margin-bottom: 12px; font-size: 0.95rem; color: var(--shadow-grey-contrast); text-transform: uppercase; letter-spacing: 0.05em; font-family: 'Outfit', sans-serif;">Source Documents in Database</h4>
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-            {% for doc in source_documents %}
-            <div class="document-item glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--khaki-beige)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.8;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    <div>
-                        <a href="/manage/document/{{ doc.id }}" target="_blank" class="hover-color-salmon" style="text-decoration: none; font-weight: 500; font-size: 0.9rem;">{{ doc.filename }}</a>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">Uploaded {{ doc.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-                    </div>
-                </div>
-                <button hx-delete="/manage/document/{{ doc.id }}" 
-                        hx-confirm="Are you sure you want to delete this source document? This will remove it from future context generations."
-                        hx-target="closest .document-item"
-                        hx-swap="outerHTML"
-                        class="primary-btn" 
-                        style="width: auto; padding: 4px 8px; font-size: 0.75rem; background: rgba(251, 159, 137, 0.1); border: 1px solid var(--sweet-salmon); color: var(--sweet-salmon);">
-                    Delete
-                </button>
-            </div>
-            {% endfor %}
-        </div>
-        
-        <div>
-            <button hx-post="/manage/rebuild_context" 
-                    hx-swap="none"
-                    hx-indicator="#upload-indicator"
-                    hx-on:htmx:before-request="
-                        document.getElementById('editorjs-container').style.opacity = '0.5'; 
-                        document.getElementById('editorjs-container').style.pointerEvents = 'none';
-                    "
-                    hx-on:htmx:after-request="
-                        if(event.detail.successful) {
-                            const newText = event.detail.xhr.responseText;
-                            document.getElementById('hidden-raw-context').value = newText;
-                            if(window.editor) {
-                                window.editor.render(markdownToEditorJs(newText));
-                            }
-                        }
-                        document.getElementById('editorjs-container').style.opacity = '1'; 
-                        document.getElementById('editorjs-container').style.pointerEvents = 'auto';
-                    "
-                    class="primary-btn" 
-                    style="width: auto; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-primary);">
-                🔄 Rebuild Profile from Source Documents
-            </button>
-        </div>
-    </div>
-    {% endif %}
-</div>
+    <hr style="border: none; border-top: 1px solid var(--border-color); margin-bottom: 25px;">
 
-<hr style="border: none; border-top: 1px solid var(--border-color); margin-bottom: 25px;">
-
-<div id="editor-section" style="scroll-margin-top: 30px;">
-    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">2. Rich Context Editor</h3>
-    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Visually edit the current AI system context.</p>
-
-    <form id="context-form" hx-post="/manage/update_raw" hx-target="#save-status" hx-indicator="#save-indicator" class="styled-form">
-        <div class="form-group">
-            <textarea name="raw_context" id="hidden-raw-context" style="display: none;">{{ raw_context }}</textarea>
-            <div id="editorjs-container"></div>
-        </div>
-        <div class="flex-row-center">
-            <button type="button" id="save-context-btn" class="primary-btn" style="width: auto;">Save Context</button>
-            <div id="save-indicator" class="htmx-indicator">
-                <div class="typing-indicator"><span></span><span></span><span></span></div>
-            </div>
-            <div id="save-status" style="color: var(--color-success); font-size: 0.9rem;"></div>
-        </div>
-    </form>
-</div>
+    {% include "fragments/context_editor.html" %}
 {% endblock %}
 
 {% block scripts %}
@@ -239,29 +107,6 @@
     }
 
     window.markdownToEditorJs = markdownToEditorJs;
-
-    document.addEventListener("DOMContentLoaded", function() {
-        const rawContextInput = document.getElementById('hidden-raw-context');
-        
-        window.editor = new EditorJS({
-            holder: 'editorjs-container',
-            data: markdownToEditorJs(rawContextInput.value),
-            tools: {
-                header: Header,
-                list: List
-            }
-        });
-
-        document.getElementById('save-context-btn').addEventListener('click', function(e) {
-            e.preventDefault();
-            window.editor.save().then((outputData) => {
-                const md = editorJsToMarkdown(outputData);
-                rawContextInput.value = md;
-                htmx.trigger('#context-form', 'submit');
-            }).catch((error) => {
-                console.error('EditorJS saving failed: ', error);
-            });
-        });
-    });
+    window.editorJsToMarkdown = editorJsToMarkdown;
 </script>
 {% endblock %}

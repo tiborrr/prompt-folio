@@ -1,0 +1,41 @@
+<div id="editor-section" style="scroll-margin-top: 30px;" hx-swap-oob="true"
+     x-data="{
+         initEditor() {
+             const rawContextInput = document.getElementById('hidden-raw-context');
+             window.editor = new EditorJS({
+                 holder: 'editorjs-container',
+                 data: window.markdownToEditorJs(rawContextInput.value),
+                 tools: {
+                     header: Header,
+                     list: List
+                 }
+             });
+         },
+         saveEditor() {
+             window.editor.save().then((outputData) => {
+                 const md = window.editorJsToMarkdown(outputData);
+                 document.getElementById('hidden-raw-context').value = md;
+                 htmx.trigger('#context-form', 'submit');
+             }).catch((error) => {
+                 console.error('EditorJS saving failed: ', error);
+             });
+         }
+     }"
+     x-init="initEditor()">
+    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">2. Rich Context Editor</h3>
+    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Visually edit the current AI system context.</p>
+
+    <form id="context-form" hx-post="/manage/update_raw" hx-target="#save-status" hx-indicator="#save-indicator" class="styled-form">
+        <div class="form-group">
+            <textarea name="raw_context" id="hidden-raw-context" style="display: none;">{{ raw_context }}</textarea>
+            <div id="editorjs-container"></div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 15px; align-items: center;">
+            <div id="save-indicator" class="htmx-indicator">
+                <div class="typing-indicator"><span></span><span></span><span></span></div>
+            </div>
+            <div id="save-status" style="color: var(--color-success); font-size: 0.9rem;"></div>
+            <button type="button" @click="saveEditor()" class="primary-btn">Save Context</button>
+        </div>
+    </form>
+</div>

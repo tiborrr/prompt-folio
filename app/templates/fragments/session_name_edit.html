@@ -1,0 +1,9 @@
+<div id="name-container" style="display: flex; align-items: center; gap: 8px;">
+    <h3 style="margin: 0; font-size: 1.1rem; color: var(--shadow-contrast-60);">Admin Chat:</h3>
+    <form hx-post="/manage/chat/{{ id }}/update_name" hx-target="#name-container" hx-swap="outerHTML" style="display: flex; align-items: center; gap: 8px;">
+        <input type="text" id="name-input" name="name" value="{{ name if name else '' }}" placeholder="Guest"
+               autofocus
+               style="background:transparent; border:none; border-bottom:1px dashed var(--shadow-contrast-30); color:var(--text-primary); font-size:1.1rem; font-weight:bold; width:150px; outline:none; padding:2px;">
+        <button type="submit" class="clear-btn" style="padding: 2px 8px; border-radius: 4px; color: var(--sweet-salmon);">Save</button>
+    </form>
+</div>
