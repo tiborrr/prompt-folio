@@ -1,26 +1,5 @@
 <div id="editor-section" style="scroll-margin-top: 30px;" hx-swap-oob="true"
-     x-data="{
-         initEditor() {
-             const rawContextInput = document.getElementById('hidden-raw-context');
-             window.editor = new EditorJS({
-                 holder: 'editorjs-container',
-                 data: window.markdownToEditorJs(rawContextInput.value),
-                 tools: {
-                     header: Header,
-                     list: List
-                 }
-             });
-         },
-         saveEditor() {
-             window.editor.save().then((outputData) => {
-                 const md = window.editorJsToMarkdown(outputData);
-                 document.getElementById('hidden-raw-context').value = md;
-                 htmx.trigger('#context-form', 'submit');
-             }).catch((error) => {
-                 console.error('EditorJS saving failed: ', error);
-             });
-         }
-     }"
+     x-data="contextEditor()"
      x-init="initEditor()">
     <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">2. Rich Context Editor</h3>
     <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Visually edit the current AI system context.</p>
