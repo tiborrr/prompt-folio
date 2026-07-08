@@ -134,8 +134,8 @@ async def manage_context_get(
     )
 
 
-@router.get("/manage/appearance", response_class=HTMLResponse)
-async def manage_appearance_get(
+@router.get("/manage/settings", response_class=HTMLResponse)
+async def manage_settings_get(
     request: Request,
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
@@ -148,19 +148,60 @@ async def manage_appearance_get(
             "admin_login.html",
             context_store,
             db,
-            LoginContext(next_url="/manage/appearance"),
+            LoginContext(next_url="/manage/settings"),
         )
+
+    integrations = await context_store.get_active_integrations(db, settings)
 
     return await render_template(
         request,
-        "manage_appearance.html",
+        "manage_settings.html",
         context_store,
         db,
         ManageContext(
-            active_tab="appearance",
+            active_tab="settings",
             schedule_meeting_url=await context_store.get_meeting_url(db),
+            mistral_api_key=integrations.get("mistral_api_key", ""),
+            mistral_api_key_locked=bool(settings.mistral_api_key),
+            recaptcha_client_side_key=integrations.get("recaptcha_client_side_key", ""),
+            recaptcha_client_side_key_locked=bool(settings.recaptcha_client_side_key),
+            recaptcha_server_side_key=integrations.get("recaptcha_server_side_key", ""),
+            recaptcha_server_side_key_locked=bool(settings.recaptcha_server_side_key),
+            ntfy_topic=integrations.get("ntfy_topic", ""),
+            ntfy_topic_locked=bool(settings.ntfy_topic),
         ),
     )
+
+
+@router.post("/manage/integrations")
+async def update_integrations(
+    request: Request,
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    mistral_api_key: Annotated[str, Form()] = "",
+    recaptcha_client_side_key: Annotated[str, Form()] = "",
+    recaptcha_server_side_key: Annotated[str, Form()] = "",
+    ntfy_topic: Annotated[str, Form()] = "",
+):
+    admin_session = get_admin_session_cookie(request, settings)
+    if not admin_session or not await is_admin_session_active(db, admin_session):
+        return HTMLResponse("Unauthorized", status_code=401)
+        
+    final_mistral = None if settings.mistral_api_key else mistral_api_key
+    final_recaptcha_client = None if settings.recaptcha_client_side_key else recaptcha_client_side_key
+    final_recaptcha_server = None if settings.recaptcha_server_side_key else recaptcha_server_side_key
+    final_ntfy = None if settings.ntfy_topic else ntfy_topic
+
+    await context_store.save_integrations(
+        db, 
+        mistral_api_key=final_mistral,
+        recaptcha_client_side_key=final_recaptcha_client,
+        recaptcha_server_side_key=final_recaptcha_server,
+        ntfy_topic=final_ntfy
+    )
+    
+    return HTMLResponse("Integrations saved successfully", status_code=200)
 
 
 @router.post("/manage/login")

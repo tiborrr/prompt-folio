@@ -100,7 +100,7 @@
             <button type="submit" class="clear-btn" style="padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: var(--shadow-contrast-5); color: var(--khaki-beige); white-space: nowrap;">🗓️ Send meeting</button>
         </form>
         {% else %}
-        <a href="/manage/appearance#meeting-link-section" class="clear-btn" style="text-decoration: none; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: var(--shadow-contrast-5); color: var(--shadow-contrast-40); white-space: nowrap; border: 1px dashed var(--shadow-contrast-20);" title="Set up a meeting link in settings first">🔗 Setup meeting link</a>
+        <a href="/manage/settings#meeting-link-section" class="clear-btn" style="text-decoration: none; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: var(--shadow-contrast-5); color: var(--shadow-contrast-40); white-space: nowrap; border: 1px dashed var(--shadow-contrast-20);" title="Set up a meeting link in settings first">🔗 Setup meeting link</a>
         {% endif %}
         <form hx-post="/manage/chat/{{ session_id }}/send" hx-swap="none" style="margin: 0; flex-shrink: 0;">
             <input type="hidden" name="message" value="Hi! I'll be right with you. Give me just a moment.">

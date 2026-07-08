@@ -56,6 +56,12 @@ class SiteSettings(SQLModel, table=True):
     avatar: bytes | None = Field(default=None)
     avatar_content_type: str | None = Field(default=None)
 
+    # Integrations
+    mistral_api_key: str | None = Field(default=None)
+    recaptcha_client_side_key: str | None = Field(default=None)
+    recaptcha_server_side_key: str | None = Field(default=None)
+    ntfy_topic: str | None = Field(default=None)
+
 
 class SourceDocument(SQLModel, table=True):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)

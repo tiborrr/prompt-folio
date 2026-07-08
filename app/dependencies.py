@@ -73,23 +73,32 @@ async def delete_admin_session(db: AsyncSession, token: str | None) -> None:
         await db.delete(session_obj)
         await db.commit()
 
-def get_mistral_service(
+async def get_mistral_service(
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
     config: Annotated[Settings, Depends(get_settings)],
 ) -> MistralService:
-    return MistralService(api_key=config.mistral_api_key)
+    integrations = await context_store.get_active_integrations(db, config)
+    return MistralService(api_key=integrations["mistral_api_key"])
 
 
-def get_recaptcha_service(
+async def get_recaptcha_service(
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
     config: Annotated[Settings, Depends(get_settings)],
 ) -> RecaptchaService:
     is_dev = config.environment in ["DEV", "TEST"]
-    return RecaptchaService(server_key=config.recaptcha_server_side_key, is_dev=is_dev)
+    integrations = await context_store.get_active_integrations(db, config)
+    return RecaptchaService(server_key=integrations["recaptcha_server_side_key"], is_dev=is_dev)
 
 
-def get_notification_service(
+async def get_notification_service(
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
     config: Annotated[Settings, Depends(get_settings)],
 ) -> NotificationService:
-    return NotificationService(topic=config.ntfy_topic)
+    integrations = await context_store.get_active_integrations(db, config)
+    return NotificationService(topic=integrations["ntfy_topic"])
 
 
 @cache

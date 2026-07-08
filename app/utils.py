@@ -68,7 +68,10 @@ async def render_template(
     template_context["app_version"] = app_version
     template_context["owner_name"] = await context_store.get_owner_name(db)
     template_context["owner_pronouns"] = await context_store.get_owner_pronouns(db)
-    template_context["recaptcha_client_side_key"] = settings.recaptcha_client_side_key
+    
+    integrations = await context_store.get_active_integrations(db, settings)
+    template_context["recaptcha_client_side_key"] = integrations["recaptcha_client_side_key"]
+    
     return templates.TemplateResponse(
         request=request, name=name, context=template_context
     )

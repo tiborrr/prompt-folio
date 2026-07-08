@@ -602,6 +602,10 @@ body {
 /* Pill Tabs */
 .pill-container {
     display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
     gap: 8px;
     background: rgba(0, 0, 0, 0.2);
     padding: 6px;
@@ -609,6 +613,10 @@ body {
     border: 1px solid var(--border-color);
     margin-top: 15px;
     margin-bottom: 0;
+}
+
+.pill-container::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
 
 .tab-pill {
@@ -619,7 +627,7 @@ body {
     font-weight: 500;
     font-size: 0.95rem;
     transition: all 0.2s ease;
-    flex: 1;
+    flex: 1 0 auto;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -928,3 +936,93 @@ body {
 }
 
 
+
+/* Settings Sidebar Layout */
+.manage-body-container {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    width: 100%;
+}
+
+.manage-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    border-right: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.manage-content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 30px;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+}
+
+.manage-sidebar-header {
+    font-size: 1.5rem;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+.manage-sidebar-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: auto; /* pushes actions to the bottom */
+}
+
+.manage-sidebar-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Tab pill adjustments for sidebar */
+.manage-sidebar-tabs .tab-pill {
+    justify-content: flex-start;
+    padding: 10px 16px;
+}
+
+@media (max-width: 768px) {
+    .manage-body-container {
+        flex-direction: column;
+    }
+    .manage-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 20px;
+        background: transparent;
+    }
+    .manage-sidebar-header {
+        display: none; /* Hide or adjust on mobile if needed, or keep it */
+    }
+    .manage-sidebar-tabs {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 5px;
+        margin-bottom: 0;
+        scrollbar-width: none;
+    }
+    .manage-sidebar-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    .manage-sidebar-actions {
+        display: none; /* Alternatively, move to top */
+    }
+    
+    /* We need a mobile header */
+    .mobile-manage-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+}

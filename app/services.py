@@ -24,6 +24,7 @@ from app.schemas import (
 
 if TYPE_CHECKING:
     from app.models import SiteSettings
+    from app.config import Settings
 
 
 class MistralService:
@@ -247,6 +248,35 @@ class ContextStore:
         if s.avatar is not None and s.avatar_content_type is not None:
             return s.avatar, s.avatar_content_type
         return None
+
+    async def get_active_integrations(self, db: AsyncSession, config: "Settings") -> dict[str, str]:
+        s = await self._get_settings(db)
+        return {
+            "mistral_api_key": s.mistral_api_key or config.mistral_api_key,
+            "recaptcha_client_side_key": s.recaptcha_client_side_key or config.recaptcha_client_side_key,
+            "recaptcha_server_side_key": s.recaptcha_server_side_key or config.recaptcha_server_side_key,
+            "ntfy_topic": s.ntfy_topic or config.ntfy_topic,
+        }
+
+    async def save_integrations(
+        self,
+        db: AsyncSession,
+        mistral_api_key: str | None = None,
+        recaptcha_client_side_key: str | None = None,
+        recaptcha_server_side_key: str | None = None,
+        ntfy_topic: str | None = None,
+    ) -> None:
+        s = await self._get_settings(db)
+        if mistral_api_key is not None:
+            s.mistral_api_key = mistral_api_key.strip()
+        if recaptcha_client_side_key is not None:
+            s.recaptcha_client_side_key = recaptcha_client_side_key.strip()
+        if recaptcha_server_side_key is not None:
+            s.recaptcha_server_side_key = recaptcha_server_side_key.strip()
+        if ntfy_topic is not None:
+            s.ntfy_topic = ntfy_topic.strip()
+        db.add(s)
+        await db.commit()
 
     async def save_avatar(self, db: AsyncSession, content: bytes, content_type: str) -> None:
         if len(content) > self.MAX_AVATAR_SIZE:

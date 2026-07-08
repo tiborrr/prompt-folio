@@ -87,6 +87,17 @@ class ManageContext(BaseModel):
     total_chats: int = 0
     takeover_requests: int = 0
     source_documents: list[Any] | None = None
+    mistral_api_key: str | None = None
+    mistral_api_key_locked: bool = False
+    
+    recaptcha_client_side_key: str | None = None
+    recaptcha_client_side_key_locked: bool = False
+    
+    recaptcha_server_side_key: str | None = None
+    recaptcha_server_side_key_locked: bool = False
+    
+    ntfy_topic: str | None = None
+    ntfy_topic_locked: bool = False
 
 
 class ChatSessionContext(BaseModel):

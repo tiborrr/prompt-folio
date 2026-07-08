@@ -1,0 +1,50 @@
+<div id="integrations-section" style="scroll-margin-top: 30px;">
+    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">Integrations & Security</h3>
+    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Configure API keys and external services. If left blank, values will fall back to environment variables.</p>
+    
+    <form hx-post="/manage/integrations" hx-target="#integrations-save-status" hx-indicator="#integrations-save-indicator" class="styled-form">
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="mistral_api_key" style="display: flex; align-items: center; justify-content: space-between;">
+                Mistral API Key
+                {% if mistral_api_key_locked %}<span style="font-size: 0.75rem; color: var(--color-warning); display: flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Locked by .env</span>{% endif %}
+            </label>
+            <input type="password" name="mistral_api_key" id="mistral_api_key" value="{{ '********' if mistral_api_key_locked else (mistral_api_key or '') }}" placeholder="Enter Mistral API Key" {% if mistral_api_key_locked %}disabled{% endif %}>
+            <p style="font-size: 0.8rem; color: var(--shadow-contrast-50); margin-top: 5px;">Required for AI Chat responses.</p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="recaptcha_client_side_key" style="display: flex; align-items: center; justify-content: space-between;">
+                reCAPTCHA Client Key
+                {% if recaptcha_client_side_key_locked %}<span style="font-size: 0.75rem; color: var(--color-warning); display: flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Locked by .env</span>{% endif %}
+            </label>
+            <input type="text" name="recaptcha_client_side_key" id="recaptcha_client_side_key" value="{{ '********' if recaptcha_client_side_key_locked else (recaptcha_client_side_key or '') }}" placeholder="Enter reCAPTCHA Client Key" {% if recaptcha_client_side_key_locked %}disabled{% endif %}>
+            <p style="font-size: 0.8rem; color: var(--shadow-contrast-50); margin-top: 5px;">v3 site key to protect the chat interface from bots.</p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="recaptcha_server_side_key" style="display: flex; align-items: center; justify-content: space-between;">
+                reCAPTCHA Server Key
+                {% if recaptcha_server_side_key_locked %}<span style="font-size: 0.75rem; color: var(--color-warning); display: flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Locked by .env</span>{% endif %}
+            </label>
+            <input type="password" name="recaptcha_server_side_key" id="recaptcha_server_side_key" value="{{ '********' if recaptcha_server_side_key_locked else (recaptcha_server_side_key or '') }}" placeholder="Enter reCAPTCHA Server Key" {% if recaptcha_server_side_key_locked %}disabled{% endif %}>
+            <p style="font-size: 0.8rem; color: var(--shadow-contrast-50); margin-top: 5px;">Secret key for server-side verification.</p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="ntfy_topic" style="display: flex; align-items: center; justify-content: space-between;">
+                Ntfy Topic
+                {% if ntfy_topic_locked %}<span style="font-size: 0.75rem; color: var(--color-warning); display: flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Locked by .env</span>{% endif %}
+            </label>
+            <input type="text" name="ntfy_topic" id="ntfy_topic" value="{{ '********' if ntfy_topic_locked else (ntfy_topic or '') }}" placeholder="e.g. prompt_folio_alerts_1234" {% if ntfy_topic_locked %}disabled{% endif %}>
+            <p style="font-size: 0.8rem; color: var(--shadow-contrast-50); margin-top: 5px;">Topic used for sending push notifications.</p>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 15px; align-items: center;">
+            <div id="integrations-save-indicator" class="htmx-indicator">
+                <div class="typing-indicator"><span></span><span></span><span></span></div>
+            </div>
+            <div id="integrations-save-status" style="color: var(--color-success); font-size: 0.9rem;"></div>
+            <button type="submit" class="primary-btn">Save Integrations</button>
+        </div>
+    </form>
+</div>
