@@ -301,6 +301,13 @@ class ContextStore:
             return s.context
         return f"You are an assistant representing {s.owner_name}."
 
+    async def get_context_markdown(self, db: AsyncSession) -> str:
+        s = await self._get_settings(db)
+        if not s.context:
+            return f"You are an assistant representing {s.owner_name}."
+        from app.editorjs_parser import editorjs_to_markdown
+        return editorjs_to_markdown(s.context)
+
     async def save_context(self, db: AsyncSession, text: str) -> None:
         s = await self._get_settings(db)
         s.context = text

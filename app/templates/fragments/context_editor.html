@@ -1,4 +1,4 @@
-<div id="editor-section" style="scroll-margin-top: 30px;" hx-swap-oob="true"
+<div id="editor-section" style="scroll-margin-top: 30px;" {% if is_oob %}hx-swap-oob="true"{% endif %}
      x-data="contextEditor()"
      x-init="initEditor()">
     <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">2. Rich Context Editor</h3>

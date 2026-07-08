@@ -80,7 +80,7 @@ async def index(
 
     # Create new session
     new_session_id = str(uuid.uuid4())
-    system_context = await context_store.get_context(db)
+    system_context = await context_store.get_context_markdown(db)
 
     new_session = ChatSession(id=new_session_id)
     db.add(new_session)
