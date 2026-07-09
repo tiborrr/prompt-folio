@@ -441,7 +441,7 @@ async def upload_files(
     _: Annotated[None, Depends(require_admin)],
 ):
     for file in files:
-        if file.filename and file.filename.endswith(".pdf"):
+        if file.filename and (file.filename.lower().endswith(".pdf") or file.filename.lower().endswith(".md")):
             content = await file.read()
             doc = SourceDocument(filename=file.filename, content=content)
             db.add(doc)
@@ -451,11 +451,11 @@ async def upload_files(
     all_docs = result.scalars().all()
 
     if not all_docs:
-        return PlainTextResponse("No PDFs available to generate profile.", status_code=400)
+        return PlainTextResponse("No documents available to generate profile.", status_code=400)
 
-    pdf_files = [UploadedDocument(filename=d.filename, content=d.content) for d in all_docs]
+    uploaded_files = [UploadedDocument(filename=d.filename, content=d.content) for d in all_docs]
     owner = await context_store.get_owner_name(db)
-    new_profile = await mistral_service.generate_profile_from_pdfs(pdf_files, owner)
+    new_profile = await mistral_service.generate_profile_from_docs(uploaded_files, owner)
 
     old_context = await context_store.get_context(db)
     repos_split = old_context.split("=== Repositories ===")

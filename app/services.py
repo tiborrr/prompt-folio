@@ -49,12 +49,15 @@ class MistralService:
             print(f"Error during OCR for {file_name}: {e}")
             return ""
 
-    async def generate_profile_from_pdfs(
-        self, pdf_files: list[UploadedDocument], owner_name: str
+    async def generate_profile_from_docs(
+        self, uploaded_files: list[UploadedDocument], owner_name: str
     ) -> str:
         combined_text = ""
-        for doc in pdf_files:
-            ocr_text = await self.extract_pdf_ocr(doc.filename, doc.content)
+        for doc in uploaded_files:
+            if doc.filename and doc.filename.lower().endswith(".md"):
+                ocr_text = doc.content.decode("utf-8", errors="replace")
+            else:
+                ocr_text = await self.extract_pdf_ocr(doc.filename, doc.content)
             combined_text += f"\n--- {doc.filename} ---\n{ocr_text}\n"
 
         system_prompt = f"You are an expert summarizer. Take the following extracted documents and synthesize them into a rich, cohesive professional profile for {owner_name}. Do not include any meta-commentary, just the profile text."
