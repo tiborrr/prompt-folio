@@ -17,6 +17,14 @@ print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# Run tests before deployment
+print_status "Running automated tests..."
+if ! uv run pytest; then
+    print_error "Tests failed! Aborting deployment to prevent shipping broken code."
+    exit 1
+fi
+print_success "All tests passed!"
+
 # Configuration
 export IMAGE_TAG="v$(date +%Y%m%d%H%M%S)"
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
