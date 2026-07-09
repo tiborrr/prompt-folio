@@ -184,3 +184,6 @@ tests/*.db
 # Downloaded static JS libraries
 app/static/js/htmx/*.js
 app/static/js/editorjs/*.js
+
+# Playwright recordings
+videos/
