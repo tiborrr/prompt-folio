@@ -9,8 +9,16 @@ document.addEventListener('alpine:init', () => {
 
                 let editorData = { time: Date.now(), blocks: [], version: "2.29.0" };
                 try {
-                    if (rawContextInput.value.trim().startsWith('{')) {
-                        editorData = JSON.parse(rawContextInput.value);
+                    const rawVal = rawContextInput.value.trim();
+                    if (rawVal.startsWith('{')) {
+                        editorData = JSON.parse(rawVal);
+                    } else if (rawVal.length > 0) {
+                        // Fallback: Convert raw markdown/text to paragraph blocks
+                        const paragraphs = rawVal.split('\n\n').filter(p => p.trim().length > 0);
+                        editorData.blocks = paragraphs.map(p => ({
+                            type: "paragraph",
+                            data: { text: p.trim().replace(/\n/g, '<br>') }
+                        }));
                     }
                 } catch (e) {
                     console.error("Failed to parse Editor.js JSON data:", e);
