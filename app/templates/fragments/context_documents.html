@@ -25,9 +25,15 @@
     <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 15px; align-items: center;">
         <button hx-post="/manage/rebuild_context" 
                 hx-swap="none"
-                hx-indicator="#upload-indicator"
+                hx-indicator="#rebuild-indicator"
                 class="primary-btn">
             Rebuild Profile from Source Documents
         </button>
+    </div>
+    <div id="rebuild-indicator" class="htmx-indicator" style="margin-top: 15px; text-align: right;">
+        <div class="typing-indicator">
+            <span></span><span></span><span></span>
+        </div>
+        <span style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 10px;">Extracting and merging context from all documents... This might take a minute.</span>
     </div>
 </div>
