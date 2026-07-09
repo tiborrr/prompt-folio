@@ -1,6 +1,6 @@
 <div id="upload-section" style="margin-bottom: 25px; scroll-margin-top: 30px;">
     <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">1. AI Context Generation</h3>
-    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Upload one or more PDFs to automatically generate a new profile using Mistral OCR.</p>
+    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">Upload PDFs or Markdown files to intelligently <strong>merge</strong> new information into your existing profile. Your current structure and manual edits will be preserved.</p>
     
     <form hx-post="/manage/upload" 
           hx-encoding="multipart/form-data" 
@@ -39,13 +39,13 @@
             </div>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 15px; align-items: center;">
-            <button type="submit" class="primary-btn">Upload & Generate</button>
+            <button type="submit" class="primary-btn">Upload & Merge Profile</button>
         </div>
     </form>
     <div id="upload-indicator" class="htmx-indicator" style="margin-top: 15px;">
         <div class="typing-indicator">
             <span></span><span></span><span></span>
         </div>
-        <span style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 10px;">Uploading and generating context... This might take a minute.</span>
+        <span style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 10px;">Extracting and merging context... This might take a minute.</span>
     </div>
 </div>

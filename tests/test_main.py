@@ -1,4 +1,5 @@
-from fastapi.testclient import TestClient
+import pytest
+from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.dependencies import (
     get_settings,
@@ -125,52 +126,65 @@ app.dependency_overrides[get_context_store] = FakeContextStore
 app.dependency_overrides[get_session_store] = get_fake_session_store
 app.dependency_overrides[get_settings] = get_fake_settings
 
-client = TestClient(app)
+@pytest.mark.asyncio
+async def test_read_main():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        response = await test_client.get("/")
+        assert response.status_code == 200
 
 
-def test_read_main():
-    response = client.get("/")
-    assert response.status_code == 200
+@pytest.mark.asyncio
+async def test_manage_unauthenticated():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        response = await test_client.get("/manage")
+        assert response.status_code == 200
+        assert "Admin Login" in response.text
 
 
-def test_manage_unauthenticated():
-    response = client.get("/manage")
-    assert response.status_code == 200
-    assert "Admin Login" in response.text
+@pytest.mark.asyncio
+async def test_manage_login_success():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        response = await test_client.post("/manage/login", data={"password": "test_secure_password"})
+        assert response.status_code == 204
+        assert "admin_session" in response.cookies
+        assert response.cookies.get("admin_session") == "test_secure_password"
+        assert response.headers.get("hx-redirect") == "/manage"
 
 
-def test_manage_login_success():
-    response = client.post("/manage/login", data={"password": "test_secure_password"})
-    assert response.status_code == 204
-    assert "admin_session" in response.cookies
-    assert response.cookies.get("admin_session") == "test_secure_password"
-    assert response.headers.get("hx-redirect") == "/manage"
+@pytest.mark.asyncio
+async def test_manage_login_failure():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        response = await test_client.post(
+            "/manage/login",
+            data={"password": "wrong_password"},
+            headers={"hx-request": "true"},
+        )
+        assert response.status_code == 401
+        assert "Invalid password" in response.text
+        assert "admin_session" not in response.cookies
 
 
-def test_manage_login_failure():
-    response = client.post(
-        "/manage/login",
-        data={"password": "wrong_password"},
-        headers={"hx-request": "true"},
-    )
-    assert response.status_code == 401
-    assert "Invalid password" in response.text
-    assert "admin_session" not in response.cookies
-
-
-def test_manage_authenticated_get():
-    with TestClient(app) as test_client:
-        test_client.post("/manage/login", data={"password": "test_secure_password"})
-        response = test_client.get("/manage")
+@pytest.mark.asyncio
+async def test_manage_authenticated_get():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        await test_client.post("/manage/login", data={"password": "test_secure_password"})
+        response = await test_client.get("/manage")
         assert response.status_code == 200
         assert "Total Chats" in response.text
         assert "Admin Login" not in response.text
 
 
-def test_manage_logout():
-    with TestClient(app) as test_client:
-        test_client.post("/manage/login", data={"password": "test_secure_password"})
-        response = test_client.post(
+@pytest.mark.asyncio
+async def test_manage_logout():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        await test_client.post("/manage/login", data={"password": "test_secure_password"})
+        response = await test_client.post(
             "/manage/logout",
             follow_redirects=False,
         )
@@ -179,10 +193,12 @@ def test_manage_logout():
         assert "admin_session" not in response.cookies
 
 
-def test_manage_chat_name_update_returns_display_fragment():
-    with TestClient(app) as test_client:
-        test_client.post("/manage/login", data={"password": "test_secure_password"})
-        response = test_client.post(
+@pytest.mark.asyncio
+async def test_manage_chat_name_update_returns_display_fragment():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        await test_client.post("/manage/login", data={"password": "test_secure_password"})
+        response = await test_client.post(
             "/manage/chat/demo/update_name",
             data={"name": "Alex"},
         )
@@ -191,15 +207,17 @@ def test_manage_chat_name_update_returns_display_fragment():
         assert 'id="name-display"' in response.text
 
 
-def test_manage_chat_delete_returns_oob_updates():
+@pytest.mark.asyncio
+async def test_manage_chat_delete_returns_oob_updates():
     sync_engine = create_engine("sqlite:///file:testdb?mode=memory&cache=shared&uri=true")
     with Session(sync_engine) as session:
         session.add(AdminSession(token="test_secure_password"))
         session.commit()
 
-    with TestClient(app) as test_client:
-        test_client.cookies.set("admin_session", "test_secure_password")
-        response = test_client.delete(
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        test_client.cookies.update({"admin_session": "test_secure_password"})
+        response = await test_client.delete(
             "/manage/chat/demo",
             headers={"HX-Target": "closest .conversation-card"},
         )

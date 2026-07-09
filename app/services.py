@@ -50,7 +50,7 @@ class MistralService:
             return ""
 
     async def generate_profile_from_docs(
-        self, uploaded_files: list[UploadedDocument], owner_name: str
+        self, uploaded_files: list[UploadedDocument], owner_name: str, existing_profile: str
     ) -> str:
         combined_text = ""
         for doc in uploaded_files:
@@ -60,12 +60,17 @@ class MistralService:
                 ocr_text = await self.extract_pdf_ocr(doc.filename, doc.content)
             combined_text += f"\n--- {doc.filename} ---\n{ocr_text}\n"
 
-        system_prompt = f"You are an expert summarizer. Take the following extracted documents and synthesize them into a rich, cohesive professional profile for {owner_name}. Do not include any meta-commentary, just the profile text."
+        system_prompt = (
+            f"You are an expert profile writer. Below is the user's current professional profile. "
+            f"Your task is to update and enrich it using the information from the newly uploaded documents. "
+            f"Preserve the existing tone, formatting, and key information, but smoothly integrate the new details. "
+            f"Return only the updated markdown."
+        )
 
         try:
             messages = [
                 ChatMessageData(role="system", content=system_prompt),
-                ChatMessageData(role="user", content=combined_text),
+                ChatMessageData(role="user", content=f"CURRENT PROFILE:\n{existing_profile}\n\nNEW UPLOADED DOCUMENTS:\n{combined_text}"),
             ]
             dict_messages = [m.model_dump(exclude_none=True) for m in messages]
             response = await self.client.chat.complete_async(
