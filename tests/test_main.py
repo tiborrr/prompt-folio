@@ -159,35 +159,36 @@ def test_manage_login_failure():
 
 
 def test_manage_authenticated_get():
-    login_response = client.post("/manage/login", data={"password": "test_secure_password"})
-    response = client.get("/manage", cookies={"admin_session": login_response.cookies.get("admin_session")})
-    assert response.status_code == 200
-    assert "Total Chats" in response.text
-    assert "Admin Login" not in response.text
+    with TestClient(app) as test_client:
+        test_client.post("/manage/login", data={"password": "test_secure_password"})
+        response = test_client.get("/manage")
+        assert response.status_code == 200
+        assert "Total Chats" in response.text
+        assert "Admin Login" not in response.text
 
 
 def test_manage_logout():
-    login_response = client.post("/manage/login", data={"password": "test_secure_password"})
-    response = client.post(
-        "/manage/logout",
-        cookies={"admin_session": login_response.cookies.get("admin_session")},
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
-    assert response.headers.get("location") == "/"
-    assert "admin_session" not in response.cookies
+    with TestClient(app) as test_client:
+        test_client.post("/manage/login", data={"password": "test_secure_password"})
+        response = test_client.post(
+            "/manage/logout",
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        assert response.headers.get("location") == "/"
+        assert "admin_session" not in response.cookies
 
 
 def test_manage_chat_name_update_returns_display_fragment():
-    login_response = client.post("/manage/login", data={"password": "test_secure_password"})
-    response = client.post(
-        "/manage/chat/demo/update_name",
-        data={"name": "Alex"},
-        cookies={"admin_session": login_response.cookies.get("admin_session")},
-    )
-    assert response.status_code == 200
-    assert 'hx-get="/manage/chat/demo/edit_name"' in response.text
-    assert 'id="name-display"' in response.text
+    with TestClient(app) as test_client:
+        test_client.post("/manage/login", data={"password": "test_secure_password"})
+        response = test_client.post(
+            "/manage/chat/demo/update_name",
+            data={"name": "Alex"},
+        )
+        assert response.status_code == 200
+        assert 'hx-get="/manage/chat/demo/edit_name"' in response.text
+        assert 'id="name-display"' in response.text
 
 
 def test_manage_chat_delete_returns_oob_updates():
@@ -196,11 +197,12 @@ def test_manage_chat_delete_returns_oob_updates():
         session.add(AdminSession(token="test_secure_password"))
         session.commit()
 
-    response = client.delete(
-        "/manage/chat/demo",
-        headers={"HX-Target": "closest .conversation-card"},
-        cookies={"admin_session": "test_secure_password"}
-    )
-    assert response.status_code == 200
-    assert 'hx-swap-oob="true"' in response.text
-    assert 'id="conversation-stats"' in response.text
+    with TestClient(app) as test_client:
+        test_client.cookies.set("admin_session", "test_secure_password")
+        response = test_client.delete(
+            "/manage/chat/demo",
+            headers={"HX-Target": "closest .conversation-card"},
+        )
+        assert response.status_code == 200
+        assert 'hx-swap-oob="true"' in response.text
+        assert 'id="conversation-stats"' in response.text

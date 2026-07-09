@@ -20,7 +20,6 @@ async def test_chat_db_integration():
         response = await client.post(
             "/chat",
             data={"message": "Hello Tibor!"},
-            cookies={"session_id": session_id},
         )
         assert response.status_code == 204
 

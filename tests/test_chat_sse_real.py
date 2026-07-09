@@ -12,16 +12,16 @@ async def test_chat_sse_flow_real():
     env["ENVIRONMENT"] = "TEST"
     env["DB_PATH"] = "sqlite+aiosqlite:///:memory:"
 
-    # We use port 3005 for testing
+    # We use port 31234 for testing
     process = subprocess.Popen(
-        ["uv", "run", "uvicorn", "app.main:app", "--port", "3005"], env=env
+        ["uv", "run", "uvicorn", "app.main:app", "--port", "31234"], env=env
     )
 
     try:
         # Wait for the server to start
         await asyncio.sleep(2)
 
-        async with httpx.AsyncClient(base_url="http://127.0.0.1:3005") as client:
+        async with httpx.AsyncClient(base_url="http://127.0.0.1:31234") as client:
             # 1. Connect to / to get a session
             response = await client.get("/")
             assert response.status_code == 200
@@ -49,7 +49,6 @@ async def test_chat_sse_flow_real():
             chat_response = await client.post(
                 "/chat",
                 data={"message": "Hello world!"},
-                cookies={"session_id": session_id},
             )
 
             # 500 error expected because Mistral key is missing,

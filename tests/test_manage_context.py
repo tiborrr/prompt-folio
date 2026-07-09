@@ -33,13 +33,13 @@ async def test_manage_context_upload_and_rebuild():
             await db.commit()
 
         cookies = {"admin_session": "test_admin_token"}
+        client.cookies.update(cookies)
 
         # 1. Test upload
         files = [('files', ('test.pdf', b'dummy pdf content', 'application/pdf'))]
         upload_response = await client.post(
             "/manage/upload", 
-            files=files,
-            cookies=cookies
+            files=files
         )
         assert upload_response.status_code == 200
         assert b"hx-swap-oob" in upload_response.content
@@ -47,8 +47,7 @@ async def test_manage_context_upload_and_rebuild():
 
         # 2. Test rebuild
         rebuild_response = await client.post(
-            "/manage/rebuild_context",
-            cookies=cookies
+            "/manage/rebuild_context"
         )
         assert rebuild_response.status_code == 200
         assert b"hx-swap-oob" in rebuild_response.content
