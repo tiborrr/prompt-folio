@@ -453,19 +453,20 @@ async def upload_files(
     if not all_docs:
         return PlainTextResponse("No documents available to generate profile.", status_code=400)
 
-    uploaded_files = [UploadedDocument(filename=d.filename, content=d.content) for d in all_docs]
-    owner = await context_store.get_owner_name(db)
-    new_profile = await mistral_service.generate_profile_from_docs(uploaded_files, owner)
-
     old_context = await context_store.get_context(db)
     repos_split = old_context.split("=== Repositories ===")
+    existing_profile = repos_split[0].strip()
+
     if len(repos_split) > 1:
         repos_section = "=== Repositories ===" + repos_split[1]
     else:
         repos_section = ""
 
-    final_context = f"The following is the rich context profile for {owner}:\n\n"
-    final_context += new_profile + "\n\n" + repos_section
+    uploaded_files = [UploadedDocument(filename=d.filename, content=d.content) for d in all_docs]
+    owner = await context_store.get_owner_name(db)
+    new_profile = await mistral_service.generate_profile_from_docs(uploaded_files, owner, existing_profile)
+
+    final_context = new_profile.strip() + "\n\n" + repos_section
 
     await context_store.save_context(db, final_context)
     
@@ -497,19 +498,20 @@ async def manage_rebuild_context(
     if not all_docs:
         return PlainTextResponse("No PDFs uploaded yet. Upload a PDF first.", status_code=400)
 
-    pdf_files = [UploadedDocument(filename=d.filename, content=d.content) for d in all_docs]
-    owner = await context_store.get_owner_name(db)
-    new_profile = await mistral_service.generate_profile_from_pdfs(pdf_files, owner)
-
     old_context = await context_store.get_context(db)
     repos_split = old_context.split("=== Repositories ===")
+    existing_profile = repos_split[0].strip()
+
     if len(repos_split) > 1:
         repos_section = "=== Repositories ===" + repos_split[1]
     else:
         repos_section = ""
 
-    final_context = f"The following is the rich context profile for {owner}:\n\n"
-    final_context += new_profile + "\n\n" + repos_section
+    uploaded_files = [UploadedDocument(filename=d.filename, content=d.content) for d in all_docs]
+    owner = await context_store.get_owner_name(db)
+    new_profile = await mistral_service.generate_profile_from_docs(uploaded_files, owner, existing_profile)
+
+    final_context = new_profile.strip() + "\n\n" + repos_section
 
     await context_store.save_context(db, final_context)
     
