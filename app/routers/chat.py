@@ -29,6 +29,7 @@ from app.constants import (
     ROLE_ASSISTANT,
     ADMIN_NOTIFICATION_TRUNCATE_LEN,
     NEW_SESSION_NOTIFICATION_MSG_COUNT,
+    MAX_CHAT_MESSAGE_LENGTH,
     UPDATE_USER_PROFILE_TOOL,
 )
 from app.schemas import (
@@ -43,6 +44,55 @@ from app.config import settings
 router = APIRouter()
 
 
+def is_valid_session_id(session_id: str) -> bool:
+    try:
+        return str(uuid.UUID(session_id)) == session_id
+    except ValueError:
+        return False
+
+
+async def welcome_text(context_store: ContextStore, db: AsyncSession) -> str:
+    owner_name = await context_store.get_owner_name(db)
+    owner_pronouns = await context_store.get_owner_pronouns(db)
+    return f"Hi! I am {owner_name}'s AI assistant. I have read {owner_pronouns} resume and repositories. How can I help you today?"
+
+
+async def get_or_create_session(
+    session_id: str, context_store: ContextStore, db: AsyncSession
+) -> ChatSession:
+    """Returns the chat session, storing it with its system prompt and welcome on first use."""
+    result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
+    session_obj = result.scalar_one_or_none()
+    if session_obj:
+        return session_obj
+
+    session_obj = ChatSession(id=session_id)
+    db.add(session_obj)
+
+    system_context = await context_store.get_context_markdown(db)
+    owner_name = await context_store.get_owner_name(db)
+    db.add_all(
+        [
+            ChatMessage(
+                session_id=session_id, role=ROLE_SYSTEM, content=system_context
+            ),
+            ChatMessage(
+                session_id=session_id,
+                role=ROLE_SYSTEM,
+                content=f"You are {owner_name}'s AI assistant. The user has just opened the chat. Your previous message was a friendly welcome. Gently and naturally learn their name and what they are looking for during the conversation. IMPORTANT: Ask only ONE question at a time. Do not overwhelm the user with multiple questions in a single response. When you learn their name or intent, use the update_user_profile tool to save it.",
+            ),
+            ChatMessage(
+                session_id=session_id,
+                role=ROLE_ASSISTANT,
+                content=await welcome_text(context_store, db),
+            ),
+        ]
+    )
+    await db.commit()
+    await db.refresh(session_obj)
+    return session_obj
+
+
 @router.get("/", response_class=HTMLResponse)
 @limiter.limit("30/minute")
 async def index(
@@ -54,7 +104,7 @@ async def index(
         str | None, Cookie(alias=f"{settings.cookie_prefix}session_id")
     ] = None,
 ):
-    if session_id:
+    if session_id and is_valid_session_id(session_id):
         result = await db.execute(
             select(ChatSession).where(ChatSession.id == session_id)
         )
@@ -78,44 +128,29 @@ async def index(
                 ChatSessionContext(session_id=session_id, history=history),
             )
 
-    # Create new session
-    new_session_id = str(uuid.uuid4())
-    system_context = await context_store.get_context_markdown(db)
-
-    new_session = ChatSession(id=new_session_id)
-    db.add(new_session)
-
-    owner_name = await context_store.get_owner_name(db)
-    owner_pronouns = await context_store.get_owner_pronouns(db)
-    msg1 = ChatMessage(
-        session_id=new_session_id, role=ROLE_SYSTEM, content=system_context
-    )
-    msg2 = ChatMessage(
-        session_id=new_session_id,
-        role=ROLE_SYSTEM,
-        content=f"You are {owner_name}'s AI assistant. The user has just opened the chat. Your previous message was a friendly welcome. Gently and naturally learn their name and what they are looking for during the conversation. IMPORTANT: Ask only ONE question at a time. Do not overwhelm the user with multiple questions in a single response. When you learn their name or intent, use the update_user_profile tool to save it.",
-    )
-
-    welcome_text = f"Hi! I am {owner_name}'s AI assistant. I have read {owner_pronouns} resume and repositories. How can I help you today?"
-    msg3 = ChatMessage(
-        session_id=new_session_id, role=ROLE_ASSISTANT, content=welcome_text
-    )
-
-    db.add_all([msg1, msg2, msg3])
-    await db.commit()
-
-    history = [ChatMessageData(role=ROLE_ASSISTANT, content=welcome_text)]
+    # New visitor, or an id without stored messages yet: show the welcome. The
+    # session is stored on the first message, so crawlers and bounces do not
+    # fill the database.
+    is_new = not (session_id and is_valid_session_id(session_id))
+    current_id = str(uuid.uuid4()) if is_new or session_id is None else session_id
+    history = [
+        ChatMessageData(
+            role=ROLE_ASSISTANT, content=await welcome_text(context_store, db)
+        )
+    ]
 
     res = await render_template(
         request,
         "chat.html",
         context_store,
         db,
-        ChatSessionContext(session_id=new_session_id, history=history),
+        ChatSessionContext(session_id=current_id, history=history),
     )
+    if not is_new:
+        return res
     res.set_cookie(
         key=f"{settings.cookie_prefix}session_id",
-        value=new_session_id,
+        value=current_id,
         httponly=True,
         secure=settings.secure_cookie,
         samesite="lax",
@@ -130,10 +165,9 @@ async def chat_stream(
     request: Request,
     session_id: str,
     session_store: Annotated[SessionStore, Depends(get_session_store)],
-    db: Annotated[AsyncSession, Depends(get_db_session)],
 ):
-    result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
-    if not result.scalar_one_or_none():
+    # The session is stored on the first message, after the page opened this stream
+    if not is_valid_session_id(session_id):
         return Response(status_code=404)
 
     async def event_publisher():
@@ -167,14 +201,10 @@ async def takeover_request(
         str | None, Cookie(alias=f"{settings.cookie_prefix}session_id")
     ] = None,
 ):
-    if not session_id:
+    if not session_id or not is_valid_session_id(session_id):
         return HTMLResponse("Session expired.", status_code=400)
 
-    result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
-    session_obj = result.scalar_one_or_none()
-
-    if not session_obj:
-        return HTMLResponse("Session expired.", status_code=400)
+    session_obj = await get_or_create_session(session_id, context_store, db)
 
     session_obj.human_takeover = True
     db.add(session_obj)
@@ -182,7 +212,7 @@ async def takeover_request(
 
     admin_url = str(request.base_url).rstrip("/") + f"/manage/chat/{session_id}"
     await notification_service.send(
-        f"URGENT: {session_obj.name} requested to chat with you directly!",
+        f"URGENT: {session_obj.name or 'A visitor'} requested to chat with you directly!",
         url=admin_url,
     )
 
@@ -270,10 +300,7 @@ async def chat(
         )
         return HTMLResponse(error_html, status_code=400)
 
-    result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
-    session_obj = result.scalar_one_or_none()
-
-    if not session_obj:
+    if not is_valid_session_id(session_id):
         error_html = await render_template_to_string(
             "fragments/system_message.html",
             context_store,
@@ -281,6 +308,20 @@ async def chat(
             StatusContext(message="Session expired. Please refresh the page."),
         )
         return HTMLResponse(error_html, status_code=400)
+
+    message = message.strip()
+    if not message or len(message) > MAX_CHAT_MESSAGE_LENGTH:
+        error_html = await render_template_to_string(
+            "fragments/system_message.html",
+            context_store,
+            db,
+            StatusContext(
+                message=f"Please send a message of at most {MAX_CHAT_MESSAGE_LENGTH} characters."
+            ),
+        )
+        return HTMLResponse(error_html, status_code=400)
+
+    session_obj = await get_or_create_session(session_id, context_store, db)
 
     # Save user message
     user_msg = ChatMessage(session_id=session_id, role=ROLE_USER, content=message)
