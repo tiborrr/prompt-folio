@@ -14,6 +14,7 @@ os.environ["SQLITE_URL"] = (
 
 # Now import the app
 from app.main import app
+from app.dependencies import limiter
 
 from sqlalchemy import create_engine
 from sqlmodel import SQLModel
@@ -28,6 +29,8 @@ def setup_db():
     )
     SQLModel.metadata.drop_all(sync_engine)
     SQLModel.metadata.create_all(sync_engine)
+    # Rate limits are per process; reset them so tests do not depend on order
+    limiter.reset()
     yield
     SQLModel.metadata.drop_all(sync_engine)
 
