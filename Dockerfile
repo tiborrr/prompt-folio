@@ -48,7 +48,7 @@ RUN groupadd --system --gid 999 nonroot \
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy the Python version
-COPY --from=builder --chown=python:python /python /python
+COPY --from=builder /python /python
 
 # Copy the application from the builder
 COPY --from=builder --chown=nonroot:nonroot /workspace /workspace
@@ -64,6 +64,9 @@ WORKDIR /workspace
 
 # Expose port 3005
 EXPOSE 3005
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3005/health', timeout=4)"]
 
 # Run the application
 CMD ["./start.sh"]

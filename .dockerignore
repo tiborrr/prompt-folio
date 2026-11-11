@@ -8,3 +8,9 @@ __pycache__
 .dockerignore
 Dockerfile
 docker-compose.yml
+.github
+.pytest_cache
+.ruff_cache
+private
+tests
+scripts

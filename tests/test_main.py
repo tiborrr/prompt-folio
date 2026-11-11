@@ -145,6 +145,15 @@ async def test_read_main():
 
 
 @pytest.mark.asyncio
+async def test_health():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        response = await test_client.get("/health")
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+
+@pytest.mark.asyncio
 async def test_manage_unauthenticated():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:

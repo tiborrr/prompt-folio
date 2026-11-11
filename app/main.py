@@ -20,6 +20,7 @@ from app.services import ContextStore
 from app.database import get_engine
 from app.dependencies import get_db_session
 from sqlmodel import select
+from sqlalchemy import text
 from app.dependencies import get_settings
 from app.constants import SECURITY_HEADERS
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -152,6 +153,15 @@ async def _get_db() -> AsyncSession:
         engine, class_=AsyncSession, expire_on_commit=False
     )
     return session_factory()
+
+
+@app.get("/health")
+async def health(
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Liveness and database check for container healthchecks and deploy smoke tests."""
+    _ = await db.execute(text("SELECT 1"))
+    return {"status": "ok"}
 
 
 @app.get("/avatar")
