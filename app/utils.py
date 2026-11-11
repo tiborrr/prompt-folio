@@ -13,7 +13,9 @@ import os
 base_dir = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(base_dir, "templates"))
 
-md = MarkdownIt("commonmark", {"breaks": True, "html": True, "linkify": True}).enable(
+# Chat messages come from visitors and from the LLM, so raw HTML is escaped
+# ("html": False); otherwise a message could run script in the admin's browser.
+md = MarkdownIt("commonmark", {"breaks": True, "html": False, "linkify": True}).enable(
     "linkify"
 )
 
