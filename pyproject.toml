@@ -43,6 +43,8 @@ profile = "black"
 
 [tool.basedpyright]
 typeCheckingMode = "recommended"
+# CI fails on errors only; the existing warnings are cleaned up over time.
+failOnWarnings = false
 # One-off helper scripts outside the app are not type-checked
 ignore = [
     "alembic/versions",

@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Deploy script for prompt-folio
-# This script builds the Docker images locally, pushes them to the registry, and syncs config to BRUG_TOT_BRUG
+# Manual fallback: CI (.github/workflows/ci.yml) deploys every push to main.
+# This script builds the Docker images locally, pushes them to the registry, and syncs config to BRUG_TOT_BRUG.
+# Registry cleanup only prunes its own v<timestamp> tags, never the commit-SHA tags CI pushes.
 
 set -e  # Exit on any error
 
@@ -160,7 +162,7 @@ cleanup_registry() {
             continue
         fi
         
-        local tags=($(echo "$tags_json" | jq -r '.tags[] | select(. != "latest")' | sort))
+        local tags=($(echo "$tags_json" | jq -r '.tags[] | select(startswith("v"))' | sort))
         
         if [ ${#tags[@]} -le $keep ]; then
             print_status "Found ${#tags[@]} tags. Keeping all."
