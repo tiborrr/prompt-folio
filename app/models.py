@@ -20,7 +20,9 @@ class ChatMessage(SQLModel, table=True):
     content: str
     created_at: datetime = Field(default_factory=utcnow)
 
-    session: "ChatSession" = Relationship(back_populates="messages")  # basedpyright: ignore[reportAny]
+    session: "ChatSession" = Relationship(
+        back_populates="messages"
+    )  # basedpyright: ignore[reportAny]
 
 
 class ChatSession(SQLModel, table=True):
@@ -68,4 +70,3 @@ class SourceDocument(SQLModel, table=True):
     filename: str
     content: bytes = Field(sa_column=Column(LargeBinary))
     created_at: datetime = Field(default_factory=utcnow)
-

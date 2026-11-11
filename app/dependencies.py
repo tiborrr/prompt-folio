@@ -29,14 +29,16 @@ def get_settings() -> Settings:
 
 
 def get_db_session_factory(
-    config: Annotated[Settings, Depends(get_settings)]
+    config: Annotated[Settings, Depends(get_settings)],
 ) -> async_sessionmaker[AsyncSession]:
     engine = get_engine(config.sqlite_url)
     return async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def get_db_session(
-    factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_db_session_factory)]
+    factory: Annotated[
+        async_sessionmaker[AsyncSession], Depends(get_db_session_factory)
+    ],
 ) -> AsyncGenerator[AsyncSession, None]:
     async with factory() as session:
         yield session
@@ -73,6 +75,12 @@ async def delete_admin_session(db: AsyncSession, token: str | None) -> None:
         await db.delete(session_obj)
         await db.commit()
 
+
+@cache
+def get_context_store() -> ContextStore:
+    return ContextStore()
+
+
 async def get_mistral_service(
     db: Annotated[AsyncSession, Depends(get_db_session)],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
@@ -89,7 +97,9 @@ async def get_recaptcha_service(
 ) -> RecaptchaService:
     is_dev = config.environment in ["DEV", "TEST"]
     integrations = await context_store.get_active_integrations(db, config)
-    return RecaptchaService(server_key=integrations["recaptcha_server_side_key"], is_dev=is_dev)
+    return RecaptchaService(
+        server_key=integrations["recaptcha_server_side_key"], is_dev=is_dev
+    )
 
 
 async def get_notification_service(
@@ -99,11 +109,6 @@ async def get_notification_service(
 ) -> NotificationService:
     integrations = await context_store.get_active_integrations(db, config)
     return NotificationService(topic=integrations["ntfy_topic"])
-
-
-@cache
-def get_context_store() -> ContextStore:
-    return ContextStore()
 
 
 def get_session_store() -> SessionStore:

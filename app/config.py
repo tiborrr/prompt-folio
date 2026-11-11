@@ -43,4 +43,5 @@ class Settings(BaseSettings):
             return None
         return self.app_domain
 
+
 settings = Settings()

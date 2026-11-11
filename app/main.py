@@ -22,10 +22,7 @@ from app.dependencies import get_db_session
 from sqlmodel import select
 from app.dependencies import get_settings
 from app.constants import SECURITY_HEADERS
-from app.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from alembic.config import Config
-from alembic import command
 
 
 async def migrate_files_to_db(db: AsyncSession) -> None:
@@ -76,7 +73,9 @@ async def migrate_files_to_db(db: AsyncSession) -> None:
             with open(colors_path, "r", encoding="utf-8") as f:
                 colors = json.load(f)
             site.color_shadow_grey = colors.get("shadow_grey", site.color_shadow_grey)
-            site.color_sweet_salmon = colors.get("sweet_salmon", site.color_sweet_salmon)
+            site.color_sweet_salmon = colors.get(
+                "sweet_salmon", site.color_sweet_salmon
+            )
             site.color_khaki_beige = colors.get("khaki_beige", site.color_khaki_beige)
             site.color_muted_teal = colors.get("muted_teal", site.color_muted_teal)
             site.color_seaweed = colors.get("seaweed", site.color_seaweed)
@@ -101,15 +100,17 @@ async def lifespan(_: FastAPI):
     app_settings = get_settings()
     engine = get_engine(app_settings.sqlite_url)
 
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     # Since we are already in an async event loop, running Alembic programmatically
     # which uses asyncio.run() will crash. We just create tables directly here.
     from sqlmodel import SQLModel
+
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
     # Run file-to-db migration
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    session_factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
     async with session_factory() as db:
         await migrate_files_to_db(db)
 
@@ -125,7 +126,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self,
         request: Request,
-        call_next: typing.Callable[[Request], collections.abc.Awaitable[StarletteResponse]],
+        call_next: typing.Callable[
+            [Request], collections.abc.Awaitable[StarletteResponse]
+        ],
     ) -> StarletteResponse:
         response = await call_next(request)
         for header, value in SECURITY_HEADERS.items():
@@ -145,7 +148,9 @@ async def _get_db() -> AsyncSession:
     """Create a standalone db session for use outside DI (e.g. exception handlers)."""
     app_settings = get_settings()
     engine = get_engine(app_settings.sqlite_url)
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    session_factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
     return session_factory()
 
 
@@ -158,11 +163,11 @@ async def get_avatar(
     if avatar_data:
         content, content_type = avatar_data
         return Response(content=content, media_type=content_type)
-        
+
     owner_name = await context_store.get_owner_name(db)
     initial = (owner_name or "U")[0].upper()
     colors = await context_store.get_colors(db)
-    
+
     svg_content = f"""<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
     <defs>
         <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -175,11 +180,11 @@ async def get_avatar(
         {initial}
     </text>
 </svg>"""
-    
+
     return Response(
-        content=svg_content.encode("utf-8"), 
+        content=svg_content.encode("utf-8"),
         media_type="image/svg+xml",
-        headers={"Cache-Control": "no-store, no-cache, must-revalidate"}
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
     )
 
 
