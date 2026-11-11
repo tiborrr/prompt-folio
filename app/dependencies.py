@@ -1,12 +1,15 @@
+import hashlib
+import secrets
+from datetime import datetime, timedelta, timezone
 from functools import cache
 from typing import Annotated
 from fastapi import Depends, Form, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import col, delete, select
 from app.config import settings, Settings
-from app.constants import RATE_LIMIT_GLOBAL
+from app.constants import COOKIE_MAX_AGE_SECONDS, RATE_LIMIT_GLOBAL
 from app.database import get_engine
 from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -52,24 +55,48 @@ def get_admin_session_cookie(
     return request.cookies.get(f"{prefix}admin_session")
 
 
+def hash_session_token(token: str) -> str:
+    """Admin session tokens are stored hashed, so a database leak does not expose them."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _session_cutoff() -> datetime:
+    # SQLite stores naive UTC datetimes
+    return datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        seconds=COOKIE_MAX_AGE_SECONDS
+    )
+
+
 async def is_admin_session_active(db: AsyncSession, token: str | None) -> bool:
     if not token:
         return False
-    result = await db.execute(select(AdminSession).where(AdminSession.token == token))
+    result = await db.execute(
+        select(AdminSession).where(
+            AdminSession.token == hash_session_token(token),
+            col(AdminSession.created_at) >= _session_cutoff(),
+        )
+    )
     return result.scalar_one_or_none() is not None
 
 
-async def create_admin_session(db: AsyncSession, token: str) -> None:
-    existing = await db.execute(select(AdminSession).where(AdminSession.token == token))
-    if existing.scalar_one_or_none() is None:
-        db.add(AdminSession(token=token))
-        await db.commit()
+async def create_admin_session(db: AsyncSession) -> str:
+    """Creates a random session token, stores its hash and returns the token."""
+    # Drop expired sessions while we are here
+    _ = await db.execute(
+        delete(AdminSession).where(col(AdminSession.created_at) < _session_cutoff())
+    )
+    token = secrets.token_urlsafe(32)
+    db.add(AdminSession(token=hash_session_token(token)))
+    await db.commit()
+    return token
 
 
 async def delete_admin_session(db: AsyncSession, token: str | None) -> None:
     if not token:
         return
-    result = await db.execute(select(AdminSession).where(AdminSession.token == token))
+    result = await db.execute(
+        select(AdminSession).where(AdminSession.token == hash_session_token(token))
+    )
     session_obj = result.scalar_one_or_none()
     if session_obj:
         await db.delete(session_obj)
@@ -95,10 +122,11 @@ async def get_recaptcha_service(
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     config: Annotated[Settings, Depends(get_settings)],
 ) -> RecaptchaService:
-    is_dev = config.environment in ["DEV", "TEST"]
     integrations = await context_store.get_active_integrations(db, config)
+    server_key = integrations["recaptcha_server_side_key"]
+    # Without a server key reCAPTCHA is disabled, as documented in .env.example
     return RecaptchaService(
-        server_key=integrations["recaptcha_server_side_key"], is_dev=is_dev
+        server_key=server_key, is_dev=config.is_dev or not server_key
     )
 
 
