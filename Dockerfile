@@ -59,6 +59,11 @@ ENV PATH="/workspace/.venv/bin:$PATH"
 # Use the non-root user to run our application
 USER nonroot
 
+# Trust X-Forwarded-For/-Proto only from the reverse proxy on a private (docker)
+# network, so rate limits see the visitor's IP instead of the proxy's. Override
+# with FORWARDED_ALLOW_IPS in .env when the proxy runs elsewhere.
+ENV FORWARDED_ALLOW_IPS="127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
 # Use /workspace as the working directory
 WORKDIR /workspace
 
