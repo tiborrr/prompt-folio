@@ -7,6 +7,7 @@ from datetime import datetime
 # Tool Call Schemas
 # ------------------------------------------------------------------------------
 
+
 class FunctionCallData(BaseModel):
     name: str
     arguments: str
@@ -89,13 +90,13 @@ class ManageContext(BaseModel):
     source_documents: list[Any] | None = None
     mistral_api_key: str | None = None
     mistral_api_key_locked: bool = False
-    
+
     recaptcha_client_side_key: str | None = None
     recaptcha_client_side_key_locked: bool = False
-    
+
     recaptcha_server_side_key: str | None = None
     recaptcha_server_side_key_locked: bool = False
-    
+
     ntfy_topic: str | None = None
     ntfy_topic_locked: bool = False
 
@@ -138,6 +139,7 @@ class TakeoverControlsContext(BaseModel):
     session_id: str
     is_taken_over: bool
     owner_name: str
+
 
 class EditModeContext(BaseModel):
     edit_mode: bool = False

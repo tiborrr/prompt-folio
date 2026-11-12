@@ -30,34 +30,53 @@ Prompt Folio is a modern, open-source, AI-powered portfolio and context manageme
 
 ## Testing
 
-Prompt Folio features a robust asynchronous test suite using `pytest`, `pytest-asyncio`, and Playwright for UI integration tests. Tests are run in parallel using `pytest-xdist`.
+Prompt Folio features an asynchronous test suite using `pytest`, `pytest-asyncio`, and Playwright for UI integration tests. Tests are run in parallel using `pytest-xdist`.
 
-To run the test suite locally:
+Run the same checks as CI (format, lint, typecheck, dependency audit, tests):
 ```bash
-uv run pytest
+make install-static                    # pinned HTMX / Editor.js / Cropper.js files
+uv run playwright install chromium     # browser for the UI tests
+make validate
 ```
 
-## Deployment
+## CI/CD
 
-Prompt Folio includes a smart, interactive deployment script. It automates testing, building the Docker image locally, pushing it to your registry, and syncing everything to your remote server via SSH.
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`:
 
-### How to Deploy
+1. **Validate:** `ruff format --check`, `ruff check`, `basedpyright`, `uv audit` and the full test suite (including Playwright).
+2. **Image:** builds the Docker image, smoke-tests `/health` and `/`, and scans it with Trivy. A fixable CRITICAL/HIGH finding blocks the release; accepted findings go in `.trivyignore` with a reason.
+3. **Publish** (`main` only): pushes the image with the commit SHA and `latest` tags to the registry.
+4. **Deploy** (`main` only): connects over SSH with a deploy key that the server pins to `scripts/deploy_remote.sh` (forced command). The script accepts only a commit SHA, pulls that tag, waits for the container healthcheck and rolls back to the previously deployed tag if it does not become healthy.
+5. **Deploy status:** opens a `deploy-failure` issue when `main` was not deployed and closes it after the next successful deploy.
 
-You don't need to manually configure anything to get started. Just run:
+`.github/workflows/dependency-audit.yml` runs `uv audit` daily and opens a `dependency-advisory` issue when a new advisory hits the locked dependencies.
 
-```bash
-./deploy.sh
+### Secrets (environment `production`)
+
+All secrets live in the GitHub environment `production`, which only accepts jobs running on `main`. Pull request runs cannot read them.
+
+| Secret | Purpose |
+|---|---|
+| `REGISTRY_HOST`, `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` | Push access to the Docker registry |
+| `PROD_SSH_KEY` | Private deploy key; the server only lets it run the deploy script |
+| `PROD_SSH_KNOWN_HOSTS` | The server's host key (`ssh-keyscan` output), so CI never trusts an unknown host |
+| `PROD_SSH_HOST`, `PROD_SSH_USER`, `PROD_SSH_PORT` (optional, default 22) | SSH target |
+
+Set them with `gh secret set NAME --env production`; `gh` then asks for the value without echoing it.
+
+### Server setup
+
+The server uses one generic script for every app: `scripts/deploy_remote.sh`, installed as `/usr/local/bin/deploy-app` (owned by root). A dedicated `deploy` user runs it; each app has its own deploy key, pinned in `/home/deploy/.ssh/authorized_keys` to that app only:
+
+```
+command="/usr/local/bin/deploy-app prompt-folio",restrict ssh-ed25519 AAAA... deploy@prompt-folio
 ```
 
-**What the script does:**
-1. **Automated Testing:** Runs `uv run pytest` and aborts deployment if any tests fail.
-2. **Interactive Setup:** If this is your first time deploying, the script will automatically pause and ask you for any missing configuration (like your server IP, Docker registry, and port). 
-3. **Auto-Save:** It saves your answers to the `.env` file so you never have to type them again.
-4. **Build & Push:** It builds the Docker image locally and pushes it to your registry.
-5. **Sync & Run:** It connects via SSH to your `REMOTE_HOST`, syncs your configuration, and starts the container using `docker compose`.
-6. **Registry Cleanup:** It automatically cleans up old Docker images from your registry (keeping only the last 3 tags) to save space.
+The app lives in `/home/deploy/deployments/prompt-folio` with `docker-compose.yml` (image tag `${IMAGE_TAG}`), the production `.env` and `private/` (owned by uid 999, the container user). CI does not copy files to the server: a change to `docker-compose.yml` or the script has to be copied by hand. Membership of the `docker` group is effectively root, so the forced command is what limits the key.
 
-**Note:** Ensure you have SSH access to your `REMOTE_HOST` (e.g. using SSH keys) and permissions to write to the `REMOTE_PATH`. The application container is configured to run securely as a non-root user.
+## Manual deployment
+
+`./deploy.sh` remains as a fallback. It runs the tests, builds and pushes a `v<timestamp>` image from your machine, syncs the compose file over SSH and starts it. On first use it asks for missing settings (`REMOTE_HOST`, `REMOTE_PATH`, registry, port) and saves them to `.env`. Its registry cleanup keeps the last 3 `v<timestamp>` tags and never touches the commit-SHA tags pushed by CI.
 
 ## Security
 - The admin dashboard is protected via an HTTPOnly, Secure, SameSite=Strict cookie.

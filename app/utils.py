@@ -62,16 +62,19 @@ async def render_template(
     colors = await context_store.get_colors(db)
     template_context["colors"] = colors.model_dump()
     template_context["contrast_colors"] = {
-        f"{k}_contrast": get_contrast_color(str(v)) for k, v in colors.model_dump().items()
+        f"{k}_contrast": get_contrast_color(str(v))
+        for k, v in colors.model_dump().items()
     }
     template_context["has_avatar"] = await context_store.has_avatar(db)
     template_context["app_version"] = app_version
     template_context["owner_name"] = await context_store.get_owner_name(db)
     template_context["owner_pronouns"] = await context_store.get_owner_pronouns(db)
-    
+
     integrations = await context_store.get_active_integrations(db, settings)
-    template_context["recaptcha_client_side_key"] = integrations["recaptcha_client_side_key"]
-    
+    template_context["recaptcha_client_side_key"] = integrations[
+        "recaptcha_client_side_key"
+    ]
+
     return templates.TemplateResponse(
         request=request, name=name, context=template_context
     )
@@ -90,7 +93,8 @@ async def render_template_to_string(
     colors = await context_store.get_colors(db)
     template_context["colors"] = colors.model_dump()
     template_context["contrast_colors"] = {
-        f"{k}_contrast": get_contrast_color(str(v)) for k, v in colors.model_dump().items()
+        f"{k}_contrast": get_contrast_color(str(v))
+        for k, v in colors.model_dump().items()
     }
     template_context["has_avatar"] = await context_store.has_avatar(db)
     template_context["owner_name"] = await context_store.get_owner_name(db)

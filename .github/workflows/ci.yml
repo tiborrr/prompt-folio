@@ -1,0 +1,215 @@
+name: CI & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# One run per ref at a time. Superseded PR runs are cancelled; main runs queue,
+# so two quick merges can never push and roll out images out of order.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: prompt-folio
+
+jobs:
+  validate:
+    name: Lint, Typecheck & Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Check formatting and lint (no auto-fix)
+        run: make lint
+
+      - name: Typecheck
+        run: make typecheck
+
+      - name: Audit dependencies for known vulnerabilities
+        run: make audit
+
+      # The UI tests load the pinned HTMX/Editor.js files and drive Chromium
+      - name: Download static JS and Playwright browser
+        run: |
+          make install-static
+          uv run playwright install --with-deps chromium
+
+      - name: Run tests
+        run: make test
+
+  image:
+    name: Docker Build, Smoke Test & Trivy Scan
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build local Docker image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:local
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test the image
+        run: |
+          docker run -d --name smoke -e ENVIRONMENT=TEST -e ADMIN_PASSWORD=ci \
+            -e MISTRAL_API_KEY=ci -e SQLITE_URL=sqlite+aiosqlite:////tmp/smoke.db \
+            -p 3005:3005 ${{ env.IMAGE_NAME }}:local
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3005/health; then
+              curl -fsS -o /dev/null http://127.0.0.1:3005/
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs smoke
+          exit 1
+
+      - name: Run Trivy container vulnerability scanner
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:local
+          format: table
+          # Blocking: a fixable CRITICAL/HIGH finding fails the job, so the image is
+          # neither pushed nor deployed. Accept a specific finding in .trivyignore
+          # (with a reason and review date) only when it cannot be fixed yet.
+          exit-code: "1"
+          trivyignores: .trivyignore
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+  # Registry and server credentials live in the "production" environment, which
+  # only accepts jobs running on main: pull request runs cannot read them.
+  publish:
+    name: Push image to registry
+    runs-on: ubuntu-latest
+    needs: image
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to private registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ${{ secrets.REGISTRY_HOST }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      # Same Dockerfile and context as the scanned image; every layer comes from
+      # the build cache the image job just filled.
+      - name: Build and push SHA and latest tags
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.REGISTRY_HOST }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ secrets.REGISTRY_HOST }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+
+  # The deploy key is pinned to scripts/deploy_remote.sh on the server (SSH
+  # forced command): it can only roll out a commit SHA, never open a shell.
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    needs: publish
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production
+    timeout-minutes: 15
+    steps:
+      - name: Configure SSH key and pinned host key
+        env:
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          if [ -z "$KNOWN_HOSTS" ]; then
+            echo "::error::PROD_SSH_KNOWN_HOSTS is not set in the production environment."
+            exit 1
+          fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_deploy ~/.ssh/known_hosts
+
+      - name: Pull image and restart (rolls back when unhealthy)
+        env:
+          SSH_TARGET: ${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}
+          SSH_PORT: ${{ secrets.PROD_SSH_PORT || '22' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes "$SSH_TARGET" "$GITHUB_SHA"
+
+  # A red step on main skips the deploy without any visible signal. Open (or
+  # update) one GitHub issue when that happens and close it once a deploy works.
+  deploy-status:
+    name: Report deploy status
+    runs-on: ubuntu-latest
+    needs: [validate, image, publish, deploy]
+    if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    permissions:
+      issues: write
+    steps:
+      - name: Open, update or close the deploy-failure issue
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+        with:
+          script: |
+            const title = 'Deploy van prompt-folio mislukt';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const sha = context.sha.slice(0, 7);
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: 'deploy-failure', per_page: 10,
+            });
+            if (process.env.DEPLOY_RESULT === 'success') {
+              for (const issue of open) {
+                await github.rest.issues.createComment({ ...context.repo, issue_number: issue.number,
+                  body: `Deploy van ${sha} geslaagd: ${runUrl}` });
+                await github.rest.issues.update({ ...context.repo, issue_number: issue.number,
+                  state: 'closed', state_reason: 'completed' });
+              }
+              return;
+            }
+            if (process.env.DEPLOY_RESULT === 'cancelled') return;
+            const body = `Commit ${sha} staat op main maar is niet uitgerold ` +
+              `(deploy: ${process.env.DEPLOY_RESULT}). Productie draait nog de vorige versie.\n\nRun: ${runUrl}`;
+            if (open.length > 0) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: open[0].number, body });
+            } else {
+              await github.rest.issues.create({ ...context.repo, title, body,
+                labels: ['deploy-failure'], assignees: [context.repo.owner] });
+            }

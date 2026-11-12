@@ -187,7 +187,9 @@ async def takeover_request(
     )
 
     owner_name = await context_store.get_owner_name(db)
-    oob_html = await get_takeover_oob_html(session_id, True, owner_name, context_store, db)
+    oob_html = await get_takeover_oob_html(
+        session_id, True, owner_name, context_store, db
+    )
     await session_store.broadcast(session_id, oob_html)
 
     msg = f"{owner_name} has been notified and can chat with you directly now."
@@ -249,7 +251,9 @@ async def chat(
         NotificationService, Depends(get_notification_service)
     ],
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    bg_session_factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_db_session_factory)],
+    bg_session_factory: Annotated[
+        async_sessionmaker[AsyncSession], Depends(get_db_session_factory)
+    ],
     settings: Annotated[Settings, Depends(get_settings)],
     background_tasks: BackgroundTasks,
     _: Annotated[None, Depends(require_recaptcha)],
@@ -284,13 +288,15 @@ async def chat(
     await db.commit()
 
     user_html = bytes(
-        (await render_template(
-            request,
-            "message.html",
-            context_store,
-            db,
-            MessageContext(message=message, is_user=True),
-        )).body
+        (
+            await render_template(
+                request,
+                "message.html",
+                context_store,
+                db,
+                MessageContext(message=message, is_user=True),
+            )
+        ).body
     ).decode("utf-8")
     await session_store.broadcast(session_id, user_html)
 
@@ -307,7 +313,7 @@ async def chat(
                     bg_db,
                 )
                 await session_store.broadcast(session_id, typing_indicator_html)
-                
+
                 # Step 2: Process the request (call LLM)
                 # Get session
                 result = await bg_db.execute(
@@ -325,14 +331,20 @@ async def chat(
                 )
                 history_msgs = msg_result.scalars().all()
                 history = [
-                    ChatMessageData(role=ROLE_ASSISTANT if m.role == "admin" else m.role, content=m.content) 
-                    for m in history_msgs if m.content and m.content.strip() != ""
+                    ChatMessageData(
+                        role=ROLE_ASSISTANT if m.role == "admin" else m.role,
+                        content=m.content,
+                    )
+                    for m in history_msgs
+                    if m.content and m.content.strip() != ""
                 ]
 
                 # Inject current profile so Mistral remembers it across messages
                 if bg_session_obj.name or bg_session_obj.intent:
                     profile_text = f"Current known user profile - Name: {bg_session_obj.name or 'Unknown'}, Intent: {bg_session_obj.intent or 'Unknown'}"
-                    history.append(ChatMessageData(role=ROLE_SYSTEM, content=profile_text))
+                    history.append(
+                        ChatMessageData(role=ROLE_SYSTEM, content=profile_text)
+                    )
 
                 # Notify admin on first user message
                 if len(history_msgs) == NEW_SESSION_NOTIFICATION_MSG_COUNT:
@@ -346,7 +358,9 @@ async def chat(
 
                 tools = [UPDATE_USER_PROFILE_TOOL]
 
-                async def update_profile_callback(name: str | None, company: str | None, intent: str | None):
+                async def update_profile_callback(
+                    name: str | None, company: str | None, intent: str | None
+                ):
                     updated = False
                     if name and not bg_session_obj.name:
                         bg_session_obj.name = name
@@ -368,28 +382,37 @@ async def chat(
 
                 # Save AI message
                 assistant_msg = ChatMessage(
-                    session_id=session_id, role=ROLE_ASSISTANT, content=assistant_response
+                    session_id=session_id,
+                    role=ROLE_ASSISTANT,
+                    content=assistant_response,
                 )
                 bg_db.add(assistant_msg)
                 await bg_db.commit()
 
                 # Step 3 & 4: Bundle the deletion with the first chunk of AI response
                 assistant_html = bytes(
-                    (await render_template(
-                        request,
-                        "message.html",
-                        context_store,
-                        bg_db,
-                        MessageContext(message=assistant_response, is_user=False),
-                    )).body
+                    (
+                        await render_template(
+                            request,
+                            "message.html",
+                            context_store,
+                            bg_db,
+                            MessageContext(message=assistant_response, is_user=False),
+                        )
+                    ).body
                 ).decode("utf-8")
-                
+
                 # Prepend the OOB delete to the AI response so they're in the same payload
-                response_with_delete = '<div id="typing-indicator" hx-swap-oob="delete"></div>' + assistant_html
+                response_with_delete = (
+                    '<div id="typing-indicator" hx-swap-oob="delete"></div>'
+                    + assistant_html
+                )
                 await session_store.broadcast(session_id, response_with_delete)
         except Exception as e:
             # If there's an error, still remove the typing indicator
-            await session_store.broadcast(session_id, '<div id="typing-indicator" hx-swap-oob="delete"></div>')
+            await session_store.broadcast(
+                session_id, '<div id="typing-indicator" hx-swap-oob="delete"></div>'
+            )
             raise e
         finally:
             pass

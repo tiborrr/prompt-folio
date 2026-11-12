@@ -50,7 +50,10 @@ class MistralService:
             return ""
 
     async def generate_profile_from_docs(
-        self, uploaded_files: list[UploadedDocument], owner_name: str, existing_profile: str
+        self,
+        uploaded_files: list[UploadedDocument],
+        owner_name: str,
+        existing_profile: str,
     ) -> str:
         combined_text = ""
         for doc in uploaded_files:
@@ -61,16 +64,19 @@ class MistralService:
             combined_text += f"\n--- {doc.filename} ---\n{ocr_text}\n"
 
         system_prompt = (
-            f"You are an expert profile writer. Below is the user's current professional profile. "
-            f"Your task is to update and enrich it using the information from the newly uploaded documents. "
-            f"Preserve the existing tone, formatting, and key information, but smoothly integrate the new details. "
-            f"Return only the updated markdown."
+            "You are an expert profile writer. Below is the user's current professional profile. "
+            "Your task is to update and enrich it using the information from the newly uploaded documents. "
+            "Preserve the existing tone, formatting, and key information, but smoothly integrate the new details. "
+            "Return only the updated markdown."
         )
 
         try:
             messages = [
                 ChatMessageData(role="system", content=system_prompt),
-                ChatMessageData(role="user", content=f"CURRENT PROFILE:\n{existing_profile}\n\nNEW UPLOADED DOCUMENTS:\n{combined_text}"),
+                ChatMessageData(
+                    role="user",
+                    content=f"CURRENT PROFILE:\n{existing_profile}\n\nNEW UPLOADED DOCUMENTS:\n{combined_text}",
+                ),
             ]
             dict_messages = [m.model_dump(exclude_none=True) for m in messages]
             response = await self.client.chat.complete_async(
@@ -89,7 +95,8 @@ class MistralService:
         self,
         messages_history: list[ChatMessageData],
         tools: list[dict[str, object]] | None = None,
-        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]] | None = None,
+        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]]
+        | None = None,
         max_depth: int = 3,
     ) -> str:
         if max_depth <= 0:
@@ -133,7 +140,11 @@ class MistralService:
                                 args = json.loads(arguments)
                             else:
                                 args = arguments
-                            await tool_callback(args.get("name"), args.get("company"), args.get("intent"))
+                            await tool_callback(
+                                args.get("name"),
+                                args.get("company"),
+                                args.get("intent"),
+                            )
                             tool_result = "Profile updated successfully."
                         except Exception as e:
                             print(f"Tool error: {e}")
@@ -156,27 +167,33 @@ class MistralService:
                 )
 
             content_str = str(message.content)
-            
+
             # Text-based tool invocation fallback
             if tool_callback and "update_user_profile" in content_str:
-                json_match = re.search(r'update_user_profile[^\{]*(\{.*?\})', content_str, re.DOTALL)
+                json_match = re.search(
+                    r"update_user_profile[^\{]*(\{.*?\})", content_str, re.DOTALL
+                )
                 if json_match:
                     try:
                         json_block = json_match.group(1).strip()
                         args = json.loads(json_block)
-                        
+
                         # Execute fallback callback silently
-                        await tool_callback(args.get("name"), args.get("company"), args.get("intent"))
+                        await tool_callback(
+                            args.get("name"), args.get("company"), args.get("intent")
+                        )
                     except (json.JSONDecodeError, Exception) as e:
                         print(f"Text-based tool parsing error: {e}")
-            
+
             # Final sanitization: Strip the leaked tool call and clean up whitespace
-            content_str = re.sub(r'update_user_profile[^\{]*\{.*?\}', '', content_str, flags=re.DOTALL).strip()
-            
+            content_str = re.sub(
+                r"update_user_profile[^\{]*\{.*?\}", "", content_str, flags=re.DOTALL
+            ).strip()
+
             # Prevent saving empty strings to the DB which crashes future Mistral API calls
             if not content_str:
                 return "Got it! How else can I help you today?"
-            
+
             return content_str
         except Exception as e:
             print(f"Mistral API Error: {e}")
@@ -257,12 +274,16 @@ class ContextStore:
             return s.avatar, s.avatar_content_type
         return None
 
-    async def get_active_integrations(self, db: AsyncSession, config: "Settings") -> dict[str, str]:
+    async def get_active_integrations(
+        self, db: AsyncSession, config: "Settings"
+    ) -> dict[str, str]:
         s = await self._get_settings(db)
         return {
             "mistral_api_key": s.mistral_api_key or config.mistral_api_key,
-            "recaptcha_client_side_key": s.recaptcha_client_side_key or config.recaptcha_client_side_key,
-            "recaptcha_server_side_key": s.recaptcha_server_side_key or config.recaptcha_server_side_key,
+            "recaptcha_client_side_key": s.recaptcha_client_side_key
+            or config.recaptcha_client_side_key,
+            "recaptcha_server_side_key": s.recaptcha_server_side_key
+            or config.recaptcha_server_side_key,
             "ntfy_topic": s.ntfy_topic or config.ntfy_topic,
         }
 
@@ -286,7 +307,9 @@ class ContextStore:
         db.add(s)
         await db.commit()
 
-    async def save_avatar(self, db: AsyncSession, content: bytes, content_type: str) -> None:
+    async def save_avatar(
+        self, db: AsyncSession, content: bytes, content_type: str
+    ) -> None:
         if len(content) > self.MAX_AVATAR_SIZE:
             msg = f"Avatar too large ({len(content)} bytes). Max is {self.MAX_AVATAR_SIZE} bytes."
             raise ValueError(msg)
@@ -314,6 +337,7 @@ class ContextStore:
         if not s.context:
             return f"You are an assistant representing {s.owner_name}."
         from app.editorjs_parser import editorjs_to_markdown
+
         return editorjs_to_markdown(s.context)
 
     async def save_context(self, db: AsyncSession, text: str) -> None:

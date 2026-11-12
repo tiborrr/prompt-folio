@@ -1,5 +1,3 @@
-
-
 # Mistral API Models
 MODEL_CHAT = "mistral-large-latest"
 MODEL_OCR = "mistral-ocr-latest"

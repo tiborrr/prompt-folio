@@ -1,0 +1,2 @@
+# Accepted container findings. One ID per line, each with a comment saying why and
+# when to look again. Prefer fixing (bump the dependency or base image) over adding here.

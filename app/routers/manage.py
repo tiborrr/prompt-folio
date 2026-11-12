@@ -2,7 +2,6 @@ from typing import Annotated
 import asyncio
 import random
 import secrets
-import uuid
 import os
 from datetime import datetime, timezone
 from fastapi import (
@@ -10,7 +9,6 @@ from fastapi import (
     Request,
     Form,
     Response,
-    Cookie,
     UploadFile,
     File,
     Depends,
@@ -63,7 +61,11 @@ async def manage_get(
     admin_session = get_admin_session_cookie(request, settings)
     if not admin_session or not await is_admin_session_active(db, admin_session):
         return await render_template(
-            request, "admin_login.html", context_store, db, LoginContext(next_url="/manage")
+            request,
+            "admin_login.html",
+            context_store,
+            db,
+            LoginContext(next_url="/manage"),
         )
 
     result = await db.execute(
@@ -72,8 +74,17 @@ async def manage_get(
     recent_sessions = result.scalars().all()
 
     from sqlalchemy import func
-    total_chats = (await db.execute(select(func.count()).select_from(ChatSession))).scalar_one() or 0
-    takeover_requests = (await db.execute(select(func.count()).select_from(ChatSession).where(ChatSession.human_takeover == True))).scalar_one() or 0
+
+    total_chats = (
+        await db.execute(select(func.count()).select_from(ChatSession))
+    ).scalar_one() or 0
+    takeover_requests = (
+        await db.execute(
+            select(func.count())
+            .select_from(ChatSession)
+            .where(col(ChatSession.human_takeover).is_(True))
+        )
+    ).scalar_one() or 0
 
     raw_context = await context_store.get_context(db)
     return await render_template(
@@ -118,7 +129,9 @@ async def manage_context_get(
         )
 
     raw_context = await context_store.get_context(db)
-    result = await db.execute(select(SourceDocument).order_by(col(SourceDocument.created_at).desc()))
+    result = await db.execute(
+        select(SourceDocument).order_by(col(SourceDocument.created_at).desc())
+    )
     source_docs = result.scalars().all()
 
     return await render_template(
@@ -187,20 +200,24 @@ async def update_integrations(
     admin_session = get_admin_session_cookie(request, settings)
     if not admin_session or not await is_admin_session_active(db, admin_session):
         return HTMLResponse("Unauthorized", status_code=401)
-        
+
     final_mistral = None if settings.mistral_api_key else mistral_api_key
-    final_recaptcha_client = None if settings.recaptcha_client_side_key else recaptcha_client_side_key
-    final_recaptcha_server = None if settings.recaptcha_server_side_key else recaptcha_server_side_key
+    final_recaptcha_client = (
+        None if settings.recaptcha_client_side_key else recaptcha_client_side_key
+    )
+    final_recaptcha_server = (
+        None if settings.recaptcha_server_side_key else recaptcha_server_side_key
+    )
     final_ntfy = None if settings.ntfy_topic else ntfy_topic
 
     await context_store.save_integrations(
-        db, 
+        db,
         mistral_api_key=final_mistral,
         recaptcha_client_side_key=final_recaptcha_client,
         recaptcha_server_side_key=final_recaptcha_server,
-        ntfy_topic=final_ntfy
+        ntfy_topic=final_ntfy,
     )
-    
+
     return HTMLResponse("Integrations saved successfully", status_code=200)
 
 
@@ -335,6 +352,7 @@ async def get_manage_owner_name(
     _: Annotated[None, Depends(require_admin)],
 ):
     from app.schemas import EditModeContext
+
     return await render_template(
         request,
         "fragments/appearance_identity.html",
@@ -352,6 +370,7 @@ async def get_manage_owner_name_edit(
     _: Annotated[None, Depends(require_admin)],
 ):
     from app.schemas import EditModeContext
+
     return await render_template(
         request,
         "fragments/appearance_identity.html",
@@ -372,8 +391,9 @@ async def manage_owner_name(
 ):
     await context_store.save_owner_name(db, owner_name)
     await context_store.save_owner_pronouns(db, owner_pronouns)
-    
+
     from app.schemas import EditModeContext
+
     return await render_template(
         request,
         "fragments/appearance_identity.html",
@@ -441,17 +461,24 @@ async def upload_files(
     _: Annotated[None, Depends(require_admin)],
 ):
     for file in files:
-        if file.filename and (file.filename.lower().endswith(".pdf") or file.filename.lower().endswith(".md")):
+        if file.filename and (
+            file.filename.lower().endswith(".pdf")
+            or file.filename.lower().endswith(".md")
+        ):
             content = await file.read()
             doc = SourceDocument(filename=file.filename, content=content)
             db.add(doc)
     await db.commit()
 
-    result = await db.execute(select(SourceDocument).order_by(col(SourceDocument.created_at).desc()))
+    result = await db.execute(
+        select(SourceDocument).order_by(col(SourceDocument.created_at).desc())
+    )
     all_docs = result.scalars().all()
 
     if not all_docs:
-        return PlainTextResponse("No documents available to generate profile.", status_code=400)
+        return PlainTextResponse(
+            "No documents available to generate profile.", status_code=400
+        )
 
     old_context = await context_store.get_context(db)
     repos_split = old_context.split("=== Repositories ===")
@@ -462,15 +489,20 @@ async def upload_files(
     else:
         repos_section = ""
 
-    uploaded_files = [UploadedDocument(filename=d.filename, content=d.content) for d in all_docs]
+    uploaded_files = [
+        UploadedDocument(filename=d.filename, content=d.content) for d in all_docs
+    ]
     owner = await context_store.get_owner_name(db)
-    new_profile = await mistral_service.generate_profile_from_docs(uploaded_files, owner, existing_profile)
+    new_profile = await mistral_service.generate_profile_from_docs(
+        uploaded_files, owner, existing_profile
+    )
 
     final_context = new_profile.strip() + "\n\n" + repos_section
 
     await context_store.save_context(db, final_context)
-    
+
     from app.schemas import ManageContext
+
     return await render_template(
         request,
         "fragments/context_update_response.html",
@@ -479,8 +511,8 @@ async def upload_files(
         ManageContext(
             active_tab="context",
             raw_context=final_context,
-            source_documents=all_docs,
-            is_upload=True
+            source_documents=list(all_docs),
+            is_upload=True,
         ),
     )
 
@@ -493,10 +525,14 @@ async def manage_rebuild_context(
     db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
-    result = await db.execute(select(SourceDocument).order_by(col(SourceDocument.created_at).desc()))
+    result = await db.execute(
+        select(SourceDocument).order_by(col(SourceDocument.created_at).desc())
+    )
     all_docs = result.scalars().all()
     if not all_docs:
-        return PlainTextResponse("No PDFs uploaded yet. Upload a PDF first.", status_code=400)
+        return PlainTextResponse(
+            "No PDFs uploaded yet. Upload a PDF first.", status_code=400
+        )
 
     old_context = await context_store.get_context(db)
     repos_split = old_context.split("=== Repositories ===")
@@ -507,15 +543,20 @@ async def manage_rebuild_context(
     else:
         repos_section = ""
 
-    uploaded_files = [UploadedDocument(filename=d.filename, content=d.content) for d in all_docs]
+    uploaded_files = [
+        UploadedDocument(filename=d.filename, content=d.content) for d in all_docs
+    ]
     owner = await context_store.get_owner_name(db)
-    new_profile = await mistral_service.generate_profile_from_docs(uploaded_files, owner, existing_profile)
+    new_profile = await mistral_service.generate_profile_from_docs(
+        uploaded_files, owner, existing_profile
+    )
 
     final_context = new_profile.strip() + "\n\n" + repos_section
 
     await context_store.save_context(db, final_context)
-    
+
     from app.schemas import ManageContext
+
     return await render_template(
         request,
         "fragments/context_update_response.html",
@@ -524,8 +565,8 @@ async def manage_rebuild_context(
         ManageContext(
             active_tab="context",
             raw_context=final_context,
-            source_documents=all_docs,
-            is_upload=False
+            source_documents=list(all_docs),
+            is_upload=False,
         ),
     )
 
@@ -536,14 +577,16 @@ async def manage_document_get(
     db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
-    result = await db.execute(select(SourceDocument).where(SourceDocument.id == document_id))
+    result = await db.execute(
+        select(SourceDocument).where(SourceDocument.id == document_id)
+    )
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
     return Response(
         content=doc.content,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename=\"{doc.filename}\""}
+        headers={"Content-Disposition": f'inline; filename="{doc.filename}"'},
     )
 
 
@@ -553,7 +596,9 @@ async def manage_document_delete(
     db: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(require_admin)],
 ):
-    result = await db.execute(select(SourceDocument).where(SourceDocument.id == document_id))
+    result = await db.execute(
+        select(SourceDocument).where(SourceDocument.id == document_id)
+    )
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
@@ -600,11 +645,22 @@ async def delete_chat_session(
     if request.headers.get("HX-Target") == "closest .conversation-card":
         from app.utils import render_template_to_string
 
-        result = await db.execute(select(ChatSession).order_by(col(ChatSession.created_at).desc()).limit(20))
+        result = await db.execute(
+            select(ChatSession).order_by(col(ChatSession.created_at).desc()).limit(20)
+        )
         recent_sessions = result.scalars().all()
         from sqlalchemy import func
-        total_chats = (await db.execute(select(func.count()).select_from(ChatSession))).scalar_one() or 0
-        takeover_requests = (await db.execute(select(func.count()).select_from(ChatSession).where(ChatSession.human_takeover == True))).scalar_one() or 0
+
+        total_chats = (
+            await db.execute(select(func.count()).select_from(ChatSession))
+        ).scalar_one() or 0
+        takeover_requests = (
+            await db.execute(
+                select(func.count())
+                .select_from(ChatSession)
+                .where(col(ChatSession.human_takeover).is_(True))
+            )
+        ).scalar_one() or 0
 
         stats_html = await render_template_to_string(
             "fragments/conversation_stats.html",
@@ -718,7 +774,10 @@ async def manage_chat_toggle_takeover(
             else "You are now chatting with the AI again."
         )
         msg_html = await render_template_to_string(
-            "fragments/system_message.html", context_store, db, StatusContext(message=msg)
+            "fragments/system_message.html",
+            context_store,
+            db,
+            StatusContext(message=msg),
         )
         await session_store.broadcast(session_id, msg_html)
 
@@ -743,20 +802,20 @@ async def manage_chat_send(
     session_obj.human_takeover = True
     db.add(session_obj)
 
-    assistant_msg = ChatMessage(
-        session_id=session_id, role="admin", content=message
-    )
+    assistant_msg = ChatMessage(session_id=session_id, role="admin", content=message)
     db.add(assistant_msg)
     await db.commit()
 
     assistant_html = bytes(
-        (await render_template(
-            request,
-            "message.html",
-            context_store,
-            db,
-            MessageContext(message=message, is_user=False, is_admin=True),
-        )).body
+        (
+            await render_template(
+                request,
+                "message.html",
+                context_store,
+                db,
+                MessageContext(message=message, is_user=False, is_admin=True),
+            )
+        ).body
     ).decode("utf-8")
 
     await session_store.broadcast(session_id, assistant_html)
@@ -777,7 +836,9 @@ async def manage_chat_edit_name(
         "fragments/session_name_edit.html",
         context_store,
         db,
-        SessionListItemContext(id=session_id, name=name, created_at=datetime.now(timezone.utc)),
+        SessionListItemContext(
+            id=session_id, name=name, created_at=datetime.now(timezone.utc)
+        ),
     )
     return HTMLResponse(content=html)
 
@@ -801,7 +862,9 @@ async def manage_chat_update_name(
         "fragments/session_name.html",
         context_store,
         db,
-        SessionListItemContext(id=session_id, name=name, created_at=datetime.now(timezone.utc)),
+        SessionListItemContext(
+            id=session_id, name=name, created_at=datetime.now(timezone.utc)
+        ),
     )
     return HTMLResponse(content=html)
 
@@ -820,7 +883,9 @@ async def manage_chat_edit_intent(
         "fragments/session_intent_edit.html",
         context_store,
         db,
-        SessionListItemContext(id=session_id, intent=intent, created_at=datetime.now(timezone.utc)),
+        SessionListItemContext(
+            id=session_id, intent=intent, created_at=datetime.now(timezone.utc)
+        ),
     )
     return HTMLResponse(content=html)
 
@@ -844,6 +909,8 @@ async def manage_chat_update_intent(
         "fragments/session_intent.html",
         context_store,
         db,
-        SessionListItemContext(id=session_id, intent=intent, created_at=datetime.now(timezone.utc)),
+        SessionListItemContext(
+            id=session_id, intent=intent, created_at=datetime.now(timezone.utc)
+        ),
     )
     return HTMLResponse(content=html)

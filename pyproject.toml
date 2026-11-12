@@ -43,7 +43,14 @@ profile = "black"
 
 [tool.basedpyright]
 typeCheckingMode = "recommended"
-ignore = ["alembic/versions"]
+# CI fails on errors only; the existing warnings are cleaned up over time.
+failOnWarnings = false
+# One-off helper scripts outside the app are not type-checked
+ignore = [
+    "alembic/versions",
+    "create_dummy_pdf.py",
+    "migrate_context_to_json.py",
+]
 
 [tool.pytest.ini_options]
 addopts = "-n auto"

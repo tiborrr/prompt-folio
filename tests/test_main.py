@@ -24,12 +24,21 @@ class FakeMistralService(MistralService):
         super().__init__("fake")
 
     @override
-    async def ask_mistral(self, messages_history: list[ChatMessageData], tools: list[dict[str, Any]] | None = None, tool_callback: Any | None = None, max_depth: int = 3) -> str:
+    async def ask_mistral(
+        self,
+        messages_history: list[ChatMessageData],
+        tools: list[dict[str, Any]] | None = None,
+        tool_callback: Any | None = None,
+        max_depth: int = 3,
+    ) -> str:
         return "Fake AI Response"
 
     @override
-    async def generate_profile_from_pdfs(
-        self, pdf_files: list[UploadedDocument], owner_name: str
+    async def generate_profile_from_docs(
+        self,
+        uploaded_files: list[UploadedDocument],
+        owner_name: str,
+        existing_profile: str,
     ) -> str:
         return "Fake Profile"
 
@@ -126,12 +135,22 @@ app.dependency_overrides[get_context_store] = FakeContextStore
 app.dependency_overrides[get_session_store] = get_fake_session_store
 app.dependency_overrides[get_settings] = get_fake_settings
 
+
 @pytest.mark.asyncio
 async def test_read_main():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
         response = await test_client.get("/")
         assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_health():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        response = await test_client.get("/health")
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
 
 
 @pytest.mark.asyncio
@@ -147,7 +166,9 @@ async def test_manage_unauthenticated():
 async def test_manage_login_success():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
-        response = await test_client.post("/manage/login", data={"password": "test_secure_password"})
+        response = await test_client.post(
+            "/manage/login", data={"password": "test_secure_password"}
+        )
         assert response.status_code == 204
         assert "admin_session" in response.cookies
         assert response.cookies.get("admin_session") == "test_secure_password"
@@ -172,7 +193,9 @@ async def test_manage_login_failure():
 async def test_manage_authenticated_get():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
-        await test_client.post("/manage/login", data={"password": "test_secure_password"})
+        await test_client.post(
+            "/manage/login", data={"password": "test_secure_password"}
+        )
         response = await test_client.get("/manage")
         assert response.status_code == 200
         assert "Total Chats" in response.text
@@ -183,7 +206,9 @@ async def test_manage_authenticated_get():
 async def test_manage_logout():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
-        await test_client.post("/manage/login", data={"password": "test_secure_password"})
+        await test_client.post(
+            "/manage/login", data={"password": "test_secure_password"}
+        )
         response = await test_client.post(
             "/manage/logout",
             follow_redirects=False,
@@ -197,7 +222,9 @@ async def test_manage_logout():
 async def test_manage_chat_name_update_returns_display_fragment():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
-        await test_client.post("/manage/login", data={"password": "test_secure_password"})
+        await test_client.post(
+            "/manage/login", data={"password": "test_secure_password"}
+        )
         response = await test_client.post(
             "/manage/chat/demo/update_name",
             data={"name": "Alex"},
@@ -209,7 +236,9 @@ async def test_manage_chat_name_update_returns_display_fragment():
 
 @pytest.mark.asyncio
 async def test_manage_chat_delete_returns_oob_updates():
-    sync_engine = create_engine("sqlite:///file:testdb?mode=memory&cache=shared&uri=true")
+    sync_engine = create_engine(
+        "sqlite:///file:testdb?mode=memory&cache=shared&uri=true"
+    )
     with Session(sync_engine) as session:
         session.add(AdminSession(token="test_secure_password"))
         session.commit()
