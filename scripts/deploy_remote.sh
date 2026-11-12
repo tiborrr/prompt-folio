@@ -85,10 +85,11 @@ start_tag() {
 }
 
 # Waits until every container of the compose project is healthy (or running,
-# for containers without a HEALTHCHECK).
+# for containers without a HEALTHCHECK). Up to 4 minutes, because Keycloak
+# can take well over a minute to start; it returns as soon as all are healthy.
 wait_healthy() {
     local ids status pending
-    for _ in $(seq 1 30); do
+    for _ in $(seq 1 120); do
         ids="$(docker compose ps -aq)"
         if [ -z "$ids" ]; then
             echo "ERROR: no containers found."
