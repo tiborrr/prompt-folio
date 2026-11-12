@@ -66,21 +66,13 @@ Set them with `gh secret set NAME --env production`; `gh` then asks for the valu
 
 ### Server setup
 
-Once, as root on the server:
-
-```bash
-useradd -m -s /bin/bash deploy && usermod -aG docker deploy
-install -d -o deploy -g deploy /home/deploy/deployments/prompt-folio/scripts
-install -d -o 999 -g 999 /home/deploy/deployments/prompt-folio/private
-```
-
-Then copy `docker-compose.yml`, `scripts/deploy_remote.sh` (executable) and the production `.env` into `/home/deploy/deployments/prompt-folio/`, run `docker login <registry>` as `deploy`, and add the public deploy key to `/home/deploy/.ssh/authorized_keys` with the forced command:
+The server uses one generic script for every app: `scripts/deploy_remote.sh`, installed as `/usr/local/bin/deploy-app` (owned by root). A dedicated `deploy` user runs it; each app has its own deploy key, pinned in `/home/deploy/.ssh/authorized_keys` to that app only:
 
 ```
-command="/home/deploy/deployments/prompt-folio/scripts/deploy_remote.sh",restrict ssh-ed25519 AAAA... github-actions-deploy@prompt-folio
+command="/usr/local/bin/deploy-app prompt-folio",restrict ssh-ed25519 AAAA... deploy@prompt-folio
 ```
 
-CI does not copy files to the server: a change to `docker-compose.yml` or `deploy_remote.sh` has to be copied by hand. Membership of the `docker` group is effectively root, so the forced command is what limits the key.
+The app lives in `/home/deploy/deployments/prompt-folio` with `docker-compose.yml` (image tag `${IMAGE_TAG}`), the production `.env` and `private/` (owned by uid 999, the container user). CI does not copy files to the server: a change to `docker-compose.yml` or the script has to be copied by hand. Membership of the `docker` group is effectively root, so the forced command is what limits the key.
 
 ## Manual deployment
 
