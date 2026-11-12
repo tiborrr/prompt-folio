@@ -45,21 +45,42 @@ make validate
 
 1. **Validate:** `ruff format --check`, `ruff check`, `basedpyright`, `uv audit` and the full test suite (including Playwright).
 2. **Image:** builds the Docker image, smoke-tests `/health` and `/`, and scans it with Trivy. A fixable CRITICAL/HIGH finding blocks the release; accepted findings go in `.trivyignore` with a reason.
-3. **Push** (`main` only): tags the image with the commit SHA and `latest` and pushes it to the registry.
-4. **Deploy** (`main` only): syncs `docker-compose.yml` and `scripts/deploy_remote.sh` to the server and runs the script, which pulls the SHA tag, waits for the container healthcheck and rolls back to the previously deployed tag if it does not become healthy.
+3. **Publish** (`main` only): pushes the image with the commit SHA and `latest` tags to the registry.
+4. **Deploy** (`main` only): connects over SSH with a deploy key that the server pins to `scripts/deploy_remote.sh` (forced command). The script accepts only a commit SHA, pulls that tag, waits for the container healthcheck and rolls back to the previously deployed tag if it does not become healthy.
 5. **Deploy status:** opens a `deploy-failure` issue when `main` was not deployed and closes it after the next successful deploy.
 
 `.github/workflows/dependency-audit.yml` runs `uv audit` daily and opens a `dependency-advisory` issue when a new advisory hits the locked dependencies.
 
-### Repository secrets
+### Secrets (environment `production`)
+
+All secrets live in the GitHub environment `production`, which only accepts jobs running on `main`. Pull request runs cannot read them.
 
 | Secret | Purpose |
 |---|---|
 | `REGISTRY_HOST`, `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` | Push access to the Docker registry |
-| `PROD_SSH_KEY` | Private key of a deploy key authorised on the server |
+| `PROD_SSH_KEY` | Private deploy key; the server only lets it run the deploy script |
+| `PROD_SSH_KNOWN_HOSTS` | The server's host key (`ssh-keyscan` output), so CI never trusts an unknown host |
 | `PROD_SSH_HOST`, `PROD_SSH_USER`, `PROD_SSH_PORT` (optional, default 22) | SSH target |
 
-The server deploys from `~/deployments/prompt-folio` of `PROD_SSH_USER`, must hold the production `.env` there, and must be logged in to the registry (`docker login`).
+Set them with `gh secret set NAME --env production`; `gh` then asks for the value without echoing it.
+
+### Server setup
+
+Once, as root on the server:
+
+```bash
+useradd -m -s /bin/bash deploy && usermod -aG docker deploy
+install -d -o deploy -g deploy /home/deploy/deployments/prompt-folio/scripts
+install -d -o 999 -g 999 /home/deploy/deployments/prompt-folio/private
+```
+
+Then copy `docker-compose.yml`, `scripts/deploy_remote.sh` (executable) and the production `.env` into `/home/deploy/deployments/prompt-folio/`, run `docker login <registry>` as `deploy`, and add the public deploy key to `/home/deploy/.ssh/authorized_keys` with the forced command:
+
+```
+command="/home/deploy/deployments/prompt-folio/scripts/deploy_remote.sh",restrict ssh-ed25519 AAAA... github-actions-deploy@prompt-folio
+```
+
+CI does not copy files to the server: a change to `docker-compose.yml` or `deploy_remote.sh` has to be copied by hand. Membership of the `docker` group is effectively root, so the forced command is what limits the key.
 
 ## Manual deployment
 
