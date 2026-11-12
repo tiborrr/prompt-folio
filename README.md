@@ -74,6 +74,8 @@ command="/usr/local/bin/deploy-app prompt-folio",restrict ssh-ed25519 AAAA... de
 
 The app lives in `/home/deploy/deployments/prompt-folio` with `docker-compose.yml` (image tag `${IMAGE_TAG}`), the production `.env` and `private/` (owned by uid 999, the container user). CI does not copy files to the server: a change to `docker-compose.yml` or the script has to be copied by hand. Membership of the `docker` group is effectively root, so the forced command is what limits the key.
 
+The script also handles multi-service stacks (used by the other apps on the server): only services whose image tag is `${IMAGE_TAG}` are pulled and recreated; databases, Keycloak and other services are only started when missing, and one-shot init containers that exit with code 0 count as healthy.
+
 ## Manual deployment
 
 `./deploy.sh` remains as a fallback. It runs the tests, builds and pushes a `v<timestamp>` image from your machine, syncs the compose file over SSH and starts it. On first use it asks for missing settings (`REMOTE_HOST`, `REMOTE_PATH`, registry, port) and saves them to `.env`. Its registry cleanup keeps the last 3 `v<timestamp>` tags and never touches the commit-SHA tags pushed by CI.
