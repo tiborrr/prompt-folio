@@ -16,6 +16,13 @@
 # running this must be logged in to the registry (docker login). If the new
 # containers do not become healthy, the previously deployed tag is started
 # again and the script fails.
+#
+# Multi-service stacks: only the services whose image uses ${IMAGE_TAG} (the
+# images CI builds) are pulled and recreated. Databases, Keycloak and other
+# services are only started when they are missing, never recreated, so a
+# deploy does not restart them or pull a newer upstream image. One-shot init
+# containers that exited with code 0 count as healthy. Changing those other
+# services (compose file, config) is done by hand on the server.
 # =============================================================================
 
 set -euo pipefail
@@ -48,11 +55,33 @@ done
 
 PREVIOUS_TAG="$(cat .deployed_image_tag 2>/dev/null || true)"
 
+# Prints the services whose image tag is the given IMAGE_TAG, i.e. the images
+# that CI builds and pushes for this app.
+tagged_services() {
+    IMAGE_TAG="$1" docker compose config --format json | python3 -c '
+import json, sys
+tag = sys.argv[1]
+for name, svc in json.load(sys.stdin)["services"].items():
+    if str(svc.get("image", "")).endswith(":" + tag):
+        print(name)
+' "$1"
+}
+
 start_tag() {
+    local services
     echo "[$APP] Pulling and starting image tag $1..."
     export IMAGE_TAG="$1"
-    docker compose pull -q
-    docker compose up -d --remove-orphans
+    mapfile -t services < <(tagged_services "$1")
+    if [ "${#services[@]}" -eq 0 ]; then
+        echo "ERROR: no service in docker-compose.yml uses \${IMAGE_TAG} as image tag."
+        return 1
+    fi
+    echo "[$APP] Services built by CI: ${services[*]}"
+    docker compose pull -q "${services[@]}"
+    # Start missing dependencies (databases, Keycloak, init jobs) without
+    # recreating ones that already run, then roll the CI-built services.
+    docker compose up -d --no-recreate
+    docker compose up -d --no-deps --force-recreate "${services[@]}"
 }
 
 # Waits until every container of the compose project is healthy (or running,
@@ -67,10 +96,10 @@ wait_healthy() {
         fi
         pending=0
         for id in $ids; do
-            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id")"
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}:{{.State.ExitCode}}' "$id")"
             case "$status" in
-                healthy|running) ;;
-                starting|created|restarting) pending=1 ;;
+                healthy:*|running:*|exited:0) ;;
+                starting:*|created:*|restarting:*) pending=1 ;;
                 *)
                     echo "ERROR: container $id is '$status'."
                     docker logs "$id" --tail 50 || true
