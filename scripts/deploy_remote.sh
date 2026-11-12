@@ -1,53 +1,92 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Remote deployment for prompt-folio. Runs on the production host, called by CI
-# (.github/workflows/ci.yml) over SSH after docker-compose.yml was synced.
+# Generic remote deployment for docker compose apps. Installed once on the
+# server as /usr/local/bin/deploy-app (owned by root) and used by every app.
 #
-# Environment:
-#   IMAGE_TAG - image tag to roll out (CI passes the commit SHA; default 'latest')
+# Each app's CI deploy key is pinned to this script with the app name fixed in
+# authorized_keys (SSH forced command), so a key can only roll out its own app:
 #
-# The host must already be logged in to the registry (docker login) and hold the
-# .env file next to docker-compose.yml. If the new container does not become
-# healthy, the previously deployed tag is started again and the script fails.
+#   command="/usr/local/bin/deploy-app prompt-folio",restrict ssh-ed25519 AAAA... deploy@prompt-folio
+#
+# CI connects with the commit SHA as the only "command"; sshd passes it in
+# SSH_ORIGINAL_COMMAND. By hand: deploy-app <app> <commit-sha>
+#
+# The app lives in $DEPLOY_ROOT/<app> (default ~/deployments/<app>) with a
+# docker-compose.yml whose image tag is ${IMAGE_TAG} and a .env file. The user
+# running this must be logged in to the registry (docker login). If the new
+# containers do not become healthy, the previously deployed tag is started
+# again and the script fails.
 # =============================================================================
 
 set -euo pipefail
 
-DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$DEPLOY_DIR"
+APP="${1:-}"
+NEW_TAG="${SSH_ORIGINAL_COMMAND:-${2:-}}"
 
-CONTAINER="prompt-folio-web"
-NEW_TAG="${IMAGE_TAG:-latest}"
-PREVIOUS_TAG="$(cat .deployed_image_tag 2>/dev/null || true)"
-
-if [ ! -f .env ]; then
-    echo "ERROR: $DEPLOY_DIR/.env is missing; create it from .env.example first."
-    exit 1
+if [[ ! "$APP" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+    echo "ERROR: invalid app name '$APP'."
+    exit 2
+fi
+if [[ ! "$NEW_TAG" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "ERROR: expected a 40-character commit SHA as image tag."
+    exit 2
 fi
 
-# Uploaded documents and the SQLite database; the container runs as uid 999
-mkdir -p ./private
-chown -R 999:999 ./private 2>/dev/null || echo "WARNING: could not chown ./private to 999:999"
+DEPLOY_DIR="${DEPLOY_ROOT:-$HOME/deployments}/$APP"
+if [ ! -d "$DEPLOY_DIR" ]; then
+    echo "ERROR: $DEPLOY_DIR does not exist."
+    exit 1
+fi
+cd "$DEPLOY_DIR"
+
+for required in .env docker-compose.yml; do
+    if [ ! -f "$required" ]; then
+        echo "ERROR: $DEPLOY_DIR/$required is missing."
+        exit 1
+    fi
+done
+
+PREVIOUS_TAG="$(cat .deployed_image_tag 2>/dev/null || true)"
 
 start_tag() {
-    echo "Pulling and starting image tag $1..."
-    IMAGE_TAG="$1" docker compose pull -q
-    IMAGE_TAG="$1" docker compose up -d --remove-orphans
+    echo "[$APP] Pulling and starting image tag $1..."
+    export IMAGE_TAG="$1"
+    docker compose pull -q
+    docker compose up -d --remove-orphans
 }
 
-# Waits for the container's HEALTHCHECK (GET /health) to report healthy.
+# Waits until every container of the compose project is healthy (or running,
+# for containers without a HEALTHCHECK).
 wait_healthy() {
-    local status=""
+    local ids status pending
     for _ in $(seq 1 30); do
-        status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$CONTAINER" 2>/dev/null || echo missing)"
-        case "$status" in
-            healthy) echo "Container $CONTAINER is healthy."; return 0 ;;
-            unhealthy|exited|dead|missing) break ;;
-        esac
+        ids="$(docker compose ps -aq)"
+        if [ -z "$ids" ]; then
+            echo "ERROR: no containers found."
+            return 1
+        fi
+        pending=0
+        for id in $ids; do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id")"
+            case "$status" in
+                healthy|running) ;;
+                starting|created|restarting) pending=1 ;;
+                *)
+                    echo "ERROR: container $id is '$status'."
+                    docker logs "$id" --tail 50 || true
+                    return 1
+                    ;;
+            esac
+        done
+        if [ "$pending" -eq 0 ]; then
+            echo "[$APP] All containers are healthy."
+            return 0
+        fi
         sleep 2
     done
-    echo "ERROR: $CONTAINER is '$status' (expected 'healthy')."
-    docker logs "$CONTAINER" --tail 50 || true
+    echo "ERROR: containers did not become healthy in time."
+    docker compose ps
+    docker compose logs --tail 50 || true
     return 1
 }
 
@@ -56,15 +95,15 @@ start_tag "$NEW_TAG"
 if wait_healthy; then
     echo "$NEW_TAG" > .deployed_image_tag
     docker image prune -f
-    echo "Deployed $NEW_TAG."
+    echo "[$APP] Deployed $NEW_TAG."
     exit 0
 fi
 
 if [ -n "$PREVIOUS_TAG" ] && [ "$PREVIOUS_TAG" != "$NEW_TAG" ]; then
-    echo "Rolling back to $PREVIOUS_TAG..."
+    echo "[$APP] Rolling back to $PREVIOUS_TAG..."
     start_tag "$PREVIOUS_TAG"
     if wait_healthy; then
-        echo "Rolled back to $PREVIOUS_TAG; $NEW_TAG was NOT deployed."
+        echo "[$APP] Rolled back to $PREVIOUS_TAG; $NEW_TAG was NOT deployed."
     else
         echo "ERROR: rollback to $PREVIOUS_TAG is unhealthy as well."
     fi

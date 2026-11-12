@@ -55,7 +55,7 @@ jobs:
         run: make test
 
   image:
-    name: Docker Build, Trivy Scan & Push
+    name: Docker Build, Smoke Test & Trivy Scan
     runs-on: ubuntu-latest
     needs: validate
     timeout-minutes: 30
@@ -105,71 +105,80 @@ jobs:
           vuln-type: os,library
           severity: CRITICAL,HIGH
 
+  # Registry and server credentials live in the "production" environment, which
+  # only accepts jobs running on main: pull request runs cannot read them.
+  publish:
+    name: Push image to registry
+    runs-on: ubuntu-latest
+    needs: image
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
       - name: Log in to private registry
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ secrets.REGISTRY_HOST }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Tag and push image
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        env:
-          REGISTRY: ${{ secrets.REGISTRY_HOST }}
-        run: |
-          for tag in "${GITHUB_SHA}" latest; do
-            docker tag "${IMAGE_NAME}:local" "${REGISTRY}/${IMAGE_NAME}:${tag}"
-            docker push "${REGISTRY}/${IMAGE_NAME}:${tag}"
-          done
+      # Same Dockerfile and context as the scanned image; every layer comes from
+      # the build cache the image job just filled.
+      - name: Build and push SHA and latest tags
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.REGISTRY_HOST }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ secrets.REGISTRY_HOST }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
 
+  # The deploy key is pinned to scripts/deploy_remote.sh on the server (SSH
+  # forced command): it can only roll out a commit SHA, never open a shell.
   deploy:
     name: Deploy to production
     runs-on: ubuntu-latest
-    needs: image
+    needs: publish
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production
     timeout-minutes: 15
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - name: Configure SSH key
+      - name: Configure SSH key and pinned host key
         env:
           SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
-          SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
-          SSH_PORT: ${{ secrets.PROD_SSH_PORT || '22' }}
+          KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
         run: |
-          mkdir -p ~/.ssh
+          if [ -z "$KNOWN_HOSTS" ]; then
+            echo "::error::PROD_SSH_KNOWN_HOSTS is not set in the production environment."
+            exit 1
+          fi
+          install -d -m 700 ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
-
-      - name: Sync compose file and deploy script
-        env:
-          SSH_TARGET: ${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}
-          SSH_PORT: ${{ secrets.PROD_SSH_PORT || '22' }}
-        run: |
-          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" -o StrictHostKeyChecking=yes "$SSH_TARGET" \
-            'mkdir -p ~/deployments/prompt-folio/scripts'
-          rsync -avz -e "ssh -i ~/.ssh/id_deploy -p $SSH_PORT -o StrictHostKeyChecking=yes" \
-            docker-compose.yml "$SSH_TARGET:~/deployments/prompt-folio/"
-          rsync -avz -e "ssh -i ~/.ssh/id_deploy -p $SSH_PORT -o StrictHostKeyChecking=yes" \
-            scripts/deploy_remote.sh "$SSH_TARGET:~/deployments/prompt-folio/scripts/"
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_deploy ~/.ssh/known_hosts
 
       - name: Pull image and restart (rolls back when unhealthy)
         env:
           SSH_TARGET: ${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}
           SSH_PORT: ${{ secrets.PROD_SSH_PORT || '22' }}
         run: |
-          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" -o StrictHostKeyChecking=yes "$SSH_TARGET" \
-            "IMAGE_TAG=${GITHUB_SHA} bash ~/deployments/prompt-folio/scripts/deploy_remote.sh"
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes "$SSH_TARGET" "$GITHUB_SHA"
 
   # A red step on main skips the deploy without any visible signal. Open (or
   # update) one GitHub issue when that happens and close it once a deploy works.
   deploy-status:
     name: Report deploy status
     runs-on: ubuntu-latest
-    needs: [validate, image, deploy]
+    needs: [validate, image, publish, deploy]
     if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     permissions:
       issues: write
