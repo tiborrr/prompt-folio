@@ -3,6 +3,7 @@ import asyncio
 import random
 import secrets
 import os
+import re
 from datetime import datetime, timezone
 from fastapi import (
     APIRouter,
@@ -30,7 +31,11 @@ from app.dependencies import (
     is_admin_session_active,
 )
 from app.utils import render_template, get_takeover_oob_html, render_template_to_string
-from app.constants import ADMIN_SESSION_COOKIE_NAME, COOKIE_MAX_AGE_SECONDS
+from app.constants import (
+    ADMIN_SESSION_COOKIE_NAME,
+    COOKIE_MAX_AGE_SECONDS,
+    MAX_UPLOAD_SIZE_BYTES,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, col
 from app.dependencies import get_db_session
@@ -49,6 +54,8 @@ from app.schemas import SessionDetail, UploadedDocument
 from app.config import Settings
 
 router = APIRouter()
+
+ALLOWED_AVATAR_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
 
 
 @router.get("/manage", response_class=HTMLResponse)
@@ -221,6 +228,18 @@ async def update_integrations(
     return HTMLResponse("Integrations saved successfully", status_code=200)
 
 
+def safe_next_url(next_url: str | None) -> str:
+    """Only redirect to a path on this site after login, never to another host."""
+    if (
+        not next_url
+        or not next_url.startswith("/")
+        or next_url.startswith("//")
+        or "\\" in next_url
+    ):
+        return "/manage"
+    return next_url
+
+
 @router.post("/manage/login")
 @limiter.limit("5/minute")
 async def manage_login(
@@ -234,12 +253,13 @@ async def manage_login(
     # Add a random artificial delay to simulate "verification" and slightly mitigate timing attacks
     await asyncio.sleep(random.uniform(0.6, 1.5))
 
-    if secrets.compare_digest(password, settings.admin_password):
-        session_token = password
-        await create_admin_session(db, session_token)
+    if secrets.compare_digest(
+        password.encode("utf-8"), settings.admin_password.encode("utf-8")
+    ):
+        session_token = await create_admin_session(db)
 
         response = Response(status_code=204)
-        response.headers["HX-Redirect"] = next_url if next_url else "/manage"
+        response.headers["HX-Redirect"] = safe_next_url(next_url)
         response.set_cookie(
             key=f"{settings.cookie_prefix}{ADMIN_SESSION_COOKIE_NAME}",
             value=session_token,
@@ -415,7 +435,12 @@ async def manage_avatar(
     if not content:
         return PlainTextResponse("No file uploaded.", status_code=400)
 
-    content_type = file.content_type or "image/png"
+    content_type = file.content_type or ""
+    if content_type not in ALLOWED_AVATAR_TYPES:
+        # Never serve uploads as HTML or SVG from our own origin
+        return PlainTextResponse(
+            "Avatar must be a PNG, JPEG, WebP or GIF image.", status_code=400
+        )
     try:
         await context_store.save_avatar(db, content, content_type)
     except ValueError as e:
@@ -465,7 +490,17 @@ async def upload_files(
             file.filename.lower().endswith(".pdf")
             or file.filename.lower().endswith(".md")
         ):
-            content = await file.read()
+            if file.size is not None and file.size > MAX_UPLOAD_SIZE_BYTES:
+                return PlainTextResponse(
+                    f"{file.filename} is too large (max {MAX_UPLOAD_SIZE_BYTES // (1024 * 1024)} MB).",
+                    status_code=400,
+                )
+            content = await file.read(MAX_UPLOAD_SIZE_BYTES + 1)
+            if len(content) > MAX_UPLOAD_SIZE_BYTES:
+                return PlainTextResponse(
+                    f"{file.filename} is too large (max {MAX_UPLOAD_SIZE_BYTES // (1024 * 1024)} MB).",
+                    status_code=400,
+                )
             doc = SourceDocument(filename=file.filename, content=content)
             db.add(doc)
     await db.commit()
@@ -583,10 +618,15 @@ async def manage_document_get(
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
+    is_markdown = doc.filename.lower().endswith(".md")
+    safe_name = re.sub(r"[^A-Za-z0-9._ -]", "_", doc.filename)
     return Response(
         content=doc.content,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{doc.filename}"'},
+        media_type="text/plain; charset=utf-8" if is_markdown else "application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{safe_name}"',
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

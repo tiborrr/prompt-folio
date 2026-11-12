@@ -7,6 +7,7 @@ from app.dependencies import (
     get_recaptcha_service,
     get_context_store,
     get_session_store,
+    hash_session_token,
 )
 from app.config import Settings
 from app.models import AdminSession
@@ -170,8 +171,10 @@ async def test_manage_login_success():
             "/manage/login", data={"password": "test_secure_password"}
         )
         assert response.status_code == 204
-        assert "admin_session" in response.cookies
-        assert response.cookies.get("admin_session") == "test_secure_password"
+        token = response.cookies.get("admin_session")
+        assert token
+        # The session token is random, never the password itself
+        assert token != "test_secure_password"
         assert response.headers.get("hx-redirect") == "/manage"
 
 
@@ -240,7 +243,7 @@ async def test_manage_chat_delete_returns_oob_updates():
         "sqlite:///file:testdb?mode=memory&cache=shared&uri=true"
     )
     with Session(sync_engine) as session:
-        session.add(AdminSession(token="test_secure_password"))
+        session.add(AdminSession(token=hash_session_token("test_secure_password")))
         session.commit()
 
     transport = ASGITransport(app=app)

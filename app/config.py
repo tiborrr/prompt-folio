@@ -1,10 +1,14 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import ClassVar
+from typing import ClassVar, Self
+
+# Passwords that must never protect a production /manage
+INSECURE_ADMIN_PASSWORDS = {"", "secret", "change_this_to_a_secure_password"}
 
 
 class Settings(BaseSettings):
     environment: str = "PROD"
-    admin_password: str = "secret"
+    admin_password: str = ""
     mistral_api_key: str = ""
     recaptcha_client_side_key: str = ""
     recaptcha_server_side_key: str = ""
@@ -24,6 +28,13 @@ class Settings(BaseSettings):
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
+
+    @model_validator(mode="after")
+    def _require_admin_password(self) -> Self:
+        if not self.is_dev and self.admin_password.strip() in INSECURE_ADMIN_PASSWORDS:
+            msg = "ADMIN_PASSWORD must be set to a strong, non-default value outside DEV/TEST."
+            raise ValueError(msg)
+        return self
 
     @property
     def is_dev(self) -> bool:

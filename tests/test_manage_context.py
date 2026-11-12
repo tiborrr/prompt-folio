@@ -3,6 +3,7 @@ import os
 from httpx import ASGITransport, AsyncClient
 from app.main import app
 from app.models import SiteSettings, AdminSession
+from app.dependencies import hash_session_token
 
 os.environ["ENVIRONMENT"] = "TEST"
 os.environ["DB_PATH"] = "sqlite+aiosqlite:///:memory:"
@@ -26,7 +27,7 @@ async def test_manage_context_upload_and_rebuild():
 
         factory = get_db_session_factory(settings)
         async with factory() as db:
-            admin_session = AdminSession(token="test_admin_token")
+            admin_session = AdminSession(token=hash_session_token("test_admin_token"))
             db.add(admin_session)
             site_settings = SiteSettings(id=1, owner_name="Test Owner")
             db.add(site_settings)
