@@ -1,8 +1,9 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+from sqlmodel import col, select
+
 from app.main import app
 from app.models import ChatMessage
-from sqlmodel import select, col
 
 
 @pytest.mark.asyncio

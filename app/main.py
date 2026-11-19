@@ -1,44 +1,40 @@
-from app.schemas import StatusContext
-import os
-import json
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, Depends
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from slowapi.errors import RateLimitExceeded
-import typing
-from typing import Annotated, override
+import asyncio
 import collections.abc
+import functools
+import json
+import logging
+import os
+import typing
+from contextlib import asynccontextmanager
+from typing import Annotated, override
+
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
+from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlmodel import select
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response as StarletteResponse
 
-from app.routers import chat, manage
-from app.dependencies import get_context_store, limiter
-from app.utils import render_template
-from app.services import ContextStore
-from app.database import get_engine
-from app.dependencies import get_db_session
-from sqlmodel import select
-from sqlalchemy import text
-from app.dependencies import get_settings
 from app.constants import SECURITY_HEADERS
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from app.database import get_engine
+from app.dependencies import get_context_store, get_db_session, get_settings, limiter
+from app.routers import chat, manage
+from app.schemas import StatusContext
+from app.services import ContextStore
+from app.utils import render_template
 
-
-async def migrate_files_to_db(db: AsyncSession) -> None:
-    """One-time migration: read old file-based settings into the database."""
+if typing.TYPE_CHECKING:
     from app.models import SiteSettings
 
-    result = await db.execute(select(SiteSettings).where(SiteSettings.id == 1))
-    if result.scalar_one_or_none():
-        return  # Already has settings, skip migration
+logger = logging.getLogger(__name__)
 
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    private_dir = os.path.join(root_dir, "private")
 
-    site = SiteSettings(id=1)
-
+def _load_legacy_settings(private_dir: str, site: SiteSettings) -> None:
+    """Read the old file-based settings into ``site`` (blocking file I/O)."""
     # Owner name
     owner_name_path = os.path.join(private_dir, "owner_name.txt")
     if os.path.exists(owner_name_path):
@@ -80,8 +76,8 @@ async def migrate_files_to_db(db: AsyncSession) -> None:
             site.color_khaki_beige = colors.get("khaki_beige", site.color_khaki_beige)
             site.color_muted_teal = colors.get("muted_teal", site.color_muted_teal)
             site.color_seaweed = colors.get("seaweed", site.color_seaweed)
-        except Exception:
-            pass
+        except (OSError, ValueError, AttributeError) as e:
+            logger.warning("Skipping invalid %s: %s", colors_path, e)
 
     # Avatar
     avatar_path = os.path.join(private_dir, "avatar")
@@ -89,6 +85,22 @@ async def migrate_files_to_db(db: AsyncSession) -> None:
         with open(avatar_path, "rb") as f:
             site.avatar = f.read()
             site.avatar_content_type = "image/png"
+
+
+async def migrate_files_to_db(db: AsyncSession) -> None:
+    """One-time migration: read old file-based settings into the database."""
+    from app.models import SiteSettings
+
+    result = await db.execute(select(SiteSettings).where(SiteSettings.id == 1))
+    if result.scalar_one_or_none():
+        return  # Already has settings, skip migration
+
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    private_dir = os.path.join(root_dir, "private")
+
+    site = SiteSettings(id=1)
+
+    await asyncio.to_thread(_load_legacy_settings, private_dir, site)
 
     db.add(site)
     await db.commit()
@@ -247,10 +259,7 @@ async def htmx_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    import traceback
-    import logging
-
-    logging.error(f"Global exception caught: {exc}\n{traceback.format_exc()}")
+    logger.error("Global exception caught: %s", exc, exc_info=exc)
 
     is_htmx = request.headers.get("hx-request") == "true"
     if is_htmx:
@@ -267,9 +276,13 @@ async def global_exception_handler(request: Request, exc: Exception):
         response.status_code = 500
         return response
 
-    with open(os.path.join(base_dir, "templates", "500.html"), "r") as f:
-        html = f.read()
-    return HTMLResponse(content=html, status_code=500)
+    return HTMLResponse(content=_error_page_html(), status_code=500)
+
+
+@functools.cache
+def _error_page_html() -> str:
+    with open(os.path.join(base_dir, "templates", "500.html"), encoding="utf-8") as f:
+        return f.read()
 
 
 app.include_router(chat.router)

@@ -1,59 +1,74 @@
-from typing import Annotated
 import asyncio
-import random
-import secrets
+import functools
 import os
+import random
 import re
-from datetime import datetime, timezone
+import secrets
+from datetime import UTC, datetime
+from typing import Annotated
+
 from fastapi import (
     APIRouter,
-    Request,
+    Depends,
+    File,
     Form,
+    HTTPException,
+    Request,
     Response,
     UploadFile,
-    File,
-    Depends,
-    HTTPException,
 )
-from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col, select
 
-from app.services import MistralService, ContextStore, SessionStore
-from app.dependencies import (
-    get_mistral_service,
-    get_context_store,
-    get_session_store,
-    require_admin,
-    limiter,
-    get_admin_session_cookie,
-    get_settings,
-    create_admin_session,
-    delete_admin_session,
-    is_admin_session_active,
-)
-from app.utils import render_template, get_takeover_oob_html, render_template_to_string
+from app.config import Settings
 from app.constants import (
     ADMIN_SESSION_COOKIE_NAME,
     COOKIE_MAX_AGE_SECONDS,
     MAX_UPLOAD_SIZE_BYTES,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select, col
-from app.dependencies import get_db_session
-from app.models import ChatSession, ChatMessage, SourceDocument
+from app.dependencies import (
+    create_admin_session,
+    delete_admin_session,
+    get_admin_session_cookie,
+    get_context_store,
+    get_db_session,
+    get_mistral_service,
+    get_session_store,
+    get_settings,
+    is_admin_session_active,
+    limiter,
+    require_admin,
+)
+from app.models import ChatMessage, ChatSession, SourceDocument
 from app.schemas import (
-    ThemeColors,
     ChatMessageData,
     LoginContext,
-    ManageContext,
-    StatusContext,
     ManageChatContext,
+    ManageContext,
     MessageContext,
+    SessionDetail,
     SessionListItemContext,
+    StatusContext,
+    ThemeColors,
+    UploadedDocument,
 )
-from app.schemas import SessionDetail, UploadedDocument
-from app.config import Settings
+from app.services import ContextStore, MistralService, SessionStore
+from app.utils import get_takeover_oob_html, render_template, render_template_to_string
 
 router = APIRouter()
+
+_TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+
+
+@functools.cache
+def _session_deleted_html() -> str:
+    with open(
+        os.path.join(_TEMPLATES_DIR, "fragments", "session_deleted.html"),
+        encoding="utf-8",
+    ) as f:
+        return f.read()
+
 
 ALLOWED_AVATAR_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
 
@@ -666,16 +681,8 @@ async def delete_chat_session(
     if session_obj:
         # Broadcast notification to the active user (if any) that the session is deleted
         try:
-            with open(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    "../templates/fragments/session_deleted.html",
-                ),
-                "r",
-            ) as f:
-                deleted_html = f.read()
-            await session_store.broadcast(session_id, deleted_html)
-        except Exception as e:
+            await session_store.broadcast(session_id, _session_deleted_html())
+        except Exception as e:  # noqa: BLE001 - the delete itself must still happen
             print(f"Failed to broadcast deletion to {session_id}: {e}")
 
         await db.delete(session_obj)
@@ -876,9 +883,7 @@ async def manage_chat_edit_name(
         "fragments/session_name_edit.html",
         context_store,
         db,
-        SessionListItemContext(
-            id=session_id, name=name, created_at=datetime.now(timezone.utc)
-        ),
+        SessionListItemContext(id=session_id, name=name, created_at=datetime.now(UTC)),
     )
     return HTMLResponse(content=html)
 
@@ -902,9 +907,7 @@ async def manage_chat_update_name(
         "fragments/session_name.html",
         context_store,
         db,
-        SessionListItemContext(
-            id=session_id, name=name, created_at=datetime.now(timezone.utc)
-        ),
+        SessionListItemContext(id=session_id, name=name, created_at=datetime.now(UTC)),
     )
     return HTMLResponse(content=html)
 
@@ -924,7 +927,7 @@ async def manage_chat_edit_intent(
         context_store,
         db,
         SessionListItemContext(
-            id=session_id, intent=intent, created_at=datetime.now(timezone.utc)
+            id=session_id, intent=intent, created_at=datetime.now(UTC)
         ),
     )
     return HTMLResponse(content=html)
@@ -950,7 +953,7 @@ async def manage_chat_update_intent(
         context_store,
         db,
         SessionListItemContext(
-            id=session_id, intent=intent, created_at=datetime.now(timezone.utc)
+            id=session_id, intent=intent, created_at=datetime.now(UTC)
         ),
     )
     return HTMLResponse(content=html)

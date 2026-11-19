@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field, field_validator
-from typing import Any
 from datetime import datetime
+from typing import Any
 
+from pydantic import BaseModel, Field, field_validator
 
 # ------------------------------------------------------------------------------
 # Tool Call Schemas
@@ -83,7 +83,7 @@ class ManageContext(BaseModel):
     is_upload: bool = False
     active_tab: str
     raw_context: str | None = None
-    recent_sessions: list["SessionListItemContext"] | None = None
+    recent_sessions: list[SessionListItemContext] | None = None
     schedule_meeting_url: str | None = None
     total_chats: int = 0
     takeover_requests: int = 0
@@ -103,7 +103,7 @@ class ManageContext(BaseModel):
 
 class ChatSessionContext(BaseModel):
     session_id: str
-    history: list["ChatMessageData"] | str
+    history: list[ChatMessageData] | str
 
 
 class MessageContext(BaseModel):

@@ -1,7 +1,7 @@
-from sqlalchemy.ext.asyncio import create_async_engine
 import os
-
 from functools import cache
+
+from sqlalchemy.ext.asyncio import create_async_engine
 
 
 @cache

@@ -1,6 +1,7 @@
 import os
+
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 # Set environment variables for testing before importing the app
 os.environ["ENVIRONMENT"] = "TEST"
@@ -13,11 +14,11 @@ os.environ["SQLITE_URL"] = (
 )
 
 # Now import the app
-from app.main import app
-from app.dependencies import limiter
-
 from sqlalchemy import create_engine
 from sqlmodel import SQLModel
+
+from app.dependencies import limiter
+from app.main import app
 
 
 @pytest.fixture(autouse=True)

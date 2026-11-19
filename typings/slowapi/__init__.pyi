@@ -1,8 +1,9 @@
-from typing import Callable, Any, List
+from collections.abc import Callable
+from typing import Any
 
 class Limiter:
     def __init__(
-        self, key_func: Callable[..., Any], default_limits: List[str] | None = None
+        self, key_func: Callable[..., Any], default_limits: list[str] | None = None
     ) -> None: ...
     def reset(self) -> None: ...
     def limit(

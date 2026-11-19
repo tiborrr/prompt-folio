@@ -1,11 +1,12 @@
-from datetime import datetime, timezone
 import uuid
-from sqlmodel import Field, SQLModel, Relationship
+from datetime import UTC, datetime
+
 from sqlalchemy import Column, LargeBinary
+from sqlmodel import Field, Relationship, SQLModel
 
 
 def utcnow():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class AdminSession(SQLModel, table=True):
@@ -20,7 +21,7 @@ class ChatMessage(SQLModel, table=True):
     content: str
     created_at: datetime = Field(default_factory=utcnow)
 
-    session: "ChatSession" = Relationship(
+    session: ChatSession = Relationship(
         back_populates="messages"
     )  # basedpyright: ignore[reportAny]
 
