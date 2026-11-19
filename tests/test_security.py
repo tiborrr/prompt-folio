@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import override
 
 import pytest
@@ -94,7 +94,7 @@ async def test_password_is_not_a_valid_session_cookie():
 @pytest.mark.asyncio
 async def test_expired_admin_session_is_rejected():
     token = "expired-token"
-    old = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=2)
+    old = datetime.now(UTC) - timedelta(days=2)
     with Session(create_engine(TEST_DB)) as db:
         db.add(AdminSession(token=hash_session_token(token), created_at=old))
         db.commit()
