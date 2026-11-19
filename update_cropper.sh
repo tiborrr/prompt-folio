@@ -8,6 +8,8 @@ echo "Creating directories..."
 mkdir -p "$DEST_DIR"
 mkdir -p "$CSS_DEST_DIR"
 
+# Pinned on purpose: Cropper.js 2.x is a rewrite (web components) with a different
+# API, so moving to it means rewriting avatar-cropper.js.
 echo "Downloading Cropper.js..."
 curl -fsSL -o "$DEST_DIR/cropper.min.js" https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js
 curl -fsSL -o "$CSS_DEST_DIR/cropper.min.css" https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css

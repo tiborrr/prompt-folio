@@ -7,7 +7,7 @@ document.addEventListener('alpine:init', () => {
                 const rawContextInput = document.getElementById('hidden-raw-context');
                 if (!rawContextInput) return;
 
-                let editorData = { time: Date.now(), blocks: [], version: "2.29.0" };
+                let editorData = { time: Date.now(), blocks: [], version: "2.31.7" };
                 try {
                     const rawVal = rawContextInput.value.trim();
                     if (rawVal.startsWith('{')) {
@@ -39,7 +39,7 @@ document.addEventListener('alpine:init', () => {
                                 defaultLevel: 3
                             }
                         },
-                        list: List,
+                        list: EditorjsList,
                         code: CodeTool,
                         delimiter: Delimiter
                     }

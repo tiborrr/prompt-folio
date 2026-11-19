@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Pinned versions: bump them on purpose so a build never picks up an unreviewed release.
 HTMX_VERSION="2.0.11"
-RESPONSE_TARGETS_VERSION="2.0.0"
-SSE_VERSION="2.2.2"
+RESPONSE_TARGETS_VERSION="2.0.4"
+SSE_VERSION="2.2.4"
 
 DEST_DIR="app/static/js/htmx"
 
