@@ -1,5 +1,5 @@
 # First, build the application in the /workspace directory
-FROM ghcr.io/astral-sh/uv:bookworm AS builder
+FROM ghcr.io/astral-sh/uv:trixie AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
 # Omit development dependencies
@@ -38,7 +38,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked
 
 # Then, use a final image without uv
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 # Setup a non-root user
 RUN groupadd --system --gid 999 nonroot \
