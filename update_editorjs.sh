@@ -19,7 +19,7 @@ mkdir -p "$DEST_DIR"
 
 fetch() {
     echo "Downloading $1..."
-    curl -fsSL "$CDN/$1" -o "$DEST_DIR/$2"
+    curl -fsSL --retry 4 --retry-all-errors --connect-timeout 15 --max-time 120 "$CDN/$1" -o "$DEST_DIR/$2"
 }
 
 fetch "@editorjs/editorjs@${EDITORJS_VERSION}/dist/editorjs.umd.js" editor.js
