@@ -6,15 +6,14 @@ from functools import cache
 from typing import Annotated
 
 from fastapi import Depends, Form, HTTPException, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col, delete, select
 
 from app.config import Settings, settings
-from app.constants import COOKIE_MAX_AGE_SECONDS, RATE_LIMIT_GLOBAL
+from app.constants import COOKIE_MAX_AGE_SECONDS
 from app.database import get_engine
 from app.models import AdminSession
+from app.rate_limit import Limiter
 from app.services import (
     ContextStore,
     MistralService,
@@ -24,7 +23,7 @@ from app.services import (
     default_session_store,
 )
 
-limiter = Limiter(key_func=get_remote_address, default_limits=[RATE_LIMIT_GLOBAL])
+limiter = Limiter()
 
 
 @cache

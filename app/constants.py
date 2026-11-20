@@ -22,10 +22,6 @@ MAX_UPLOAD_SIZE_BYTES = 20 * 1024 * 1024  # per source document
 ADMIN_SESSION_COOKIE_NAME = "admin_session"
 COOKIE_MAX_AGE_SECONDS = 86400
 
-# Rate Limits
-RATE_LIMIT_GLOBAL = "50/minute"
-RATE_LIMIT_CHAT = "10/minute"
-
 # Security Headers
 SECURITY_HEADERS = {
     "X-Frame-Options": "SAMEORIGIN",

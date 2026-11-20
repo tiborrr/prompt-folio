@@ -15,13 +15,13 @@ dependencies = [
     "python-multipart",
     "httpx",
     "pydantic-settings",
-    "slowapi>=0.1.10",
     "sse-starlette>=3.3.0",
     "sqlmodel>=0.0.34",
     "aiosqlite>=0.22.1",
     "greenlet>=3.2.5",
     "alembic>=1.16.5",
     "linkify-it-py>=2.0.3",
+    "limits>=5.8.0",
 ]
 
 [tool.hatch.build.targets.wheel]
