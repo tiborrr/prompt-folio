@@ -49,6 +49,7 @@ from app.schemas import (
     MessageContext,
     SessionDetail,
     SessionListItemContext,
+    SourceDocumentItem,
     StatusContext,
     ThemeColors,
     UploadedDocument,
@@ -164,7 +165,9 @@ async def manage_context_get(
         ManageContext(
             active_tab="context",
             raw_context=raw_context,
-            source_documents=list(source_docs),
+            source_documents=[
+                SourceDocumentItem.model_validate(d) for d in source_docs
+            ],
         ),
     )
 
@@ -542,9 +545,8 @@ async def upload_files(
     uploaded_files = [
         UploadedDocument(filename=d.filename, content=d.content) for d in all_docs
     ]
-    owner = await context_store.get_owner_name(db)
     new_profile = await mistral_service.generate_profile_from_docs(
-        uploaded_files, owner, existing_profile
+        uploaded_files, existing_profile
     )
 
     final_context = new_profile.strip() + "\n\n" + repos_section
@@ -561,7 +563,7 @@ async def upload_files(
         ManageContext(
             active_tab="context",
             raw_context=final_context,
-            source_documents=list(all_docs),
+            source_documents=[SourceDocumentItem.model_validate(d) for d in all_docs],
             is_upload=True,
         ),
     )
@@ -596,9 +598,8 @@ async def manage_rebuild_context(
     uploaded_files = [
         UploadedDocument(filename=d.filename, content=d.content) for d in all_docs
     ]
-    owner = await context_store.get_owner_name(db)
     new_profile = await mistral_service.generate_profile_from_docs(
-        uploaded_files, owner, existing_profile
+        uploaded_files, existing_profile
     )
 
     final_context = new_profile.strip() + "\n\n" + repos_section
@@ -615,7 +616,7 @@ async def manage_rebuild_context(
         ManageContext(
             active_tab="context",
             raw_context=final_context,
-            source_documents=list(all_docs),
+            source_documents=[SourceDocumentItem.model_validate(d) for d in all_docs],
             is_upload=False,
         ),
     )
@@ -794,7 +795,6 @@ async def manage_chat_get(
 
 @router.post("/manage/chat/{session_id}/toggle_takeover")
 async def manage_chat_toggle_takeover(
-    request: Request,
     session_id: str,
     db: Annotated[AsyncSession, Depends(get_db_session)],
     session_store: Annotated[SessionStore, Depends(get_session_store)],

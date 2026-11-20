@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import collections.abc
-import json
 import re
 import typing
 from typing import TYPE_CHECKING
@@ -19,6 +18,7 @@ from app.constants import MODEL_CHAT, MODEL_OCR, ROLE_ASSISTANT, ROLE_TOOL
 from app.schemas import (
     ChatMessageData,
     FunctionCallData,
+    ProfileUpdateArgs,
     RecaptchaVerifyResult,
     ThemeColors,
     ToolCallData,
@@ -55,7 +55,6 @@ class MistralService:
     async def generate_profile_from_docs(
         self,
         uploaded_files: list[UploadedDocument],
-        owner_name: str,
         existing_profile: str,
     ) -> str:
         combined_text = ""
@@ -139,15 +138,12 @@ class MistralService:
                         try:
                             # Mistral's function.arguments can be returned as a dict or str.
                             arguments = tool_call.function.arguments
-                            if isinstance(arguments, str):
-                                args = json.loads(arguments)
-                            else:
-                                args = arguments
-                            await tool_callback(
-                                args.get("name"),
-                                args.get("company"),
-                                args.get("intent"),
+                            args = (
+                                ProfileUpdateArgs.model_validate_json(arguments)
+                                if isinstance(arguments, str)
+                                else ProfileUpdateArgs.model_validate(arguments)
                             )
+                            await tool_callback(args.name, args.company, args.intent)
                             tool_result = "Profile updated successfully."
                         except Exception as e:  # noqa: BLE001 - reported back to the model
                             print(f"Tool error: {e}")
@@ -179,12 +175,10 @@ class MistralService:
                 if json_match:
                     try:
                         json_block = json_match.group(1).strip()
-                        args = json.loads(json_block)
+                        args = ProfileUpdateArgs.model_validate_json(json_block)
 
                         # Execute fallback callback silently
-                        await tool_callback(
-                            args.get("name"), args.get("company"), args.get("intent")
-                        )
+                        await tool_callback(args.name, args.company, args.intent)
                     except Exception as e:  # noqa: BLE001 - best-effort fallback
                         print(f"Text-based tool parsing error: {e}")
 
@@ -219,7 +213,7 @@ class RecaptchaService:
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(verify_url, data=data)
-                result = RecaptchaVerifyResult(**response.json())
+                result = RecaptchaVerifyResult.model_validate_json(response.content)
                 return result.success
         except Exception as e:  # noqa: BLE001 - fail closed
             print(f"Recaptcha verification error: {e}")
@@ -229,10 +223,10 @@ class RecaptchaService:
 class ContextStore:
     """Database-backed site settings store (singleton row id=1)."""
 
-    MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
+    MAX_AVATAR_SIZE: int = 2 * 1024 * 1024  # 2MB
 
     def __init__(self, storage_path: str | None = None):
-        self.storage_path = storage_path
+        self.storage_path: str | None = storage_path
 
     async def _get_settings(self, db: AsyncSession) -> SiteSettings:
         from app.models import SiteSettings
@@ -382,12 +376,12 @@ class ContextStore:
 
 class NotificationService:
     def __init__(self, topic: str):
-        self.topic = topic
+        self.topic: str = topic
 
     async def send(self, message: str, url: str | None = None):
         if not self.topic:
             return
-        headers = {}
+        headers: dict[str, str] = {}
         if url:
             headers["Click"] = url
         try:

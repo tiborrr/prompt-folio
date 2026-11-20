@@ -1,5 +1,6 @@
 import pytest
 from fastapi import FastAPI, Request
+from fastapi.responses import PlainTextResponse
 from httpx import ASGITransport, AsyncClient
 
 from app.rate_limit import Limiter, RateLimitExceeded
@@ -9,20 +10,18 @@ def _app(limiter: Limiter) -> FastAPI:
     app = FastAPI()
 
     @app.exception_handler(RateLimitExceeded)
-    async def _(request: Request, exc: RateLimitExceeded):
-        from fastapi.responses import PlainTextResponse
-
+    async def _(_request: Request, exc: RateLimitExceeded) -> PlainTextResponse:
         return PlainTextResponse(str(exc), status_code=429)
 
     @app.get("/a")
     @limiter.limit("2/minute")
-    async def a(request: Request, q: int = 0):
-        return {"q": q}
+    async def a(request: Request, q: int = 0) -> dict[str, str | int]:
+        return {"path": request.url.path, "q": q}
 
     @app.get("/b")
     @limiter.limit("2/minute")
-    async def b(request: Request):
-        return {}
+    async def b(request: Request) -> dict[str, str]:
+        return {"path": request.url.path}
 
     return app
 
@@ -34,7 +33,7 @@ async def test_limit_blocks_after_n_hits_per_route():
         transport=ASGITransport(app=_app(limiter)), base_url="http://test"
     ) as client:
         # Query parameters still reach the endpoint through the wrapper
-        assert (await client.get("/a?q=7")).json() == {"q": 7}
+        assert (await client.get("/a?q=7")).json() == {"path": "/a", "q": 7}
         assert (await client.get("/a")).status_code == 200
         assert (await client.get("/a")).status_code == 429
         # Another route has its own bucket

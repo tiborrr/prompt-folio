@@ -1,6 +1,7 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlmodel import col, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.main import app
 from app.models import ChatMessage
@@ -26,12 +27,14 @@ async def test_chat_db_integration():
 
         # Verify DB
         from sqlalchemy.ext.asyncio import create_async_engine
+        from sqlalchemy.pool import StaticPool
 
         test_db_engine = create_async_engine(
-            "sqlite+aiosqlite:///file:testdb?mode=memory&cache=shared&uri=true"
+            "sqlite+aiosqlite:///file:testdb?mode=memory&cache=shared&uri=true",
+            poolclass=StaticPool,
         )
-        async with test_db_engine.begin() as conn:
-            result = await conn.execute(
+        async with AsyncSession(test_db_engine) as db:
+            result = await db.exec(
                 select(ChatMessage)
                 .where(ChatMessage.session_id == session_id)
                 .order_by(col(ChatMessage.created_at))

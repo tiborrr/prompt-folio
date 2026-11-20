@@ -15,6 +15,7 @@ os.environ["SQLITE_URL"] = (
 
 # Now import the app
 from sqlalchemy import create_engine
+from sqlalchemy.pool import SingletonThreadPool
 from sqlmodel import SQLModel
 
 from app.dependencies import limiter
@@ -26,7 +27,8 @@ def setup_db():
     # In-memory databases with shared cache are shared across the process.
     # We can connect using the sync engine to setup and teardown.
     sync_engine = create_engine(
-        "sqlite:///file:testdb?mode=memory&cache=shared&uri=true"
+        "sqlite:///file:testdb?mode=memory&cache=shared&uri=true",
+        poolclass=SingletonThreadPool,
     )
     SQLModel.metadata.drop_all(sync_engine)
     SQLModel.metadata.create_all(sync_engine)

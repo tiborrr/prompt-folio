@@ -5,6 +5,8 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
 from sqlalchemy import create_engine, func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.pool import SingletonThreadPool
 from sqlmodel import Session, select
 
 from app.config import Settings
@@ -47,7 +49,7 @@ def test_markdown_drops_javascript_links():
 
 @pytest.mark.asyncio
 async def test_admin_chat_view_escapes_visitor_html():
-    with Session(create_engine(TEST_DB)) as db:
+    with Session(create_engine(TEST_DB, poolclass=SingletonThreadPool)) as db:
         db.add(ChatSession(id="11111111-1111-4111-8111-111111111111"))
         db.add(
             ChatMessage(
@@ -74,7 +76,7 @@ async def test_login_stores_only_a_hash_of_a_random_token():
     async with _client() as client:
         token = await _login(client)
 
-    with Session(create_engine(TEST_DB)) as db:
+    with Session(create_engine(TEST_DB, poolclass=SingletonThreadPool)) as db:
         stored = db.exec(select(AdminSession.token)).all()
     assert stored == [hash_session_token(token)]
     assert ADMIN_PASSWORD not in stored
@@ -95,7 +97,7 @@ async def test_password_is_not_a_valid_session_cookie():
 async def test_expired_admin_session_is_rejected():
     token = "expired-token"
     old = datetime.now(UTC) - timedelta(days=2)
-    with Session(create_engine(TEST_DB)) as db:
+    with Session(create_engine(TEST_DB, poolclass=SingletonThreadPool)) as db:
         db.add(AdminSession(token=hash_session_token(token), created_at=old))
         db.commit()
 
@@ -145,10 +147,12 @@ def test_production_accepts_a_real_admin_password():
 class _KeysStore(ContextStore):
     def __init__(self, server_key: str):
         super().__init__()
-        self.server_key = server_key
+        self.server_key: str = server_key
 
     @override
-    async def get_active_integrations(self, db, config) -> dict[str, str]:  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
+    async def get_active_integrations(
+        self, db: AsyncSession, config: Settings
+    ) -> dict[str, str]:
         return {
             "mistral_api_key": "",
             "recaptcha_client_side_key": "",
@@ -175,7 +179,7 @@ async def test_recaptcha_is_enforced_with_server_key():
 
 
 def _session_count() -> int:
-    with Session(create_engine(TEST_DB)) as db:
+    with Session(create_engine(TEST_DB, poolclass=SingletonThreadPool)) as db:
         return db.exec(select(func.count()).select_from(ChatSession)).one()
 
 
