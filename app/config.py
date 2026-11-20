@@ -17,6 +17,15 @@ class Settings(BaseSettings):
     sqlite_url: str = "sqlite+aiosqlite:///private/sessions.db"
     app_domain: str = "localhost"
 
+    # Remote MCP server (/mcp) so Claude can read and update the profile.
+    # PUBLIC_URL is the https origin the app is reached on; it defaults to
+    # https://APP_DOMAIN (http://localhost:3005 in DEV/TEST).
+    mcp_enabled: bool = True
+    public_url: str = ""
+    # OAuth clients may only redirect to these hosts (loopback is always allowed,
+    # for Claude Code and the MCP Inspector).
+    mcp_allowed_redirect_hosts: str = "claude.ai,claude.com"
+
     # Default UI configuration for new deployments
     default_owner_name: str = "Tibor"
     default_owner_pronouns: str = "their"
@@ -40,6 +49,14 @@ class Settings(BaseSettings):
     @property
     def is_dev(self) -> bool:
         return self.environment in {"DEV", "TEST"}
+
+    @property
+    def base_url(self) -> str:
+        if self.public_url:
+            return self.public_url.rstrip("/")
+        if self.is_dev or self.app_domain in {"", "localhost"}:
+            return "http://localhost:3005"
+        return f"https://{self.app_domain}"
 
     @property
     def secure_cookie(self) -> bool:

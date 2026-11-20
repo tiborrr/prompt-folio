@@ -22,6 +22,7 @@ dependencies = [
     "alembic>=1.16.5",
     "linkify-it-py>=2.0.3",
     "limits>=5.8.0",
+    "mcp>=2.3.0",
 ]
 
 [tool.hatch.build.targets.wheel]

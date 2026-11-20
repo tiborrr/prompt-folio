@@ -1,5 +1,6 @@
 import json
 import re
+from html import unescape
 
 
 def parse_html_inline(html: str) -> str:
@@ -24,7 +25,8 @@ def parse_html_inline(html: str) -> str:
     md = re.sub(r"&nbsp;", " ", md, flags=re.IGNORECASE)
     # Convert <br> to newline
     md = re.sub(r"<br\s*/?>", "\n", md, flags=re.IGNORECASE)
-    return md
+    # Editor.js stores text as HTML, so "&" arrives as "&amp;"
+    return unescape(md)
 
 
 def _list_to_markdown(items: list[object], ordered: bool, depth: int = 0) -> str:
