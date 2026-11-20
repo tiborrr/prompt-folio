@@ -68,6 +68,20 @@ def message_text(content: object) -> str:
     return str(content)
 
 
+TOOL_TEXT_PATTERN = re.compile(r"update_user_profile[^\{]*\{.*?\}", re.DOTALL)
+# A tool call written out as text that is still being streamed (no closing brace yet)
+PARTIAL_TOOL_TEXT_PATTERN = re.compile(r"update_user_profile.*$", re.DOTALL)
+SORRY_NO_CONNECTION = "I'm sorry, I'm having trouble connecting to my brain right now."
+SORRY_LOOP = "I'm sorry, I encountered a loop while trying to respond."
+EMPTY_REPLY_FALLBACK = "Got it! How else can I help you today?"
+
+
+def visible_reply_text(text: str) -> str:
+    """The part of a (partial) answer that may be shown: leaked tool calls are hidden."""
+    text = TOOL_TEXT_PATTERN.sub("", text)
+    return PARTIAL_TOOL_TEXT_PATTERN.sub("", text)
+
+
 class MistralService:
     client: Mistral
 
@@ -132,6 +146,137 @@ class MistralService:
             print(f"Mistral chat error: {e}")
             return combined_text
 
+    async def stream_mistral(
+        self,
+        messages_history: list[ChatMessageData],
+        tools: list[dict[str, object]] | None = None,
+        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]]
+        | None = None,
+        max_depth: int = 3,
+    ) -> collections.abc.AsyncIterator[str]:
+        """Yield the answer text while the model writes it.
+
+        Thinking chunks are skipped. When the model calls a tool, the tool runs
+        and the model is asked again; its new text is yielded as well.
+        """
+        if max_depth <= 0:
+            yield SORRY_LOOP
+            return
+
+        yielded_text = False
+        calls: dict[str, ToolCallData] = {}
+        text_parts: list[str] = []
+        try:
+            dict_messages = [m.model_dump(exclude_none=True) for m in messages_history]
+            stream = await self.client.chat.stream_async(
+                model=MODEL_CHAT,
+                messages=dict_messages,
+                tools=tools,
+                tool_choice="auto" if tools else "none",
+                reasoning_effort=CHAT_REASONING_EFFORT,
+            )
+            async for event in stream:
+                if not event.data.choices:
+                    continue
+                delta = event.data.choices[0].delta
+                content = delta.content
+                text = message_text(content) if isinstance(content, (str, list)) else ""
+                if text:
+                    text_parts.append(text)
+                    yielded_text = True
+                    yield text
+                tool_calls = delta.tool_calls
+                if not isinstance(tool_calls, list):
+                    continue
+                for tc in tool_calls:
+                    key = tc.id if isinstance(tc.id, str) and tc.id != "null" else ""
+                    key = key or f"index-{tc.index}"
+                    arguments = tc.function.arguments
+                    if not isinstance(arguments, str):
+                        arguments = json.dumps(arguments)
+                    existing = calls.get(key)
+                    if existing is None:
+                        calls[key] = ToolCallData(
+                            id=key,
+                            type="function",
+                            function=FunctionCallData(
+                                name=tc.function.name, arguments=arguments
+                            ),
+                        )
+                    else:
+                        existing.function.arguments = (
+                            str(existing.function.arguments) + arguments
+                        )
+        except Exception as e:  # noqa: BLE001 - show a friendly message to the visitor
+            print(f"Mistral API Error: {e}")
+            if not yielded_text:
+                yield SORRY_NO_CONNECTION
+            return
+
+        if not (calls and tool_callback):
+            return
+
+        assistant_msg = ChatMessageData(
+            role=ROLE_ASSISTANT, content="".join(text_parts)
+        )
+        assistant_msg.tool_calls = list(calls.values())
+        messages_history.append(assistant_msg)
+        for call in calls.values():
+            messages_history.append(
+                ChatMessageData(
+                    role=ROLE_TOOL,
+                    name=call.function.name,
+                    content=await self._run_profile_tool(call, tool_callback),
+                    tool_call_id=call.id,
+                )
+            )
+        async for text in self.stream_mistral(
+            messages_history,
+            tools=tools,
+            tool_callback=tool_callback,
+            max_depth=max_depth - 1,
+        ):
+            yield text
+
+    @staticmethod
+    async def _run_profile_tool(
+        call: ToolCallData,
+        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]],
+    ) -> str:
+        if call.function.name != "update_user_profile":
+            return f"Unknown tool: {call.function.name}"
+        try:
+            arguments = call.function.arguments
+            args = json.loads(arguments) if isinstance(arguments, str) else arguments
+            await tool_callback(
+                args.get("name"), args.get("company"), args.get("intent")
+            )
+            return "Profile updated successfully."
+        except Exception as e:  # noqa: BLE001 - reported back to the model
+            print(f"Tool error: {e}")
+            return f"Failed to update profile: {e}"
+
+    @staticmethod
+    async def finish_reply(
+        text: str,
+        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]]
+        | None = None,
+    ) -> str:
+        """Clean up a streamed answer: run a tool call the model wrote out as
+        text, remove it from the answer and never return an empty answer."""
+        if tool_callback and "update_user_profile" in text:
+            match = re.search(r"update_user_profile[^\{]*(\{.*?\})", text, re.DOTALL)
+            if match:
+                try:
+                    args = json.loads(match.group(1).strip())
+                    await tool_callback(
+                        args.get("name"), args.get("company"), args.get("intent")
+                    )
+                except Exception as e:  # noqa: BLE001 - best-effort fallback
+                    print(f"Text-based tool parsing error: {e}")
+        cleaned = visible_reply_text(text).strip()
+        return cleaned or EMPTY_REPLY_FALLBACK
+
     async def ask_mistral(
         self,
         messages_history: list[ChatMessageData],
@@ -156,7 +301,7 @@ class MistralService:
             assert message is not None
 
             if message.tool_calls and tool_callback:
-                content_val = message_text(message.content) or None
+                content_val = message_text(message.content)
                 assistant_msg = ChatMessageData(
                     role=ROLE_ASSISTANT, content=content_val
                 )

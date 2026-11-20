@@ -112,3 +112,137 @@ async def test_ask_mistral_uses_large_4_and_hides_thinking():
     kwargs = mock_client.chat.complete_async.call_args.kwargs
     assert kwargs["model"] == "mistral-large-4"
     assert kwargs["reasoning_effort"] == "low"
+
+
+def _stream_event(content=None, tool_calls=None):
+    from mistralai.client.models import (
+        CompletionChunk,
+        CompletionEvent,
+        CompletionResponseStreamChoice,
+        DeltaMessage,
+    )
+
+    delta = DeltaMessage(content=content, tool_calls=tool_calls)
+    return CompletionEvent(
+        data=CompletionChunk(
+            id="x",
+            model="mistral-large-4",
+            choices=[
+                CompletionResponseStreamChoice(index=0, delta=delta, finish_reason=None)
+            ],
+        )
+    )
+
+
+class _FakeStream:
+    def __init__(self, events):
+        self._events = list(events)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if not self._events:
+            raise StopAsyncIteration
+        return self._events.pop(0)
+
+
+@pytest.mark.asyncio
+async def test_stream_mistral_yields_text_and_skips_thinking():
+    from mistralai.client.models import TextChunk, ThinkChunk
+
+    mock_client = MagicMock()
+    mock_client.chat.stream_async = AsyncMock(
+        return_value=_FakeStream(
+            [
+                _stream_event([ThinkChunk(thinking=[TextChunk(text="secret")])]),
+                _stream_event("Hello "),
+                _stream_event([TextChunk(text="there!")]),
+            ]
+        )
+    )
+    service = MistralService(api_key="test")
+    service.client = mock_client
+
+    pieces = [
+        p
+        async for p in service.stream_mistral(
+            [ChatMessageData(role="user", content="Hi")]
+        )
+    ]
+
+    assert "".join(pieces) == "Hello there!"
+    kwargs = mock_client.chat.stream_async.call_args.kwargs
+    assert kwargs["model"] == "mistral-large-4"
+    assert kwargs["reasoning_effort"] == "low"
+
+
+@pytest.mark.asyncio
+async def test_stream_mistral_runs_tool_call_then_continues():
+    from mistralai.client.models import FunctionCall, ToolCall
+
+    tool_call = ToolCall(
+        id="call1",
+        index=0,
+        function=FunctionCall(
+            name="update_user_profile", arguments='{"name": "Sam", "intent": "hiring"}'
+        ),
+    )
+    mock_client = MagicMock()
+    mock_client.chat.stream_async = AsyncMock(
+        side_effect=[
+            _FakeStream([_stream_event(tool_calls=[tool_call])]),
+            _FakeStream([_stream_event("Nice to meet you, Sam.")]),
+        ]
+    )
+    service = MistralService(api_key="test")
+    service.client = mock_client
+    callback = AsyncMock()
+
+    history = [ChatMessageData(role="user", content="I'm Sam, hiring")]
+    pieces = [
+        p
+        async for p in service.stream_mistral(
+            history, tools=[{"type": "function"}], tool_callback=callback
+        )
+    ]
+
+    assert "".join(pieces) == "Nice to meet you, Sam."
+    callback.assert_awaited_once_with("Sam", None, "hiring")
+    assert history[-1].role == "tool"
+    assert history[-1].tool_call_id == "call1"
+    assert history[-2].tool_calls is not None
+
+
+@pytest.mark.asyncio
+async def test_stream_mistral_apologises_when_the_api_fails():
+    mock_client = MagicMock()
+    mock_client.chat.stream_async = AsyncMock(side_effect=RuntimeError("down"))
+    service = MistralService(api_key="test")
+    service.client = mock_client
+
+    pieces = [
+        p
+        async for p in service.stream_mistral(
+            [ChatMessageData(role="user", content="Hi")]
+        )
+    ]
+    assert pieces == ["I'm sorry, I'm having trouble connecting to my brain right now."]
+
+
+@pytest.mark.asyncio
+async def test_finish_reply_hides_leaked_tool_text():
+    from app.services import visible_reply_text
+
+    callback = AsyncMock()
+    text = 'Thanks! update_user_profile {"name": "Kim"} What do you need?'
+    assert (
+        await MistralService.finish_reply(text, callback)
+        == "Thanks!  What do you need?"
+    )
+    callback.assert_awaited_once_with("Kim", None, None)
+    assert visible_reply_text('Sure. update_user_profile {"na') == "Sure. "
+    assert (
+        await MistralService.finish_reply("   ")
+        == "Got it! How else can I help you today?"
+    )
