@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from typing import Any, override
 
 import pytest
@@ -34,6 +35,17 @@ class FakeMistralService(MistralService):
         max_depth: int = 3,
     ) -> str:
         return "Fake AI Response"
+
+    @override
+    async def stream_mistral(
+        self,
+        messages_history: list[ChatMessageData],
+        tools: list[dict[str, Any]] | None = None,
+        tool_callback: Any | None = None,
+        max_depth: int = 3,
+    ) -> AsyncIterator[str]:
+        for piece in ("Fake AI ", "Response"):
+            yield piece
 
     @override
     async def generate_profile_from_docs(

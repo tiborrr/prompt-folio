@@ -61,9 +61,11 @@
     history.addEventListener('htmx:sseMessage', function (evt) {
         const data = (evt.detail && evt.detail.data) || '';
         const ownMessage = data.indexOf('message user') !== -1;
+        // A streaming answer grows many times a second: follow it without animation.
+        const streamUpdate = data.indexOf('msg-bubble streaming') !== -1;
         if (ownMessage) removeStarters();
         if (stickToBottom || ownMessage) {
-            scrollToBottom(true);
+            scrollToBottom(!streamUpdate);
         } else if (scrollBtn) {
             scrollBtn.classList.add('visible');
         }

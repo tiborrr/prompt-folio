@@ -37,10 +37,33 @@ from app.schemas import (
     SSEEvent,
     StatusContext,
 )
-from app.services import ContextStore, MistralService, NotificationService, SessionStore
-from app.utils import get_takeover_oob_html, render_template, render_template_to_string
+from app.services import (
+    ContextStore,
+    MistralService,
+    NotificationService,
+    SessionStore,
+    visible_reply_text,
+)
+from app.utils import (
+    app_version,
+    get_takeover_oob_html,
+    md,
+    render_template,
+    render_template_to_string,
+)
 
 router = APIRouter()
+
+# How often a growing answer is pushed to the browser while it streams
+STREAM_PUSH_INTERVAL_S = 0.12
+
+
+def streaming_bubble_html(stream_id: str, text: str) -> str:
+    """The bubble of an answer that is still being written, with a caret."""
+    return (
+        f'<div id="{stream_id}-bubble" class="msg-bubble streaming">'
+        f"{md.render(text)}</div>"
+    )
 
 
 def is_valid_session_id(session_id: str) -> bool:
@@ -416,8 +439,45 @@ async def chat(
                         bg_db.add(bg_session_obj)
                         await bg_db.commit()
 
-                assistant_response = await mistral_service.ask_mistral(
+                # Stream the answer: the typing bubble stays until the first
+                # words arrive, then one bubble grows as the model writes.
+                stream_id = f"stream-{uuid.uuid4().hex}"
+                avatar_url = f"/avatar?v={app_version}"
+                received = ""
+                shown = ""
+                started = False
+                last_push = 0.0
+                loop = asyncio.get_running_loop()
+                async for piece in mistral_service.stream_mistral(
                     history, tools=tools, tool_callback=update_profile_callback
+                ):
+                    received += piece
+                    visible = visible_reply_text(received).strip()
+                    if not visible or visible == shown:
+                        continue
+                    now = loop.time()
+                    if started and now - last_push < STREAM_PUSH_INTERVAL_S:
+                        continue
+                    shown = visible
+                    last_push = now
+                    bubble = streaming_bubble_html(stream_id, visible)
+                    if not started:
+                        started = True
+                        await session_store.broadcast(
+                            session_id,
+                            '<div id="typing-indicator" hx-swap-oob="delete"></div>'
+                            + f'<div id="{stream_id}" class="message assistant slide-in">'
+                            + f'<div class="msg-avatar" style="background-image: url(\'{avatar_url}\'); background-size: cover; background-position: center; color: transparent;"></div>'
+                            + bubble
+                            + "</div>",
+                        )
+                    else:
+                        await session_store.broadcast(
+                            session_id, bubble.replace(">", ' hx-swap-oob="true">', 1)
+                        )
+
+                assistant_response = await mistral_service.finish_reply(
+                    received, update_profile_callback
                 )
 
                 # Save AI message
@@ -429,7 +489,6 @@ async def chat(
                 bg_db.add(assistant_msg)
                 await bg_db.commit()
 
-                # Step 3 & 4: Bundle the deletion with the first chunk of AI response
                 assistant_html = bytes(
                     (
                         await render_template(
@@ -442,12 +501,22 @@ async def chat(
                     ).body
                 ).decode("utf-8")
 
-                # Prepend the OOB delete to the AI response so they're in the same payload
-                response_with_delete = (
-                    '<div id="typing-indicator" hx-swap-oob="delete"></div>'
-                    + assistant_html
+                # Replace the streamed bubble (or the typing bubble) with the
+                # final answer in one payload. Appending the final message also
+                # repairs a page that missed part of the stream.
+                await session_store.broadcast(
+                    session_id,
+                    (
+                        f'<div id="{stream_id}" hx-swap-oob="delete"></div>'
+                        if started
+                        else '<div id="typing-indicator" hx-swap-oob="delete"></div>'
+                    )
+                    + assistant_html.replace(
+                        'class="message assistant slide-in"',
+                        'class="message assistant"',
+                        1,
+                    ),
                 )
-                await session_store.broadcast(session_id, response_with_delete)
         except Exception:
             # Remove the typing indicator and tell the visitor, instead of
             # leaving them waiting for an answer that will not come.

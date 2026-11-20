@@ -685,6 +685,23 @@ button, input, textarea, select {
     border-radius: 12px;
 }
 
+/* Caret at the end of an answer that is still being written */
+.msg-bubble.streaming > :last-child::after {
+    content: "";
+    display: inline-block;
+    width: 0.45em;
+    height: 1em;
+    margin-left: 3px;
+    vertical-align: text-bottom;
+    background: currentColor;
+    opacity: 0.6;
+    animation: caret-blink 1s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+    50% { opacity: 0; }
+}
+
 /* Starter questions for a new conversation */
 .starter-questions {
     display: flex;
