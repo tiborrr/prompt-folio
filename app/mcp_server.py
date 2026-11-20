@@ -9,6 +9,7 @@ Markdown and convert Markdown back, so the /manage editor keeps working.
 import collections.abc
 import contextlib
 import io
+import re
 from typing import Any
 
 from mcp.server.auth.settings import (
@@ -89,6 +90,20 @@ async def _save_context(db: AsyncSession, site: SiteSettings, context: str, note
     await db.commit()
 
 
+_OUTER_FENCE = re.compile(r"^```(?:markdown|md)?[ \t]*\n(.*)\n```[ \t]*$", re.DOTALL)
+
+
+def profile_markdown(context: str) -> str:
+    """The stored profile as Markdown. A profile generated from uploads can be
+    wrapped in one ```markdown fence as a whole; unwrap it so its headings count
+    as sections."""
+    markdown = editorjs_to_markdown(context).strip()
+    match = _OUTER_FENCE.match(markdown)
+    if match and "\n```" not in match.group(1):
+        return match.group(1).strip()
+    return markdown
+
+
 def _document_text(doc: SourceDocument) -> str:
     if doc.filename.lower().endswith(".md"):
         return doc.content.decode("utf-8", errors="replace")
@@ -127,7 +142,7 @@ def create_mcp_server(config: Settings) -> MCPServer:
         profile/CV text as Markdown, with the list of its section headings."""
         async with sessions() as db:
             site = await _site(db)
-            profile = editorjs_to_markdown(site.context)
+            profile = profile_markdown(site.context)
             return {
                 "owner_name": site.owner_name,
                 "owner_pronouns": site.owner_pronouns,
@@ -160,7 +175,7 @@ def create_mcp_server(config: Settings) -> MCPServer:
         at the end as a new ## section."""
         async with sessions() as db:
             site = await _site(db)
-            current = editorjs_to_markdown(site.context)
+            current = profile_markdown(site.context)
             updated, existed = replace_section(current, heading, content_markdown)
             await _save_context(
                 db, site, markdown_to_editorjs(updated), change_note or heading
@@ -234,7 +249,7 @@ def create_mcp_server(config: Settings) -> MCPServer:
                     "id": r.id,
                     "saved_at": r.created_at.isoformat(),
                     "change_note": r.note,
-                    "preview": editorjs_to_markdown(r.context)[:300],
+                    "preview": profile_markdown(r.context)[:300],
                 }
                 for r in result.scalars().all()
             ]

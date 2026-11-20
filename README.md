@@ -27,7 +27,7 @@ The app serves a remote [MCP](https://modelcontextprotocol.io) server at `/mcp` 
 
 The profile is stored as Editor.js JSON; the tools convert it to Markdown and back, so the `/manage` editor keeps working.
 
-**Authentication** is OAuth 2.1 with dynamic client registration, served by the app itself (`/.well-known/oauth-authorization-server`, `/authorize`, `/token`, `/register`). When a client connects, you log in with the `/manage` password on `/oauth/consent` and approve it. Tokens are stored hashed; access tokens last an hour and refresh tokens 90 days (rotated on use). Clients may only redirect to the hosts in `MCP_ALLOWED_REDIRECT_HOSTS` (default `claude.ai,claude.com`) or to loopback.
+**Authentication** is OAuth 2.1 with dynamic client registration, served by the app itself (`/.well-known/oauth-authorization-server`, `/authorize`, `/token`, `/register`). When a client connects, you log in with the `/manage` password on `/oauth/consent` and approve it. Tokens are stored hashed; access tokens last an hour and refresh tokens 90 days (rotated on use). Clients may only redirect to the hosts in `MCP_ALLOWED_REDIRECT_HOSTS` or to loopback. The default covers Claude, Cursor, ChatGPT, Grok, Mistral, Perplexity, VS Code and GitHub; `*.example.com` also allows subdomains and `*` allows any https host. Every client still needs your approval on the consent page, which shows where it sends you back to.
 
 **Connect Claude**
 

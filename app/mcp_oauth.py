@@ -43,13 +43,26 @@ REFRESH_TOKEN_TTL_SECONDS = 90 * 24 * 60 * 60
 LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1", "[::1]"}
 
 
+def host_matches(host: str, pattern: str) -> bool:
+    """``example.com`` matches only that host; ``*.example.com`` matches the
+    domain and all its subdomains; ``*`` matches any host."""
+    if pattern == "*":
+        return True
+    if pattern.startswith("*."):
+        domain = pattern[2:]
+        return host == domain or host.endswith(f".{domain}")
+    return host == pattern
+
+
 def redirect_uri_allowed(uri: str, allowed_hosts: set[str]) -> bool:
     """https on an allowed host, or http(s) on loopback (Claude Code, MCP Inspector)."""
     parsed = urlparse(uri)
     host = (parsed.hostname or "").lower()
     if host in LOOPBACK_HOSTS:
         return parsed.scheme in {"http", "https"}
-    return parsed.scheme == "https" and host in allowed_hosts
+    return parsed.scheme == "https" and any(
+        host_matches(host, pattern) for pattern in allowed_hosts
+    )
 
 
 class PendingAuthorization:
@@ -104,7 +117,10 @@ class DatabaseOAuthProvider(
             if not redirect_uri_allowed(str(uri), self.allowed_hosts):
                 raise RegistrationError(
                     error="invalid_redirect_uri",
-                    error_description=f"Redirect URI not allowed: {uri}",
+                    error_description=(
+                        f"Redirect URI not allowed: {uri}. Add its host to "
+                        "MCP_ALLOWED_REDIRECT_HOSTS on the server to allow this client."
+                    ),
                 )
         assert client_info.client_id is not None
         async with self._session() as db:
