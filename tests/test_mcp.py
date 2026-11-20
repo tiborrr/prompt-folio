@@ -344,3 +344,36 @@ def test_replace_section_appends_missing_heading():
     )
     assert existed
     assert doc == "## A\n\nnew\n\n## B\n\nkeep\n"
+
+
+def test_redirect_host_patterns():
+    from app.mcp_oauth import redirect_uri_allowed
+
+    allowed = {"claude.ai", "*.cursor.com"}
+    cursor = "https://www.cursor.com/agents/mcp/oauth/callback"
+    assert redirect_uri_allowed(cursor, allowed)
+    assert redirect_uri_allowed("https://cursor.com/cb", allowed)
+    assert redirect_uri_allowed("https://claude.ai/api/mcp/auth_callback", allowed)
+    # Exact hosts do not cover subdomains, and lookalike domains never match
+    assert not redirect_uri_allowed("https://evil.claude.ai/cb", allowed)
+    assert not redirect_uri_allowed("https://evilcursor.com/cb", allowed)
+    assert not redirect_uri_allowed("https://cursor.com.evil.example/cb", allowed)
+    # https only, except on loopback
+    assert not redirect_uri_allowed("http://www.cursor.com/cb", allowed)
+    assert redirect_uri_allowed("http://127.0.0.1:33418/callback", allowed)
+    # "*" allows any https host
+    assert redirect_uri_allowed("https://anything.example/cb", {"*"})
+    assert not redirect_uri_allowed("http://anything.example/cb", {"*"})
+
+
+def test_default_allowlist_covers_common_clients():
+    from app.mcp_oauth import DatabaseOAuthProvider, redirect_uri_allowed
+
+    hosts = DatabaseOAuthProvider(get_settings()).allowed_hosts
+    for uri in [
+        "https://claude.ai/api/mcp/auth_callback",
+        "https://www.cursor.com/agents/mcp/oauth/callback",
+        "https://chatgpt.com/connector_platform_oauth_redirect",
+        "https://grok.com/oauth/callback",
+    ]:
+        assert redirect_uri_allowed(uri, hosts), uri

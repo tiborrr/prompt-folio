@@ -23,8 +23,13 @@ class Settings(BaseSettings):
     mcp_enabled: bool = True
     public_url: str = ""
     # OAuth clients may only redirect to these hosts (loopback is always allowed,
-    # for Claude Code and the MCP Inspector).
-    mcp_allowed_redirect_hosts: str = "claude.ai,claude.com"
+    # for Claude Code and the MCP Inspector). "*.example.com" also allows the
+    # subdomains; "*" allows any https host (the owner still approves every
+    # client on /oauth/consent).
+    mcp_allowed_redirect_hosts: str = (
+        "claude.ai,claude.com,*.cursor.com,cursor.sh,chatgpt.com,*.openai.com,"
+        "*.grok.com,*.x.ai,*.mistral.ai,*.perplexity.ai,vscode.dev,*.github.com"
+    )
 
     # Default UI configuration for new deployments
     default_owner_name: str = "Tibor"
