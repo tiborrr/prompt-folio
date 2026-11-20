@@ -15,7 +15,14 @@ from mistralai.client.models import DocumentURLChunk
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.constants import MODEL_CHAT, MODEL_OCR, ROLE_ASSISTANT, ROLE_TOOL
+from app.constants import (
+    CHAT_REASONING_EFFORT,
+    MODEL_CHAT,
+    MODEL_OCR,
+    PROFILE_REASONING_EFFORT,
+    ROLE_ASSISTANT,
+    ROLE_TOOL,
+)
 from app.schemas import (
     ChatMessageData,
     FunctionCallData,
@@ -28,6 +35,37 @@ from app.schemas import (
 if TYPE_CHECKING:
     from app.config import Settings
     from app.models import SiteSettings
+
+
+def message_text(content: object) -> str:
+    """Return only the answer text of a Mistral message content.
+
+    Reasoning models such as Mistral Large 4 return a list of chunks, with
+    "thinking" chunks before the "text" chunks. The thinking must never be
+    shown to visitors or stored as the answer, so only text chunks are kept.
+    """
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for chunk in content:
+            if isinstance(chunk, str):
+                parts.append(chunk)
+                continue
+            chunk_type = getattr(chunk, "type", None)
+            if chunk_type is None and isinstance(chunk, dict):
+                chunk_type = chunk.get("type")
+            if chunk_type != "text":
+                continue
+            text = getattr(chunk, "text", None)
+            if text is None and isinstance(chunk, dict):
+                text = chunk.get("text")
+            if isinstance(text, str):
+                parts.append(text)
+        return "".join(parts)
+    return str(content)
 
 
 class MistralService:
@@ -85,11 +123,11 @@ class MistralService:
             response = await self.client.chat.complete_async(
                 model=MODEL_CHAT,
                 messages=dict_messages,
+                reasoning_effort=PROFILE_REASONING_EFFORT,
             )
             message = response.choices[0].message
             assert message is not None
-            content = str(message.content) if message.content else None
-            return content if content else ""
+            return message_text(message.content)
         except Exception as e:  # noqa: BLE001 - fall back to the raw text
             print(f"Mistral chat error: {e}")
             return combined_text
@@ -112,12 +150,13 @@ class MistralService:
                 messages=dict_messages,
                 tools=tools,
                 tool_choice="auto" if tools else "none",
+                reasoning_effort=CHAT_REASONING_EFFORT,
             )
             message = response.choices[0].message
             assert message is not None
 
             if message.tool_calls and tool_callback:
-                content_val = message.content if message.content else None
+                content_val = message_text(message.content) or None
                 assistant_msg = ChatMessageData(
                     role=ROLE_ASSISTANT, content=content_val
                 )
@@ -169,7 +208,7 @@ class MistralService:
                     max_depth=max_depth - 1,
                 )
 
-            content_str = str(message.content)
+            content_str = message_text(message.content)
 
             # Text-based tool invocation fallback
             if tool_callback and "update_user_profile" in content_str:

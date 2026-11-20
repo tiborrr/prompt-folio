@@ -1,5 +1,8 @@
 # Mistral API Models
-MODEL_CHAT = "mistral-large-latest"
+# Mistral Large 4 ("Le Chonk"). It always reasons; the effort sets how much.
+MODEL_CHAT = "mistral-large-4"
+CHAT_REASONING_EFFORT = "low"  # visitor chat: keep replies fast
+PROFILE_REASONING_EFFORT = "medium"  # profile generation from uploaded documents
 MODEL_OCR = "mistral-ocr-latest"
 
 # Chat Roles

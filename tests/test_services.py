@@ -62,3 +62,53 @@ async def test_generate_profile_from_docs(mock_mistral_class: MagicMock):
     assert user_message is not None
     assert "Existing profile text" in user_message["content"]
     assert "test.md" in user_message["content"]
+
+
+def test_message_text_drops_thinking_chunks():
+    from mistralai.client.models import TextChunk, ThinkChunk
+
+    from app.services import message_text
+
+    content = [
+        ThinkChunk(thinking=[TextChunk(text="secret reasoning")]),
+        TextChunk(text="Hello "),
+        TextChunk(text="there!"),
+    ]
+    assert message_text(content) == "Hello there!"
+    assert message_text("plain") == "plain"
+    assert message_text(None) == ""
+    assert (
+        message_text(
+            [{"type": "thinking", "thinking": []}, {"type": "text", "text": "ok"}]
+        )
+        == "ok"
+    )
+
+
+@pytest.mark.asyncio
+async def test_ask_mistral_uses_large_4_and_hides_thinking():
+    from mistralai.client.models import TextChunk, ThinkChunk
+
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.choices = [
+        MagicMock(
+            message=MagicMock(
+                tool_calls=None,
+                content=[
+                    ThinkChunk(thinking=[TextChunk(text="internal")]),
+                    TextChunk(text="Visible answer"),
+                ],
+            )
+        )
+    ]
+    mock_client.chat.complete_async = AsyncMock(return_value=mock_response)
+    service = MistralService(api_key="test")
+    service.client = mock_client
+
+    result = await service.ask_mistral([ChatMessageData(role="user", content="Hi")])
+
+    assert result == "Visible answer"
+    kwargs = mock_client.chat.complete_async.call_args.kwargs
+    assert kwargs["model"] == "mistral-large-4"
+    assert kwargs["reasoning_effort"] == "low"
