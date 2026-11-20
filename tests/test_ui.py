@@ -1,8 +1,10 @@
-import pytest
 import asyncio
-from playwright.async_api import async_playwright
-import subprocess
+import json
 import os
+import subprocess
+
+import pytest
+from playwright.async_api import async_playwright
 
 
 @pytest.mark.asyncio
@@ -101,6 +103,74 @@ async def test_ui_editor_fallback():
 
             assert "Hello Markdown fallback test!" in full_text
             assert "This is a new paragraph." in full_text
+
+            await browser.close()
+    finally:
+        process.terminate()
+        process.wait()
+
+
+@pytest.mark.asyncio
+async def test_ui_editor_loads_all_block_tools():
+    """Saved context with every block type (and a List 1.x list) renders in Editor.js."""
+    env = os.environ.copy()
+    env["ENVIRONMENT"] = "TEST"
+    env["DB_PATH"] = "sqlite+aiosqlite:///:memory:"
+    env["ADMIN_PASSWORD"] = "test_secure_password"
+    env["RECAPTCHA_CLIENT_SIDE_KEY"] = ""
+
+    process = subprocess.Popen(
+        ["uv", "run", "uvicorn", "app.main:app", "--port", "3008"], env=env
+    )
+
+    saved = {
+        "time": 1,
+        "version": "2.26.5",
+        "blocks": [
+            {"type": "header", "data": {"text": "About me", "level": 2}},
+            {"type": "paragraph", "data": {"text": "Intro text"}},
+            {
+                "type": "list",
+                "data": {"style": "unordered", "items": ["Legacy item one", "Two"]},
+            },
+            {"type": "delimiter", "data": {}},
+            {"type": "code", "data": {"code": "print('hi')"}},
+        ],
+    }
+
+    try:
+        await asyncio.sleep(2)
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            errors: list[str] = []
+            page.on("pageerror", lambda exc: errors.append(str(exc)))
+
+            await page.goto("http://127.0.0.1:3008/manage")
+            await page.fill('input[name="password"]', "test_secure_password")
+            await page.click('button[type="submit"]')
+            await page.wait_for_selector('h2:has-text("Settings")', timeout=5000)
+
+            response = await page.request.post(
+                "http://127.0.0.1:3008/manage/update_raw",
+                form={"raw_context": json.dumps(saved)},
+            )
+            assert response.ok
+
+            await page.goto("http://127.0.0.1:3008/manage/context")
+            await page.locator(".ce-header").first.wait_for(
+                state="visible", timeout=5000
+            )
+
+            assert await page.locator(".ce-header").inner_text() == "About me"
+            assert await page.locator(".cdx-list").count() == 1
+            assert "Legacy item one" in await page.locator(".cdx-list").inner_text()
+            assert await page.locator(".ce-delimiter").count() == 1
+            assert (
+                "print('hi')" in await page.locator(".ce-code__textarea").input_value()
+            )
+            assert errors == []
 
             await browser.close()
     finally:

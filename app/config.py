@@ -1,6 +1,7 @@
+from typing import ClassVar, Self
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import ClassVar, Self
 
 # Passwords that must never protect a production /manage
 INSECURE_ADMIN_PASSWORDS = {"", "secret", "change_this_to_a_secure_password"}

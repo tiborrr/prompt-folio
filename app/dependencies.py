@@ -1,26 +1,27 @@
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime, timedelta
 from functools import cache
 from typing import Annotated
+
 from fastapi import Depends, Form, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col, delete, select
-from app.config import settings, Settings
+
+from app.config import Settings, settings
 from app.constants import COOKIE_MAX_AGE_SECONDS, RATE_LIMIT_GLOBAL
 from app.database import get_engine
-from collections.abc import AsyncGenerator
-from sqlalchemy.ext.asyncio import async_sessionmaker
 from app.models import AdminSession
 from app.services import (
-    MistralService,
-    RecaptchaService,
     ContextStore,
+    MistralService,
+    NotificationService,
+    RecaptchaService,
     SessionStore,
     default_session_store,
-    NotificationService,
 )
 
 limiter = Limiter(key_func=get_remote_address, default_limits=[RATE_LIMIT_GLOBAL])
@@ -42,7 +43,7 @@ async def get_db_session(
     factory: Annotated[
         async_sessionmaker[AsyncSession], Depends(get_db_session_factory)
     ],
-) -> AsyncGenerator[AsyncSession, None]:
+) -> AsyncGenerator[AsyncSession]:
     async with factory() as session:
         yield session
 
@@ -61,10 +62,8 @@ def hash_session_token(token: str) -> str:
 
 
 def _session_cutoff() -> datetime:
-    # SQLite stores naive UTC datetimes
-    return datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
-        seconds=COOKIE_MAX_AGE_SECONDS
-    )
+    # SQLModel's UTCDateTime needs aware values; SQLite still stores them as UTC
+    return datetime.now(UTC) - timedelta(seconds=COOKIE_MAX_AGE_SECONDS)
 
 
 async def is_admin_session_active(db: AsyncSession, token: str | None) -> bool:

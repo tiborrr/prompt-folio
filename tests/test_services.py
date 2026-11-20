@@ -1,7 +1,9 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
-from app.services import MistralService
+
 from app.schemas import ChatMessageData
+from app.services import MistralService
 
 
 @pytest.mark.asyncio

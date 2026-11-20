@@ -1,5 +1,5 @@
 # First, build the application in the /workspace directory
-FROM ghcr.io/astral-sh/uv:bookworm AS builder
+FROM ghcr.io/astral-sh/uv:trixie AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
 # Omit development dependencies
@@ -12,7 +12,13 @@ ENV UV_PYTHON_INSTALL_DIR=/python
 ENV UV_PYTHON_PREFERENCE=only-managed
 
 # Install Python before the project for caching
-RUN uv python install 3.14
+RUN uv python install 3.14 \
+ # The app never installs packages at runtime: drop pip and ensurepip so the image
+ # carries no unused installer (and no stale vendored metadata for scanners).
+ && rm -rf /python/*/lib/python3.*/site-packages/pip \
+           /python/*/lib/python3.*/site-packages/pip-*.dist-info \
+           /python/*/lib/python3.*/ensurepip \
+           /python/*/bin/pip*
 
 WORKDIR /workspace
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -38,14 +44,19 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked
 
 # Then, use a final image without uv
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 # Setup a non-root user
 RUN groupadd --system --gid 999 nonroot \
  && useradd --system --gid 999 --uid 999 --create-home nonroot
 
 # Install runtime dependencies (e.g., for SSL, requests)
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Apply Debian security updates on top of the base image, so a fix is not held
+# back until the upstream image is rebuilt
+RUN apt-get update \
+ && apt-get upgrade -y \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
 # Copy the Python version
 COPY --from=builder /python /python

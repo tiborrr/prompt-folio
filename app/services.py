@@ -1,30 +1,33 @@
 # pyright: reportArgumentType=false
 from __future__ import annotations
-import typing
-from typing import TYPE_CHECKING
+
+import asyncio
 import base64
+import collections.abc
 import json
 import re
+import typing
+from typing import TYPE_CHECKING
+
 import httpx
-import asyncio
-import collections.abc
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
 from mistralai.client import Mistral
 from mistralai.client.models import DocumentURLChunk
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
+
 from app.constants import MODEL_CHAT, MODEL_OCR, ROLE_ASSISTANT, ROLE_TOOL
 from app.schemas import (
-    ThemeColors,
-    UploadedDocument,
     ChatMessageData,
-    RecaptchaVerifyResult,
-    ToolCallData,
     FunctionCallData,
+    RecaptchaVerifyResult,
+    ThemeColors,
+    ToolCallData,
+    UploadedDocument,
 )
 
 if TYPE_CHECKING:
-    from app.models import SiteSettings
     from app.config import Settings
+    from app.models import SiteSettings
 
 
 class MistralService:
@@ -45,7 +48,7 @@ class MistralService:
             for page in ocr_response.pages:
                 text += page.markdown + "\n\n"
             return text
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - OCR failure must not break the upload
             print(f"Error during OCR for {file_name}: {e}")
             return ""
 
@@ -87,7 +90,7 @@ class MistralService:
             assert message is not None
             content = str(message.content) if message.content else None
             return content if content else ""
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - fall back to the raw text
             print(f"Mistral chat error: {e}")
             return combined_text
 
@@ -146,7 +149,7 @@ class MistralService:
                                 args.get("intent"),
                             )
                             tool_result = "Profile updated successfully."
-                        except Exception as e:
+                        except Exception as e:  # noqa: BLE001 - reported back to the model
                             print(f"Tool error: {e}")
                             tool_result = f"Failed to update profile: {e}"
 
@@ -182,7 +185,7 @@ class MistralService:
                         await tool_callback(
                             args.get("name"), args.get("company"), args.get("intent")
                         )
-                    except (json.JSONDecodeError, Exception) as e:
+                    except Exception as e:  # noqa: BLE001 - best-effort fallback
                         print(f"Text-based tool parsing error: {e}")
 
             # Final sanitization: Strip the leaked tool call and clean up whitespace
@@ -195,7 +198,7 @@ class MistralService:
                 return "Got it! How else can I help you today?"
 
             return content_str
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - show a friendly message to the visitor
             print(f"Mistral API Error: {e}")
             return "I'm sorry, I'm having trouble connecting to my brain right now."
 
@@ -218,7 +221,7 @@ class RecaptchaService:
                 response = await client.post(verify_url, data=data)
                 result = RecaptchaVerifyResult(**response.json())
                 return result.success
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - fail closed
             print(f"Recaptcha verification error: {e}")
             return False
 
@@ -231,7 +234,7 @@ class ContextStore:
     def __init__(self, storage_path: str | None = None):
         self.storage_path = storage_path
 
-    async def _get_settings(self, db: AsyncSession) -> "SiteSettings":
+    async def _get_settings(self, db: AsyncSession) -> SiteSettings:
         from app.models import SiteSettings
 
         result = await db.execute(select(SiteSettings).where(SiteSettings.id == 1))
@@ -275,7 +278,7 @@ class ContextStore:
         return None
 
     async def get_active_integrations(
-        self, db: AsyncSession, config: "Settings"
+        self, db: AsyncSession, config: Settings
     ) -> dict[str, str]:
         s = await self._get_settings(db)
         return {
@@ -394,7 +397,7 @@ class NotificationService:
                     content=message.encode("utf-8"),
                     headers=headers,
                 )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - notifications are best-effort
             print(f"Failed to send ntfy.sh notification: {e}")
 
 

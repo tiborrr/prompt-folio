@@ -12,7 +12,7 @@ Prompt Folio is a modern, open-source, AI-powered portfolio and context manageme
 
 ## Prerequisites
 
-- Python 3.11+
+- Python 3.14+
 - [uv](https://github.com/astral-sh/uv) package manager
 - Docker & Docker Compose
 - A remote server for deployment with SSH access

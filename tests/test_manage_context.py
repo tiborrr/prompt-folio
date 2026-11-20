@@ -1,9 +1,11 @@
-import pytest
 import os
+
+import pytest
 from httpx import ASGITransport, AsyncClient
-from app.main import app
-from app.models import SiteSettings, AdminSession
+
 from app.dependencies import hash_session_token
+from app.main import app
+from app.models import AdminSession, SiteSettings
 
 os.environ["ENVIRONMENT"] = "TEST"
 os.environ["DB_PATH"] = "sqlite+aiosqlite:///:memory:"
@@ -15,9 +17,9 @@ async def test_manage_context_upload_and_rebuild():
 
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # Create admin session
+        from app.config import settings
         from app.database import get_engine
         from app.dependencies import get_db_session_factory
-        from app.config import settings
 
         engine = get_engine(settings.sqlite_url)
         from sqlmodel import SQLModel

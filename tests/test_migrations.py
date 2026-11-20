@@ -12,6 +12,7 @@ def test_alembic_upgrade_on_fresh_database(tmp_path: Path):
     result = subprocess.run(
         [sys.executable, "-m", "alembic", "upgrade", "head"],
         env=env,
+        check=False,
         capture_output=True,
         text=True,
         timeout=60,

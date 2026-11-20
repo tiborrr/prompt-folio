@@ -1,22 +1,23 @@
+from typing import Any, override
+
 import pytest
-from httpx import AsyncClient, ASGITransport
-from app.main import app
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import create_engine
+from sqlmodel import Session
+
+from app.config import Settings
 from app.dependencies import (
-    get_settings,
+    get_context_store,
     get_mistral_service,
     get_recaptcha_service,
-    get_context_store,
     get_session_store,
+    get_settings,
     hash_session_token,
 )
-from app.config import Settings
+from app.main import app
 from app.models import AdminSession
-from app.services import SessionStore, MistralService, RecaptchaService, ContextStore
 from app.schemas import ChatMessageData, ThemeColors, UploadedDocument
-from sqlmodel import Session
-from sqlalchemy import create_engine
-
-from typing import Any, override
+from app.services import ContextStore, MistralService, RecaptchaService, SessionStore
 
 
 # Fake Services

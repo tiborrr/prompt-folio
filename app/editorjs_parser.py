@@ -27,6 +27,26 @@ def parse_html_inline(html: str) -> str:
     return md
 
 
+def _list_to_markdown(items: list[object], ordered: bool, depth: int = 0) -> str:
+    """Render list items: plain strings (List 1.x) or nested objects (List 2.x)."""
+    md = ""
+    indent = "  " * depth
+    for index, item in enumerate(items, start=1):
+        marker = f"{index}." if ordered else "-"
+        if isinstance(item, dict):
+            content = str(item.get("content", ""))
+            meta = item.get("meta")
+            if isinstance(meta, dict) and "checked" in meta:
+                marker = f"- [{'x' if meta['checked'] else ' '}]"
+            md += f"{indent}{marker} {parse_html_inline(content)}\n"
+            children = item.get("items")
+            if isinstance(children, list) and children:
+                md += _list_to_markdown(children, ordered, depth + 1)
+        else:
+            md += f"{indent}{marker} {parse_html_inline(str(item))}\n"
+    return md
+
+
 def editorjs_to_markdown(json_str: str) -> str:
     if not json_str:
         return ""
@@ -56,9 +76,8 @@ def editorjs_to_markdown(json_str: str) -> str:
 
         elif block_type == "list":
             items = block_data.get("items", [])
-            for item in items:
-                md += f"- {parse_html_inline(item)}\n"
-            md += "\n"
+            ordered = block_data.get("style") == "ordered"
+            md += _list_to_markdown(items, ordered) + "\n"
 
         elif block_type == "code":
             code = block_data.get("code", "")

@@ -1,45 +1,44 @@
-import uuid
 import asyncio
+import uuid
 from typing import Annotated
-from fastapi import APIRouter, Request, Form, Response, Cookie, Depends, BackgroundTasks
-from fastapi.responses import HTMLResponse, RedirectResponse
-from sse_starlette.sse import EventSourceResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select, col
 
-from app.config import Settings
-from app.services import MistralService, ContextStore, SessionStore, NotificationService
-from app.dependencies import (
-    get_settings,
-    get_mistral_service,
-    get_context_store,
-    get_session_store,
-    require_recaptcha,
-    limiter,
-    get_notification_service,
-    get_db_session,
-    get_db_session_factory,
-)
-from sqlalchemy.ext.asyncio import async_sessionmaker
-from app.models import ChatSession, ChatMessage
-from app.utils import render_template, get_takeover_oob_html, render_template_to_string
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Form, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlmodel import col, select
+from sse_starlette.sse import EventSourceResponse
+
+from app.config import Settings, settings
 from app.constants import (
+    ADMIN_NOTIFICATION_TRUNCATE_LEN,
+    MAX_CHAT_MESSAGE_LENGTH,
+    NEW_SESSION_NOTIFICATION_MSG_COUNT,
+    ROLE_ASSISTANT,
     ROLE_SYSTEM,
     ROLE_USER,
-    ROLE_ASSISTANT,
-    ADMIN_NOTIFICATION_TRUNCATE_LEN,
-    NEW_SESSION_NOTIFICATION_MSG_COUNT,
-    MAX_CHAT_MESSAGE_LENGTH,
     UPDATE_USER_PROFILE_TOOL,
 )
+from app.dependencies import (
+    get_context_store,
+    get_db_session,
+    get_db_session_factory,
+    get_mistral_service,
+    get_notification_service,
+    get_session_store,
+    get_settings,
+    limiter,
+    require_recaptcha,
+)
+from app.models import ChatMessage, ChatSession
 from app.schemas import (
     ChatMessageData,
-    StatusContext,
     ChatSessionContext,
     MessageContext,
     SSEEvent,
+    StatusContext,
 )
-from app.config import settings
+from app.services import ContextStore, MistralService, NotificationService, SessionStore
+from app.utils import get_takeover_oob_html, render_template, render_template_to_string
 
 router = APIRouter()
 
@@ -449,14 +448,12 @@ async def chat(
                     + assistant_html
                 )
                 await session_store.broadcast(session_id, response_with_delete)
-        except Exception as e:
+        except Exception:
             # If there's an error, still remove the typing indicator
             await session_store.broadcast(
                 session_id, '<div id="typing-indicator" hx-swap-oob="delete"></div>'
             )
-            raise e
-        finally:
-            pass
+            raise
 
     background_tasks.add_task(generate_ai_response)
 
