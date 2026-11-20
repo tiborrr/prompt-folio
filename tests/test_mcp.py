@@ -377,3 +377,13 @@ def test_default_allowlist_covers_common_clients():
         "https://grok.com/oauth/callback",
     ]:
         assert redirect_uri_allowed(uri, hosts), uri
+
+
+def test_profile_wrapped_in_a_markdown_fence_is_unwrapped():
+    from app.mcp_server import profile_markdown
+
+    wrapped = "```markdown\n# Name\n\n## Skills\n\n- Python\n```\n\n"
+    assert profile_markdown(wrapped) == "# Name\n\n## Skills\n\n- Python"
+    # A profile that contains code blocks is left alone
+    with_code = "## A\n\n```python\nx = 1\n```"
+    assert profile_markdown(with_code) == with_code
