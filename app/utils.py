@@ -1,6 +1,7 @@
 import os
 import time
 from functools import cache, lru_cache
+from typing import cast
 
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
@@ -24,7 +25,7 @@ md = MarkdownIt("commonmark", {"breaks": True, "html": False, "linkify": True}).
 
 @lru_cache(maxsize=128)
 def markdown_filter(text: str) -> str:
-    return str(md.render(text))
+    return cast(str, md.render(text))
 
 
 templates.env.filters["markdown"] = markdown_filter
@@ -64,10 +65,9 @@ async def render_template(
         template_context = context.model_dump()
     template_context["request"] = request
     colors = await context_store.get_colors(db)
-    template_context["colors"] = colors.model_dump()
+    template_context["colors"] = colors.as_dict()
     template_context["contrast_colors"] = {
-        f"{k}_contrast": get_contrast_color(str(v))
-        for k, v in colors.model_dump().items()
+        f"{k}_contrast": get_contrast_color(v) for k, v in colors.as_dict().items()
     }
     template_context["has_avatar"] = await context_store.has_avatar(db)
     template_context["app_version"] = app_version
@@ -95,10 +95,9 @@ async def render_template_to_string(
     if context is not None:
         template_context = context.model_dump()
     colors = await context_store.get_colors(db)
-    template_context["colors"] = colors.model_dump()
+    template_context["colors"] = colors.as_dict()
     template_context["contrast_colors"] = {
-        f"{k}_contrast": get_contrast_color(str(v))
-        for k, v in colors.model_dump().items()
+        f"{k}_contrast": get_contrast_color(v) for k, v in colors.as_dict().items()
     }
     template_context["has_avatar"] = await context_store.has_avatar(db)
     template_context["owner_name"] = await context_store.get_owner_name(db)

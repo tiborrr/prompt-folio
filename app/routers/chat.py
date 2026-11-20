@@ -232,7 +232,6 @@ async def takeover_request(
 
 @router.post("/revert_takeover")
 async def revert_takeover(
-    request: Request,
     session_store: Annotated[SessionStore, Depends(get_session_store)],
     context_store: Annotated[ContextStore, Depends(get_context_store)],
     db: Annotated[AsyncSession, Depends(get_db_session)],
@@ -283,7 +282,6 @@ async def chat(
     bg_session_factory: Annotated[
         async_sessionmaker[AsyncSession], Depends(get_db_session_factory)
     ],
-    settings: Annotated[Settings, Depends(get_settings)],
     background_tasks: BackgroundTasks,
     _: Annotated[None, Depends(require_recaptcha)],
     session_id: Annotated[
@@ -462,9 +460,7 @@ async def chat(
 
 @router.post("/clear")
 async def clear_session(
-    response: Response,
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    session_store: Annotated[SessionStore, Depends(get_session_store)],
     settings: Annotated[Settings, Depends(get_settings)],
     session_id: Annotated[
         str | None, Cookie(alias=f"{settings.cookie_prefix}session_id")
