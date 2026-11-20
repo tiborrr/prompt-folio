@@ -449,9 +449,20 @@ async def chat(
                 )
                 await session_store.broadcast(session_id, response_with_delete)
         except Exception:
-            # If there's an error, still remove the typing indicator
+            # Remove the typing indicator and tell the visitor, instead of
+            # leaving them waiting for an answer that will not come.
+            async with bg_session_factory() as err_db:
+                notice_html = await render_template_to_string(
+                    "error_message.html",
+                    context_store,
+                    err_db,
+                    StatusContext(
+                        message="Sorry, something went wrong while answering. Please try again."
+                    ),
+                )
             await session_store.broadcast(
-                session_id, '<div id="typing-indicator" hx-swap-oob="delete"></div>'
+                session_id,
+                '<div id="typing-indicator" hx-swap-oob="delete"></div>' + notice_html,
             )
             raise
 
@@ -462,7 +473,7 @@ async def chat(
 
 @router.post("/clear")
 async def clear_session(
-    response: Response,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db_session)],
     session_store: Annotated[SessionStore, Depends(get_session_store)],
     settings: Annotated[Settings, Depends(get_settings)],
@@ -481,7 +492,12 @@ async def clear_session(
             )  # cascades to messages due to relationship config
             await db.commit()
 
-    res = RedirectResponse(url="/", status_code=303)
+    # The chat page asks with htmx (after a confirmation); a plain form post
+    # still gets a normal redirect.
+    if request.headers.get("hx-request") == "true":
+        res: Response = Response(status_code=204, headers={"HX-Redirect": "/"})
+    else:
+        res = RedirectResponse(url="/", status_code=303)
     res.delete_cookie(
         f"{settings.cookie_prefix}session_id",
         path="/",
