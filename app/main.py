@@ -11,7 +11,6 @@ from typing import Annotated, override
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import select
@@ -21,7 +20,8 @@ from starlette.responses import Response as StarletteResponse
 
 from app.constants import SECURITY_HEADERS
 from app.database import get_engine
-from app.dependencies import get_context_store, get_db_session, get_settings, limiter
+from app.dependencies import get_context_store, get_db_session, get_settings
+from app.rate_limit import RateLimitExceeded
 from app.routers import chat, manage
 from app.schemas import StatusContext
 from app.services import ContextStore
@@ -131,7 +131,6 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.state.limiter = limiter
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
