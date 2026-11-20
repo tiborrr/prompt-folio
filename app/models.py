@@ -71,3 +71,38 @@ class SourceDocument(SQLModel, table=True):
     filename: str
     content: bytes = Field(sa_column=Column(LargeBinary))
     created_at: datetime = Field(default_factory=utcnow)
+
+
+class OAuthClient(SQLModel, table=True):
+    """An MCP client registered through OAuth dynamic client registration."""
+
+    client_id: str = Field(primary_key=True)
+    # OAuthClientInformationFull as JSON
+    data: str
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class OAuthToken(SQLModel, table=True):
+    """Pending authorization requests, authorization codes, access and refresh tokens.
+
+    Only the SHA-256 hash of a token is stored. All tokens issued from one
+    approval share ``grant_id``, so revoking one revokes the whole grant.
+    """
+
+    token_hash: str = Field(primary_key=True)
+    kind: str = Field(index=True)  # "request", "code", "access", "refresh"
+    client_id: str = Field(index=True)
+    grant_id: str = Field(index=True)
+    expires_at: int = Field(index=True)  # unix timestamp
+    # Kind-specific fields (scopes, redirect URI, PKCE challenge, ...) as JSON
+    data: str = Field(default="{}")
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class ProfileRevision(SQLModel, table=True):
+    """Previous versions of the profile context, saved before Claude changes it."""
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    context: str
+    note: str = Field(default="")
+    created_at: datetime = Field(default_factory=utcnow, index=True)

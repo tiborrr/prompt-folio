@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="glass-panel slide-up" style="max-width: 460px; margin: 50px auto;">
+    <div class="chat-header">
+        <h2>Connect {{ client_name }}</h2>
+    </div>
+
+    <div style="padding: 20px 0;">
+        <p class="subtitle" style="margin-bottom: 12px;">
+            <strong>{{ client_name }}</strong> wants to read and update {{ owner_name }}'s profile,
+            owner details and source documents through the MCP server.
+        </p>
+        <p class="subtitle" style="margin-bottom: 20px; font-size: 0.9rem;">
+            You will be sent back to <strong>{{ redirect_host }}</strong>. Only approve if you started this connection yourself.
+        </p>
+
+        <form method="post" action="/oauth/consent" class="styled-form" style="display: flex; gap: 10px;">
+            <input type="hidden" name="request_id" value="{{ request_id }}">
+            <button type="submit" name="action" value="approve" class="primary-btn" style="flex: 1;" aria-label="Approve">Approve</button>
+            <button type="submit" name="action" value="deny" class="secondary-btn" style="flex: 1;" aria-label="Deny">Deny</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
