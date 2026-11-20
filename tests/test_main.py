@@ -147,6 +147,34 @@ async def test_read_main():
 
 
 @pytest.mark.asyncio
+async def test_chat_page_is_lean_and_offers_starter_questions():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        response = await test_client.get("/")
+        assert response.status_code == 200
+        html = response.text
+        # The admin-only editor, cropper and Alpine are not loaded for visitors
+        assert "editorjs" not in html
+        assert "cropper" not in html
+        assert "alpinejs" not in html
+        assert "/static/js/chat.js" in html
+        assert 'class="starter-chip"' in html
+
+
+@pytest.mark.asyncio
+async def test_clear_redirects_htmx_and_plain_posts():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        response = await test_client.post("/clear", headers={"HX-Request": "true"})
+        assert response.status_code == 204
+        assert response.headers["HX-Redirect"] == "/"
+
+        response = await test_client.post("/clear")
+        assert response.status_code == 303
+        assert response.headers["location"] == "/"
+
+
+@pytest.mark.asyncio
 async def test_health():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:

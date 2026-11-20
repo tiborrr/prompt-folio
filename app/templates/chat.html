@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block admin_scripts %}{% endblock %}
+
 {% block content %}
 <div class="glass-panel chat-panel slide-up">
     <div class="chat-header manage-header" style="border-bottom: none; padding-bottom: 0;">
@@ -14,16 +16,16 @@
             <a href="/manage" class="icon-btn" title="Settings" aria-label="Settings">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </a>
-            <form action="/clear" method="POST" style="margin:0;" title="End Chat">
-                <button type="submit" class="icon-btn logout-btn" aria-label="End Chat">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                </button>
-            </form>
+            <button type="button" class="icon-btn logout-btn" title="Start a new conversation" aria-label="Start a new conversation"
+                    hx-post="/clear" hx-swap="none"
+                    hx-confirm="Delete this conversation and start over?">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </button>
         </div>
     </div>
     
     <div id="chat-history" class="chat-history scroller" style="gap: 0;" hx-ext="sse" sse-connect="/stream/{{ session_id }}">
-        <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend scroll:#chat-history:bottom" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1; padding: 15px 0;">
+        <div id="messages-container" sse-swap="chat_message" hx-swap="beforeend" aria-live="polite" style="display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1; padding: 15px 0;">
             {% if history %}
                 {% for msg in history %}
                     {% if msg.role == 'assistant' or msg.role == 'admin' %}
@@ -43,6 +45,13 @@
                 {% endfor %}
             {% endif %}
         </div>
+        {% if history | length <= 1 and not human_takeover %}
+        <div id="starter-questions" class="starter-questions" aria-label="Suggested questions">
+            <button type="button" class="starter-chip" data-question="What is {{ owner_name }}'s background and experience?">Background &amp; experience</button>
+            <button type="button" class="starter-chip" data-question="What kind of role is {{ owner_name }} looking for?">What role is {{ owner_name }} looking for?</button>
+            <button type="button" class="starter-chip" data-question="What are {{ owner_name }}'s strongest skills?">Strongest skills</button>
+        </div>
+        {% endif %}
     </div>
 
     <button id="scroll-to-bottom-btn" class="scroll-to-bottom-btn" aria-label="Scroll to bottom">
@@ -54,13 +63,14 @@
           hx-post="/chat" 
           hx-swap="none"
           hx-trigger="{% if recaptcha_client_side_key %}recaptcha-verified{% else %}submit{% endif %}"
-          hx-indicator="#htmx-indicator"
-          hx-on::after-request="this.reset()"
+          hx-disabled-elt="find .send-btn"
+          hx-on::after-request="if (event.detail.successful) this.reset()"
           {% if recaptcha_client_side_key %}
           hx-on:submit="
               if (window.grecaptcha) {
                   event.preventDefault();
-                  document.getElementById('htmx-indicator').classList.add('htmx-request');
+                  const sendBtn = this.querySelector('.send-btn');
+                  sendBtn.disabled = true;
                   grecaptcha.ready(() => {
                       grecaptcha.execute('{{ recaptcha_client_side_key }}', {action: 'chat_message'}).then((token) => {
                           let hidden = this.querySelector('input[name=\'g-recaptcha-response\']');
@@ -71,16 +81,17 @@
                               this.appendChild(hidden);
                           }
                           hidden.value = token;
+                          sendBtn.disabled = false;
                           htmx.trigger(this, 'recaptcha-verified');
                       }).catch(() => {
-                          document.getElementById('htmx-indicator').classList.remove('htmx-request');
-                          alert('ReCaptcha failed to load. Please try again or disable ad-blockers.');
+                          sendBtn.disabled = false;
+                          window.showChatNotice('The spam check (reCAPTCHA) did not load. Please try again, or turn off your ad blocker for this page.');
                       });
                   });
               }
           "
           {% endif %}>
-        <input type="text" name="message" id="chat-input" class="chat-input" placeholder="{% if human_takeover %}Message {{ owner_name }}...{% else %}Ask me anything about {{ owner_name }}...{% endif %}" required autocomplete="off" autofocus aria-label="Message">
+        <input type="text" name="message" id="chat-input" class="chat-input" placeholder="{% if human_takeover %}Message {{ owner_name }}...{% else %}Ask me anything about {{ owner_name }}...{% endif %}" required autocomplete="off" autofocus enterkeyhint="send" maxlength="4000" aria-label="Message">
         <button type="submit" class="send-btn" aria-label="Send Message">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>
@@ -101,12 +112,9 @@
             </button>
         {% endif %}
     </div>
-
-    <div id="htmx-indicator" class="htmx-indicator">
-        <div class="typing-indicator">
-            <span></span><span></span><span></span>
-        </div>
-    </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
+<script src="/static/js/chat.js?v={{ app_version }}"></script>
 {% endblock %}
