@@ -1,5 +1,5 @@
 :root {
-    --color-error: var(--color-error);
+    --color-error: #f87171;
     --color-success: var(--seaweed);
     --shadow-grey: #1e1e24;
     --sweet-salmon: #fb9f89;
@@ -257,6 +257,8 @@ body {
 
 /* Chat Interface */
 .chat-panel {
+    position: relative;
+    min-height: 0;
     flex: 1;
     padding: 20px;
     display: flex;
@@ -452,9 +454,14 @@ body {
     transition: all 0.2s;
 }
 
-.send-btn:hover {
+.send-btn:hover:not(:disabled) {
     background: var(--primary-hover);
     transform: scale(1.05);
+}
+
+.send-btn:disabled {
+    opacity: 0.55;
+    cursor: wait;
 }
 
 /* Animations */
@@ -655,6 +662,80 @@ body {
     border: 1px solid color-mix(in srgb, var(--shadow-grey-contrast) 5%, transparent);
 }
 
+/* Buttons and fields use the page font, not the browser default */
+button, input, textarea, select {
+    font-family: inherit;
+}
+
+/* Notices in the conversation (takeover, errors) */
+.message.system-message {
+    align-self: center;
+    max-width: 90%;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 4px 0;
+}
+
+.message.system-message.error {
+    color: var(--color-error);
+    background: color-mix(in srgb, var(--color-error) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+    padding: 8px 14px;
+    border-radius: 12px;
+}
+
+/* Caret at the end of an answer that is still being written */
+.msg-bubble.streaming > :last-child::after {
+    content: "";
+    display: inline-block;
+    width: 0.45em;
+    height: 1em;
+    margin-left: 3px;
+    vertical-align: text-bottom;
+    background: currentColor;
+    opacity: 0.6;
+    animation: caret-blink 1s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+    50% { opacity: 0; }
+}
+
+/* Starter questions for a new conversation */
+.starter-questions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 0 10px 44px;
+}
+
+.starter-chip {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid color-mix(in srgb, var(--sweet-salmon) 45%, transparent);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.starter-chip:hover, .starter-chip:focus-visible {
+    background: color-mix(in srgb, var(--sweet-salmon) 15%, transparent);
+    border-color: var(--sweet-salmon);
+    outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    .background-blob { animation: none; }
+}
+
 /* Responsive Adjustments for Mobile */
 @media (max-width: 480px) {
     .container {
@@ -705,6 +786,56 @@ body {
     }
     .conv-avatar {
         display: none !important;
+    }
+    /* Chat: give the conversation the room, not the headers */
+    .container {
+        gap: 10px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    .app-header {
+        padding: 0;
+        gap: 12px;
+    }
+    .app-header .avatar {
+        width: 40px;
+        height: 40px;
+    }
+    .header-text h1 {
+        font-size: 1.2rem;
+    }
+    .header-text p {
+        font-size: 0.8rem;
+    }
+    .chat-panel {
+        padding: 14px;
+    }
+    .chat-panel .chat-header {
+        margin-bottom: 8px;
+    }
+    .chat-panel #chat-title {
+        font-size: 1.15rem !important;
+    }
+    .chat-panel .icon-btn {
+        width: 34px;
+        height: 34px;
+    }
+    .chat-history {
+        padding-right: 4px;
+        margin-bottom: 12px;
+    }
+    .message {
+        max-width: 92%;
+        gap: 8px;
+    }
+    .msg-avatar {
+        width: 28px;
+        height: 28px;
+    }
+    .starter-questions {
+        padding-left: 0;
+    }
+    #takeover-controls {
+        margin-top: 10px !important;
     }
 }
 
@@ -765,8 +896,9 @@ body {
 /* Scroll to Bottom Button */
 .scroll-to-bottom-btn {
     position: absolute;
-    bottom: 90px;
-    right: 30px;
+    bottom: 150px;
+    left: 50%;
+    margin-left: -60px;
     background: rgba(30, 30, 36, 0.85);
     backdrop-filter: blur(10px);
     border: 1px solid var(--sweet-salmon);

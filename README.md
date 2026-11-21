@@ -10,6 +10,32 @@ Prompt Folio is a modern, open-source, AI-powered portfolio and context manageme
 - **Integrations**: Built-in support for invisible ReCAPTCHA v3 and external analytics.
 - **Lightweight & Fast**: Built with FastAPI, HTMX, and modern CSS (glassmorphism UI). No heavy frontend frameworks.
 
+## MCP server: let Claude read and update your profile
+
+The app serves a remote [MCP](https://modelcontextprotocol.io) server at `/mcp` (streamable HTTP), so Claude can read your profile and keep it up to date.
+
+**Tools**
+
+| Tool | What it does |
+|---|---|
+| `get_profile` | Name, pronouns, meeting link and the profile as Markdown (with its section headings) |
+| `update_profile` | Replace the whole profile with new Markdown |
+| `update_profile_section` | Replace the text under one heading, or add a new section |
+| `update_owner_details` | Change name, pronouns or meeting link |
+| `list_source_documents`, `read_source_document` | Read the uploaded CVs and notes |
+| `list_profile_revisions`, `restore_profile_revision` | Undo a change: every write keeps the previous version (last 50) |
+
+The profile is stored as Editor.js JSON; the tools convert it to Markdown and back, so the `/manage` editor keeps working.
+
+**Authentication** is OAuth 2.1 with dynamic client registration, served by the app itself (`/.well-known/oauth-authorization-server`, `/authorize`, `/token`, `/register`). When a client connects, you log in with the `/manage` password on `/oauth/consent` and approve it. Tokens are stored hashed; access tokens last an hour and refresh tokens 90 days (rotated on use). Clients may only redirect to the hosts in `MCP_ALLOWED_REDIRECT_HOSTS` or to loopback. The default covers Claude, Cursor, ChatGPT, Grok, Mistral, Perplexity, VS Code and GitHub; `*.example.com` also allows subdomains and `*` allows any https host. Every client still needs your approval on the consent page, which shows where it sends you back to.
+
+**Connect Claude**
+
+1. Make sure `PUBLIC_URL` (or `APP_DOMAIN`) is the https address the app is reachable on.
+2. claude.ai: *Settings > Connectors > Add custom connector*, URL `https://<your domain>/mcp`. Leave the OAuth client ID and secret empty.
+3. Claude Code: `claude mcp add --transport http prompt-folio https://<your domain>/mcp`, then `/mcp` to log in.
+4. Approve the request on the consent page that opens.
+
 ## Prerequisites
 
 - Python 3.14+

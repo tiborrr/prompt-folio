@@ -21,8 +21,9 @@ from starlette.responses import Response as StarletteResponse
 from app.constants import SECURITY_HEADERS
 from app.database import get_engine
 from app.dependencies import get_context_store, get_db_session, get_settings
+from app.mcp_server import MCPDispatchMiddleware, MCPRuntime
 from app.rate_limit import RateLimitExceeded
-from app.routers import chat, manage
+from app.routers import chat, manage, oauth
 from app.schemas import StatusContext
 from app.services import ContextStore
 from app.utils import render_template
@@ -127,8 +128,11 @@ async def lifespan(_: FastAPI):
     async with session_factory() as db:
         await migrate_files_to_db(db)
 
-    yield
+    async with mcp_runtime.run():
+        yield
 
+
+mcp_runtime = MCPRuntime(get_settings())
 
 app = FastAPI(lifespan=lifespan)
 
@@ -149,6 +153,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(SecurityHeadersMiddleware)
+# Outermost: /mcp and the OAuth endpoints go to the MCP server
+app.add_middleware(MCPDispatchMiddleware, runtime=mcp_runtime)
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 app.mount(
@@ -286,3 +292,4 @@ def _error_page_html() -> str:
 
 app.include_router(chat.router)
 app.include_router(manage.router)
+app.include_router(oauth.router)

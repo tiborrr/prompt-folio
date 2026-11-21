@@ -4,9 +4,10 @@ from __future__ import annotations
 import asyncio
 import base64
 import collections.abc
+import json
 import re
 import typing
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import httpx
 from mistralai.client import Mistral
@@ -14,7 +15,14 @@ from mistralai.client.models import DocumentURLChunk
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.constants import MODEL_CHAT, MODEL_OCR, ROLE_ASSISTANT, ROLE_TOOL
+from app.constants import (
+    CHAT_REASONING_EFFORT,
+    MODEL_CHAT,
+    MODEL_OCR,
+    PROFILE_REASONING_EFFORT,
+    ROLE_ASSISTANT,
+    ROLE_TOOL,
+)
 from app.schemas import (
     ChatMessageData,
     FunctionCallData,
@@ -28,6 +36,50 @@ from app.schemas import (
 if TYPE_CHECKING:
     from app.config import Settings
     from app.models import SiteSettings
+
+
+def message_text(content: object) -> str:
+    """Return only the answer text of a Mistral message content.
+
+    Reasoning models such as Mistral Large 4 return a list of chunks, with
+    "thinking" chunks before the "text" chunks. The thinking must never be
+    shown to visitors or stored as the answer, so only text chunks are kept.
+    """
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for chunk in cast(list[object], content):
+            if isinstance(chunk, str):
+                parts.append(chunk)
+                continue
+            # Raw JSON chunks are dicts; SDK chunk objects have attributes
+            if isinstance(chunk, dict):
+                fields = cast(dict[str, object], chunk)
+                chunk_type, text = fields.get("type"), fields.get("text")
+            else:
+                chunk_type = cast(object, getattr(chunk, "type", None))
+                text = cast(object, getattr(chunk, "text", None))
+            if chunk_type == "text" and isinstance(text, str):
+                parts.append(text)
+        return "".join(parts)
+    return str(content)
+
+
+TOOL_TEXT_PATTERN = re.compile(r"update_user_profile[^\{]*\{.*?\}", re.DOTALL)
+# A tool call written out as text that is still being streamed (no closing brace yet)
+PARTIAL_TOOL_TEXT_PATTERN = re.compile(r"update_user_profile.*$", re.DOTALL)
+SORRY_NO_CONNECTION = "I'm sorry, I'm having trouble connecting to my brain right now."
+SORRY_LOOP = "I'm sorry, I encountered a loop while trying to respond."
+EMPTY_REPLY_FALLBACK = "Got it! How else can I help you today?"
+
+
+def visible_reply_text(text: str) -> str:
+    """The part of a (partial) answer that may be shown: leaked tool calls are hidden."""
+    text = TOOL_TEXT_PATTERN.sub("", text)
+    return PARTIAL_TOOL_TEXT_PATTERN.sub("", text)
 
 
 class MistralService:
@@ -84,14 +136,140 @@ class MistralService:
             response = await self.client.chat.complete_async(
                 model=MODEL_CHAT,
                 messages=dict_messages,
+                reasoning_effort=PROFILE_REASONING_EFFORT,
             )
             message = response.choices[0].message
             assert message is not None
-            content = str(message.content) if message.content else None
-            return content if content else ""
+            return message_text(message.content)
         except Exception as e:  # noqa: BLE001 - fall back to the raw text
             print(f"Mistral chat error: {e}")
             return combined_text
+
+    async def stream_mistral(
+        self,
+        messages_history: list[ChatMessageData],
+        tools: list[dict[str, object]] | None = None,
+        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]]
+        | None = None,
+        max_depth: int = 3,
+    ) -> collections.abc.AsyncIterator[str]:
+        """Yield the answer text while the model writes it.
+
+        Thinking chunks are skipped. When the model calls a tool, the tool runs
+        and the model is asked again; its new text is yielded as well.
+        """
+        if max_depth <= 0:
+            yield SORRY_LOOP
+            return
+
+        yielded_text = False
+        calls: dict[str, ToolCallData] = {}
+        text_parts: list[str] = []
+        try:
+            dict_messages = [m.model_dump(exclude_none=True) for m in messages_history]
+            stream = await self.client.chat.stream_async(
+                model=MODEL_CHAT,
+                messages=dict_messages,
+                tools=tools,
+                tool_choice="auto" if tools else "none",
+                reasoning_effort=CHAT_REASONING_EFFORT,
+            )
+            async for event in stream:
+                if not event.data.choices:
+                    continue
+                delta = event.data.choices[0].delta
+                content = delta.content
+                text = message_text(content) if isinstance(content, (str, list)) else ""
+                if text:
+                    text_parts.append(text)
+                    yielded_text = True
+                    yield text
+                tool_calls = delta.tool_calls
+                if not isinstance(tool_calls, list):
+                    continue
+                for tc in tool_calls:
+                    key = tc.id if isinstance(tc.id, str) and tc.id != "null" else ""
+                    key = key or f"index-{tc.index}"
+                    arguments = tc.function.arguments
+                    if not isinstance(arguments, str):
+                        arguments = json.dumps(arguments)
+                    existing = calls.get(key)
+                    if existing is None:
+                        calls[key] = ToolCallData(
+                            id=key,
+                            type="function",
+                            function=FunctionCallData(
+                                name=tc.function.name, arguments=arguments
+                            ),
+                        )
+                    else:
+                        existing.function.arguments = (
+                            str(existing.function.arguments) + arguments
+                        )
+        except Exception as e:  # noqa: BLE001 - show a friendly message to the visitor
+            print(f"Mistral API Error: {e}")
+            if not yielded_text:
+                yield SORRY_NO_CONNECTION
+            return
+
+        if not (calls and tool_callback):
+            return
+
+        assistant_msg = ChatMessageData(
+            role=ROLE_ASSISTANT, content="".join(text_parts)
+        )
+        assistant_msg.tool_calls = list(calls.values())
+        messages_history.append(assistant_msg)
+        for call in calls.values():
+            messages_history.append(
+                ChatMessageData(
+                    role=ROLE_TOOL,
+                    name=call.function.name,
+                    content=await self._run_profile_tool(call, tool_callback),
+                    tool_call_id=call.id,
+                )
+            )
+        async for text in self.stream_mistral(
+            messages_history,
+            tools=tools,
+            tool_callback=tool_callback,
+            max_depth=max_depth - 1,
+        ):
+            yield text
+
+    @staticmethod
+    async def _run_profile_tool(
+        call: ToolCallData,
+        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]],
+    ) -> str:
+        if call.function.name != "update_user_profile":
+            return f"Unknown tool: {call.function.name}"
+        try:
+            args = ProfileUpdateArgs.model_validate_json(call.function.arguments)
+            await tool_callback(args.name, args.company, args.intent)
+            return "Profile updated successfully."
+        except Exception as e:  # noqa: BLE001 - reported back to the model
+            print(f"Tool error: {e}")
+            return f"Failed to update profile: {e}"
+
+    @staticmethod
+    async def finish_reply(
+        text: str,
+        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]]
+        | None = None,
+    ) -> str:
+        """Clean up a streamed answer: run a tool call the model wrote out as
+        text, remove it from the answer and never return an empty answer."""
+        if tool_callback and "update_user_profile" in text:
+            match = re.search(r"update_user_profile[^\{]*(\{.*?\})", text, re.DOTALL)
+            if match:
+                try:
+                    args = ProfileUpdateArgs.model_validate_json(match.group(1).strip())
+                    await tool_callback(args.name, args.company, args.intent)
+                except Exception as e:  # noqa: BLE001 - best-effort fallback
+                    print(f"Text-based tool parsing error: {e}")
+        cleaned = visible_reply_text(text).strip()
+        return cleaned or EMPTY_REPLY_FALLBACK
 
     async def ask_mistral(
         self,
@@ -111,12 +289,13 @@ class MistralService:
                 messages=dict_messages,
                 tools=tools,
                 tool_choice="auto" if tools else "none",
+                reasoning_effort=CHAT_REASONING_EFFORT,
             )
             message = response.choices[0].message
             assert message is not None
 
             if message.tool_calls and tool_callback:
-                content_val = message.content if message.content else None
+                content_val = message_text(message.content)
                 assistant_msg = ChatMessageData(
                     role=ROLE_ASSISTANT, content=content_val
                 )
@@ -165,7 +344,7 @@ class MistralService:
                     max_depth=max_depth - 1,
                 )
 
-            content_str = str(message.content)
+            content_str = message_text(message.content)
 
             # Text-based tool invocation fallback
             if tool_callback and "update_user_profile" in content_str:

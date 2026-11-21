@@ -106,6 +106,12 @@ class LoginContext(BaseModel):
     next_url: str
 
 
+class ConsentContext(BaseModel):
+    request_id: str
+    client_name: str
+    redirect_host: str
+
+
 class ManageContext(BaseModel):
     is_upload: bool = False
     active_tab: str
