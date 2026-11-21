@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any
+from typing import ClassVar
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # ------------------------------------------------------------------------------
 # Tool Call Schemas
@@ -37,6 +37,15 @@ class ThemeColors(BaseModel):
                 v = v[1:]
         return v
 
+    def as_dict(self) -> dict[str, str]:
+        return {
+            "shadow_grey": self.shadow_grey,
+            "sweet_salmon": self.sweet_salmon,
+            "khaki_beige": self.khaki_beige,
+            "muted_teal": self.muted_teal,
+            "seaweed": self.seaweed,
+        }
+
 
 class UploadedDocument(BaseModel):
     filename: str
@@ -59,11 +68,29 @@ class SessionDetail(BaseModel):
     history: list[ChatMessageData]
 
 
+class ProfileUpdateArgs(BaseModel):
+    """Arguments of the update_user_profile tool call."""
+
+    name: str | None = None
+    company: str | None = None
+    intent: str | None = None
+
+
 class RecaptchaVerifyResult(BaseModel):
     success: bool
     challenge_ts: str | None = None
     hostname: str | None = None
     error_codes: list[str] | None = Field(default=None, alias="error-codes")
+
+
+class SourceDocumentItem(BaseModel):
+    """A source document as listed in the manage page (without its content)."""
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
+
+    id: str
+    filename: str
+    created_at: datetime
 
 
 # ------------------------------------------------------------------------------
@@ -93,7 +120,7 @@ class ManageContext(BaseModel):
     schedule_meeting_url: str | None = None
     total_chats: int = 0
     takeover_requests: int = 0
-    source_documents: list[Any] | None = None
+    source_documents: list[SourceDocumentItem] | None = None
     mistral_api_key: str | None = None
     mistral_api_key_locked: bool = False
 

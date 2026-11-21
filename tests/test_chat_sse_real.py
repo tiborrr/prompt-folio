@@ -29,7 +29,7 @@ async def test_chat_sse_flow_real():
             session_id = response.cookies.get("session_id")
             assert session_id is not None
 
-            events_received = []
+            events_received: list[str] = []
 
             async def consume_sse():
                 async with client.stream(
@@ -60,7 +60,7 @@ async def test_chat_sse_flow_real():
             await asyncio.sleep(1.0)
 
             # Cancel the consumer
-            consumer_task.cancel()
+            _ = consumer_task.cancel()
 
             print("Events received:", events_received)
             assert len(events_received) > 0, "No SSE events received!"
@@ -80,4 +80,4 @@ async def test_chat_sse_flow_real():
             )
     finally:
         process.terminate()
-        process.wait()
+        _ = process.wait()

@@ -10,7 +10,7 @@ import collections.abc
 import contextlib
 import io
 import re
-from typing import Any
+from typing import cast
 
 from mcp.server.auth.settings import (
     AuthSettings,
@@ -137,7 +137,7 @@ def create_mcp_server(config: Settings) -> MCPServer:
     )
 
     @server.tool(annotations=READ_ONLY)
-    async def get_profile() -> dict[str, Any]:
+    async def get_profile() -> dict[str, object]:
         """Read the owner's profile: name, pronouns, meeting link and the full
         profile/CV text as Markdown, with the list of its section headings."""
         async with sessions() as db:
@@ -315,7 +315,7 @@ class MCPDispatchMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http":
-            path: str = scope["path"]
+            path = cast(str, scope["path"])
             if path in MCP_PATHS or path.startswith(WELL_KNOWN_PREFIX):
                 if self.runtime.app is None:
                     response = PlainTextResponse("MCP server is disabled.", 404)

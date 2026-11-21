@@ -1,6 +1,17 @@
 import json
 import re
 from html import unescape
+from typing import cast
+
+
+def _as_dict(value: object) -> dict[str, object]:
+    """Return a JSON object as a dict, or an empty dict for anything else."""
+    return cast(dict[str, object], value) if isinstance(value, dict) else {}
+
+
+def _as_list(value: object) -> list[object]:
+    """Return a JSON array as a list, or an empty list for anything else."""
+    return cast(list[object], value) if isinstance(value, list) else []
 
 
 def parse_html_inline(html: str) -> str:
@@ -35,14 +46,15 @@ def _list_to_markdown(items: list[object], ordered: bool, depth: int = 0) -> str
     indent = "  " * depth
     for index, item in enumerate(items, start=1):
         marker = f"{index}." if ordered else "-"
-        if isinstance(item, dict):
-            content = str(item.get("content", ""))
-            meta = item.get("meta")
-            if isinstance(meta, dict) and "checked" in meta:
+        entry = _as_dict(item)
+        if entry or item == {}:
+            content = str(entry.get("content", ""))
+            meta = _as_dict(entry.get("meta"))
+            if "checked" in meta:
                 marker = f"- [{'x' if meta['checked'] else ' '}]"
             md += f"{indent}{marker} {parse_html_inline(content)}\n"
-            children = item.get("items")
-            if isinstance(children, list) and children:
+            children = _as_list(entry.get("items"))
+            if children:
                 md += _list_to_markdown(children, ordered, depth + 1)
         else:
             md += f"{indent}{marker} {parse_html_inline(str(item))}\n"
@@ -54,30 +66,33 @@ def editorjs_to_markdown(json_str: str) -> str:
         return ""
 
     try:
-        data = json.loads(json_str)
+        data = cast(object, json.loads(json_str))
     except json.JSONDecodeError:
         # If it's already markdown or invalid JSON, return as is
         return json_str
 
-    if not isinstance(data, dict) or "blocks" not in data:
+    document = _as_dict(data)
+    if "blocks" not in document:
         return json_str
 
     md = ""
-    for block in data.get("blocks", []):
+    for raw_block in _as_list(document.get("blocks")):
+        block = _as_dict(raw_block)
         block_type = block.get("type")
-        block_data = block.get("data", {})
+        block_data = _as_dict(block.get("data"))
 
         if block_type == "header":
             level = block_data.get("level", 1)
-            text = parse_html_inline(block_data.get("text", ""))
+            level = level if isinstance(level, int) else 1
+            text = parse_html_inline(str(block_data.get("text", "")))
             md += f"{'#' * level} {text}\n\n"
 
         elif block_type == "paragraph":
-            text = parse_html_inline(block_data.get("text", ""))
+            text = parse_html_inline(str(block_data.get("text", "")))
             md += f"{text}\n\n"
 
         elif block_type == "list":
-            items = block_data.get("items", [])
+            items = _as_list(block_data.get("items"))
             ordered = block_data.get("style") == "ordered"
             md += _list_to_markdown(items, ordered) + "\n"
 

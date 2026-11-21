@@ -13,7 +13,7 @@ X-Forwarded-For for trusted proxies (FORWARDED_ALLOW_IPS).
 
 import functools
 from collections.abc import Awaitable, Callable
-from typing import ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar, cast
 
 from fastapi import Request
 from limits import RateLimitItem, parse
@@ -54,12 +54,12 @@ class Limiter:
 
             @functools.wraps(func)
             async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-                request = kwargs.get("request")
-                if not isinstance(request, Request):
+                if not isinstance(kwargs.get("request"), Request):
                     raise TypeError(
                         f"{scope} needs a 'request: Request' parameter to be rate limited"
                     )
-                if not await self._strategy.hit(item, scope, self._key_func(request)):
+                key = self._key_func(cast(Request, kwargs["request"]))
+                if not await self._strategy.hit(item, scope, key):
                     raise RateLimitExceeded(item)
                 return await func(*args, **kwargs)
 

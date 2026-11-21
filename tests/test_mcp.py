@@ -6,10 +6,11 @@ import contextlib
 import hashlib
 import json
 import secrets
+from typing import TypedDict, cast
 from urllib.parse import parse_qs, urlparse
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, Response
 
 from app.dependencies import get_settings
 from app.editorjs_parser import editorjs_to_markdown
@@ -18,9 +19,27 @@ from app.markdown_editorjs import markdown_to_editorjs, replace_section
 from app.mcp_oauth import DatabaseOAuthProvider
 
 REDIRECT_URI = "https://claude.ai/api/mcp/auth_callback"
-BASE = "http://localhost:3005"
 
-pytestmark = pytest.mark.asyncio(loop_scope="function")
+
+class Profile(TypedDict):
+    """What the get_profile tool returns."""
+
+    owner_name: str
+    owner_pronouns: str
+    meeting_url: str
+    sections: list[str]
+    profile_markdown: str
+
+
+def _json(response: Response) -> dict[str, object]:
+    return cast(dict[str, object], response.json())
+
+
+async def _client_id(client: AsyncClient) -> str:
+    return cast(str, _json(await _register(client))["client_id"])
+
+
+BASE = "http://localhost:3005"
 
 
 @contextlib.asynccontextmanager
@@ -85,7 +104,7 @@ async def _authorize(client: AsyncClient, client_id: str) -> tuple[str, str]:
 
 
 async def _get_tokens(client: AsyncClient) -> dict[str, str]:
-    client_id = (await _register(client)).json()["client_id"]
+    client_id = await _client_id(client)
     request_id, verifier = await _authorize(client, client_id)
 
     await _login(client)
@@ -114,7 +133,7 @@ async def _get_tokens(client: AsyncClient) -> dict[str, str]:
         },
     )
     assert token.status_code == 200, token.text
-    return {"client_id": client_id, **token.json()}
+    return {"client_id": client_id, **cast(dict[str, str], token.json())}
 
 
 async def _rpc(
@@ -134,20 +153,25 @@ async def _rpc(
     )
 
 
-async def _call_tool(client: AsyncClient, token: str, name: str, **arguments: object):
+async def _call_tool(
+    client: AsyncClient, token: str, name: str, **arguments: object
+) -> object:
     response = await _rpc(
         client, token, "tools/call", {"name": name, "arguments": arguments}
     )
     assert response.status_code == 200, response.text
-    result = response.json()["result"]
+    result = cast(dict[str, object], _json(response)["result"])
     assert not result.get("isError"), result
     structured = result.get("structuredContent")
-    if structured is not None:
+    if isinstance(structured, dict):
         # Lists and strings come wrapped as {"result": ...}
-        return structured.get("result", structured)
-    return result["content"][0]["text"]
+        fields = cast(dict[str, object], structured)
+        return fields.get("result", fields)
+    content = cast(list[dict[str, object]], result["content"])
+    return content[0]["text"]
 
 
+@pytest.mark.asyncio
 async def test_metadata_is_public():
     async with mcp_client() as mcp:
         resource = await mcp.get("/.well-known/oauth-protected-resource/mcp")
@@ -159,6 +183,7 @@ async def test_metadata_is_public():
         assert server.json()["registration_endpoint"] == f"{BASE}/register"
 
 
+@pytest.mark.asyncio
 async def test_mcp_requires_a_token():
     async with mcp_client() as mcp:
         response = await _rpc(mcp, None, "tools/list", {})
@@ -169,6 +194,7 @@ async def test_mcp_requires_a_token():
         assert response.status_code == 401
 
 
+@pytest.mark.asyncio
 async def test_registration_rejects_unknown_redirect_hosts():
     async with mcp_client() as mcp:
         response = await _register(mcp, "https://evil.example/callback")
@@ -179,9 +205,10 @@ async def test_registration_rejects_unknown_redirect_hosts():
         assert response.status_code == 201
 
 
+@pytest.mark.asyncio
 async def test_consent_requires_login():
     async with mcp_client() as mcp:
-        client_id = (await _register(mcp)).json()["client_id"]
+        client_id = await _client_id(mcp)
         request_id, _ = await _authorize(mcp, client_id)
 
         page = await mcp.get(f"/oauth/consent?request_id={request_id}")
@@ -194,9 +221,10 @@ async def test_consent_requires_login():
         assert "code=" not in approved.headers.get("location", "")
 
 
+@pytest.mark.asyncio
 async def test_deny_redirects_with_error():
     async with mcp_client() as mcp:
-        client_id = (await _register(mcp)).json()["client_id"]
+        client_id = await _client_id(mcp)
         request_id, _ = await _authorize(mcp, client_id)
         await _login(mcp)
         denied = await mcp.post(
@@ -212,13 +240,15 @@ async def test_deny_redirects_with_error():
         assert again.status_code == 400
 
 
+@pytest.mark.asyncio
 async def test_profile_tools_round_trip():
     async with mcp_client() as mcp:
         tokens = await _get_tokens(mcp)
         access = tokens["access_token"]
 
         listed = await _rpc(mcp, access, "tools/list", {})
-        names = {t["name"] for t in listed.json()["result"]["tools"]}
+        tools = cast(dict[str, list[dict[str, str]]], _json(listed)["result"])
+        names = {t["name"] for t in tools["tools"]}
         assert {"get_profile", "update_profile", "update_profile_section"} <= names
 
         result = await _call_tool(
@@ -228,7 +258,7 @@ async def test_profile_tools_round_trip():
             profile_markdown="## Summary\n\nEngineer in **Deventer**.\n\n## Experience\n\n- Acme & Co\n- Initech",
             change_note="first version",
         )
-        assert "Profile updated" in result
+        assert "Profile updated" in cast(str, result)
 
         result = await _call_tool(
             mcp,
@@ -237,28 +267,32 @@ async def test_profile_tools_round_trip():
             heading="Experience",
             content_markdown="- Globex (2024-now)\n- Acme & Co",
         )
-        assert "updated" in result
+        assert "updated" in cast(str, result)
 
-        profile = await _call_tool(mcp, access, "get_profile")
+        profile = cast(Profile, await _call_tool(mcp, access, "get_profile"))
         assert profile["sections"] == ["## Summary", "## Experience"]
         assert "Engineer in **Deventer**." in profile["profile_markdown"]
         assert "- Globex (2024-now)\n- Acme & Co" in profile["profile_markdown"]
         assert "Initech" not in profile["profile_markdown"]
 
-        await _call_tool(mcp, access, "update_owner_details", owner_pronouns="his")
-        profile = await _call_tool(mcp, access, "get_profile")
+        _ = await _call_tool(mcp, access, "update_owner_details", owner_pronouns="his")
+        profile = cast(Profile, await _call_tool(mcp, access, "get_profile"))
         assert profile["owner_pronouns"] == "his"
 
-        revisions = await _call_tool(mcp, access, "list_profile_revisions")
+        revisions = cast(
+            list[dict[str, object]],
+            await _call_tool(mcp, access, "list_profile_revisions"),
+        )
         assert len(revisions) == 2
         # Newest revision holds the version before the section update
-        await _call_tool(
+        _ = await _call_tool(
             mcp, access, "restore_profile_revision", revision_id=revisions[0]["id"]
         )
-        profile = await _call_tool(mcp, access, "get_profile")
+        profile = cast(Profile, await _call_tool(mcp, access, "get_profile"))
         assert "Initech" in profile["profile_markdown"]
 
 
+@pytest.mark.asyncio
 async def test_source_documents():
     async with mcp_client() as mcp:
         from app.dependencies import get_db_session_factory
@@ -271,12 +305,16 @@ async def test_source_documents():
             await db.commit()
 
         access = (await _get_tokens(mcp))["access_token"]
-        docs = await _call_tool(mcp, access, "list_source_documents")
+        docs = cast(
+            list[dict[str, object]],
+            await _call_tool(mcp, access, "list_source_documents"),
+        )
         assert docs[0]["filename"] == "notes.md"
         text = await _call_tool(mcp, access, "read_source_document", document_id="doc1")
-        assert "# Notes\nHi" in text
+        assert "# Notes\nHi" in cast(str, text)
 
 
+@pytest.mark.asyncio
 async def test_refresh_rotates_and_revoke_ends_the_grant():
     async with mcp_client() as mcp:
         tokens = await _get_tokens(mcp)
@@ -289,7 +327,7 @@ async def test_refresh_rotates_and_revoke_ends_the_grant():
             },
         )
         assert refreshed.status_code == 200, refreshed.text
-        new = refreshed.json()
+        new = cast(dict[str, str], refreshed.json())
 
         # The old access token stopped working, the new one works
         assert (
@@ -320,7 +358,9 @@ def test_markdown_round_trips_through_editorjs():
         "---\n\n"
         "```python\nprint('<hi>')\n```"
     )
-    data = json.loads(markdown_to_editorjs(md))
+    data = cast(
+        dict[str, list[dict[str, object]]], json.loads(markdown_to_editorjs(md))
+    )
     assert [b["type"] for b in data["blocks"]] == [
         "header",
         "paragraph",

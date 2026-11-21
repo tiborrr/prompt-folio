@@ -1,7 +1,6 @@
 import asyncio
 import collections.abc
 import functools
-import json
 import logging
 import os
 import typing
@@ -11,6 +10,7 @@ from typing import Annotated, override
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import TypeAdapter
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import select
@@ -69,7 +69,7 @@ def _load_legacy_settings(private_dir: str, site: SiteSettings) -> None:
     if os.path.exists(colors_path):
         try:
             with open(colors_path, "r", encoding="utf-8") as f:
-                colors = json.load(f)
+                colors = TypeAdapter(dict[str, str]).validate_json(f.read())
             site.color_shadow_grey = colors.get("shadow_grey", site.color_shadow_grey)
             site.color_sweet_salmon = colors.get(
                 "sweet_salmon", site.color_sweet_salmon
@@ -77,7 +77,7 @@ def _load_legacy_settings(private_dir: str, site: SiteSettings) -> None:
             site.color_khaki_beige = colors.get("khaki_beige", site.color_khaki_beige)
             site.color_muted_teal = colors.get("muted_teal", site.color_muted_teal)
             site.color_seaweed = colors.get("seaweed", site.color_seaweed)
-        except (OSError, ValueError, AttributeError) as e:
+        except (OSError, ValueError) as e:
             logger.warning("Skipping invalid %s: %s", colors_path, e)
 
     # Avatar

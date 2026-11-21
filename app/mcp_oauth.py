@@ -11,6 +11,7 @@ import json
 import secrets
 import time
 import uuid
+from typing import override
 from urllib.parse import urlparse
 
 from mcp.server.auth.provider import (
@@ -26,6 +27,7 @@ from mcp.server.auth.provider import (
 )
 from mcp.shared.auth import OAuthClientInformationFull
 from mcp.shared.auth import OAuthToken as OAuthTokenResponse
+from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col, delete, select
 
@@ -41,6 +43,8 @@ ACCESS_TOKEN_TTL_SECONDS = 60 * 60
 REFRESH_TOKEN_TTL_SECONDS = 90 * 24 * 60 * 60
 
 LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1", "[::1]"}
+# Stored token data: a JSON object
+_JSON_OBJECT: TypeAdapter[dict[str, object]] = TypeAdapter(dict[str, object])
 
 
 def host_matches(host: str, pattern: str) -> bool:
@@ -105,6 +109,7 @@ class DatabaseOAuthProvider(
 
     # ------------------------------------------------------------------ clients
 
+    @override
     async def get_client(self, client_id: str) -> OAuthClientInformationFull | None:
         async with self._session() as db:
             row = await db.get(OAuthClient, client_id)
@@ -112,6 +117,7 @@ class DatabaseOAuthProvider(
             return None
         return OAuthClientInformationFull.model_validate_json(row.data)
 
+    @override
     async def register_client(self, client_info: OAuthClientInformationFull) -> None:
         for uri in client_info.redirect_uris or []:
             if not redirect_uri_allowed(str(uri), self.allowed_hosts):
@@ -134,6 +140,7 @@ class DatabaseOAuthProvider(
 
     # ------------------------------------------------------------ authorization
 
+    @override
     async def authorize(
         self, client: OAuthClientInformationFull, params: AuthorizationParams
     ) -> str:
@@ -212,6 +219,7 @@ class DatabaseOAuthProvider(
             await db.commit()
         return construct_redirect_uri(redirect_uri, code=code, state=params.state)
 
+    @override
     async def load_authorization_code(
         self, client: OAuthClientInformationFull, authorization_code: str
     ) -> AuthorizationCode | None:
@@ -219,8 +227,11 @@ class DatabaseOAuthProvider(
             row = await self._load(db, authorization_code, "code")
         if row is None or row.client_id != client.client_id:
             return None
-        return AuthorizationCode(code=authorization_code, **json.loads(row.data))
+        return AuthorizationCode.model_validate(
+            {**_JSON_OBJECT.validate_json(row.data), "code": authorization_code}
+        )
 
+    @override
     async def exchange_authorization_code(
         self, client: OAuthClientInformationFull, authorization_code: AuthorizationCode
     ) -> OAuthTokenResponse:
@@ -245,6 +256,7 @@ class DatabaseOAuthProvider(
 
     # ---------------------------------------------------------- refresh tokens
 
+    @override
     async def load_refresh_token(
         self, client: OAuthClientInformationFull, refresh_token: str
     ) -> RefreshToken | None:
@@ -252,13 +264,16 @@ class DatabaseOAuthProvider(
             row = await self._load(db, refresh_token, "refresh")
         if row is None or row.client_id != client.client_id:
             return None
-        return RefreshToken(
-            token=refresh_token,
-            client_id=row.client_id,
-            expires_at=row.expires_at,
-            **json.loads(row.data),
+        return RefreshToken.model_validate(
+            {
+                **_JSON_OBJECT.validate_json(row.data),
+                "token": refresh_token,
+                "client_id": row.client_id,
+                "expires_at": row.expires_at,
+            }
         )
 
+    @override
     async def exchange_refresh_token(
         self,
         client: OAuthClientInformationFull,
@@ -288,18 +303,22 @@ class DatabaseOAuthProvider(
 
     # ----------------------------------------------------------- access tokens
 
+    @override
     async def load_access_token(self, token: str) -> AccessToken | None:
         async with self._session() as db:
             row = await self._load(db, token, "access")
         if row is None:
             return None
-        return AccessToken(
-            token=token,
-            client_id=row.client_id,
-            expires_at=row.expires_at,
-            **json.loads(row.data),
+        return AccessToken.model_validate(
+            {
+                **_JSON_OBJECT.validate_json(row.data),
+                "token": token,
+                "client_id": row.client_id,
+                "expires_at": row.expires_at,
+            }
         )
 
+    @override
     async def revoke_token(self, token: AccessToken | RefreshToken) -> None:
         async with self._session() as db:
             row = await db.get(OAuthToken, hash_session_token(token.token))

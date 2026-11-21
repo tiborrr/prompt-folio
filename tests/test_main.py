@@ -1,9 +1,13 @@
+import collections.abc
+import typing
 from collections.abc import AsyncIterator
-from typing import Any, override
+from typing import override
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.pool import SingletonThreadPool
 from sqlmodel import Session
 
 from app.config import Settings
@@ -30,8 +34,9 @@ class FakeMistralService(MistralService):
     async def ask_mistral(
         self,
         messages_history: list[ChatMessageData],
-        tools: list[dict[str, Any]] | None = None,
-        tool_callback: Any | None = None,
+        tools: list[dict[str, object]] | None = None,
+        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]]
+        | None = None,
         max_depth: int = 3,
     ) -> str:
         return "Fake AI Response"
@@ -40,8 +45,9 @@ class FakeMistralService(MistralService):
     async def stream_mistral(
         self,
         messages_history: list[ChatMessageData],
-        tools: list[dict[str, Any]] | None = None,
-        tool_callback: Any | None = None,
+        tools: list[dict[str, object]] | None = None,
+        tool_callback: typing.Callable[..., collections.abc.Awaitable[None]]
+        | None = None,
         max_depth: int = 3,
     ) -> AsyncIterator[str]:
         for piece in ("Fake AI ", "Response"):
@@ -51,7 +57,6 @@ class FakeMistralService(MistralService):
     async def generate_profile_from_docs(
         self,
         uploaded_files: list[UploadedDocument],
-        owner_name: str,
         existing_profile: str,
     ) -> str:
         return "Fake Profile"
@@ -71,15 +76,15 @@ class FakeContextStore(ContextStore):
         super().__init__("/fake")
 
     @override
-    async def get_context(self, db: Any) -> str:
+    async def get_context(self, db: AsyncSession) -> str:
         return "Fake Context"
 
     @override
-    async def save_context(self, db: Any, text: str):
+    async def save_context(self, db: AsyncSession, text: str):
         return None
 
     @override
-    async def get_colors(self, db: Any) -> ThemeColors:
+    async def get_colors(self, db: AsyncSession) -> ThemeColors:
         return ThemeColors(
             shadow_grey="#4a4a4a",
             sweet_salmon="#fb9f89",
@@ -89,43 +94,43 @@ class FakeContextStore(ContextStore):
         )
 
     @override
-    async def save_colors(self, db: Any, colors: ThemeColors):
+    async def save_colors(self, db: AsyncSession, colors: ThemeColors):
         return None
 
     @override
-    async def get_owner_name(self, db: Any) -> str:
+    async def get_owner_name(self, db: AsyncSession) -> str:
         return "Test Owner"
 
     @override
-    async def save_owner_name(self, db: Any, name: str):
+    async def save_owner_name(self, db: AsyncSession, name: str):
         return None
 
     @override
-    async def get_owner_pronouns(self, db: Any) -> str:
+    async def get_owner_pronouns(self, db: AsyncSession) -> str:
         return "they"
 
     @override
-    async def save_owner_pronouns(self, db: Any, pronouns: str):
+    async def save_owner_pronouns(self, db: AsyncSession, pronouns: str):
         return None
 
     @override
-    async def has_avatar(self, db: Any) -> bool:
+    async def has_avatar(self, db: AsyncSession) -> bool:
         return False
 
     @override
-    async def get_avatar_bytes(self, db: Any) -> tuple[bytes, str] | None:
+    async def get_avatar_bytes(self, db: AsyncSession) -> tuple[bytes, str] | None:
         return None
 
     @override
-    async def save_avatar(self, db: Any, content: bytes, content_type: str):
+    async def save_avatar(self, db: AsyncSession, content: bytes, content_type: str):
         return None
 
     @override
-    async def get_meeting_url(self, db: Any) -> str:
+    async def get_meeting_url(self, db: AsyncSession) -> str:
         return ""
 
     @override
-    async def save_meeting_url(self, db: Any, url: str):
+    async def save_meeting_url(self, db: AsyncSession, url: str):
         return None
 
 
@@ -237,7 +242,7 @@ async def test_manage_login_failure():
 async def test_manage_authenticated_get():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
-        await test_client.post(
+        _ = await test_client.post(
             "/manage/login", data={"password": "test_secure_password"}
         )
         response = await test_client.get("/manage")
@@ -250,7 +255,7 @@ async def test_manage_authenticated_get():
 async def test_manage_logout():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
-        await test_client.post(
+        _ = await test_client.post(
             "/manage/login", data={"password": "test_secure_password"}
         )
         response = await test_client.post(
@@ -266,7 +271,7 @@ async def test_manage_logout():
 async def test_manage_chat_name_update_returns_display_fragment():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
-        await test_client.post(
+        _ = await test_client.post(
             "/manage/login", data={"password": "test_secure_password"}
         )
         response = await test_client.post(
@@ -281,7 +286,8 @@ async def test_manage_chat_name_update_returns_display_fragment():
 @pytest.mark.asyncio
 async def test_manage_chat_delete_returns_oob_updates():
     sync_engine = create_engine(
-        "sqlite:///file:testdb?mode=memory&cache=shared&uri=true"
+        "sqlite:///file:testdb?mode=memory&cache=shared&uri=true",
+        poolclass=SingletonThreadPool,
     )
     with Session(sync_engine) as session:
         session.add(AdminSession(token=hash_session_token("test_secure_password")))

@@ -7,7 +7,7 @@ import collections.abc
 import json
 import re
 import typing
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import httpx
 from mistralai.client import Mistral
@@ -26,6 +26,7 @@ from app.constants import (
 from app.schemas import (
     ChatMessageData,
     FunctionCallData,
+    ProfileUpdateArgs,
     RecaptchaVerifyResult,
     ThemeColors,
     ToolCallData,
@@ -50,19 +51,18 @@ def message_text(content: object) -> str:
         return content
     if isinstance(content, list):
         parts: list[str] = []
-        for chunk in content:
+        for chunk in cast(list[object], content):
             if isinstance(chunk, str):
                 parts.append(chunk)
                 continue
-            chunk_type = getattr(chunk, "type", None)
-            if chunk_type is None and isinstance(chunk, dict):
-                chunk_type = chunk.get("type")
-            if chunk_type != "text":
-                continue
-            text = getattr(chunk, "text", None)
-            if text is None and isinstance(chunk, dict):
-                text = chunk.get("text")
-            if isinstance(text, str):
+            # Raw JSON chunks are dicts; SDK chunk objects have attributes
+            if isinstance(chunk, dict):
+                fields = cast(dict[str, object], chunk)
+                chunk_type, text = fields.get("type"), fields.get("text")
+            else:
+                chunk_type = cast(object, getattr(chunk, "type", None))
+                text = cast(object, getattr(chunk, "text", None))
+            if chunk_type == "text" and isinstance(text, str):
                 parts.append(text)
         return "".join(parts)
     return str(content)
@@ -107,7 +107,6 @@ class MistralService:
     async def generate_profile_from_docs(
         self,
         uploaded_files: list[UploadedDocument],
-        owner_name: str,
         existing_profile: str,
     ) -> str:
         combined_text = ""
@@ -246,11 +245,8 @@ class MistralService:
         if call.function.name != "update_user_profile":
             return f"Unknown tool: {call.function.name}"
         try:
-            arguments = call.function.arguments
-            args = json.loads(arguments) if isinstance(arguments, str) else arguments
-            await tool_callback(
-                args.get("name"), args.get("company"), args.get("intent")
-            )
+            args = ProfileUpdateArgs.model_validate_json(call.function.arguments)
+            await tool_callback(args.name, args.company, args.intent)
             return "Profile updated successfully."
         except Exception as e:  # noqa: BLE001 - reported back to the model
             print(f"Tool error: {e}")
@@ -268,10 +264,8 @@ class MistralService:
             match = re.search(r"update_user_profile[^\{]*(\{.*?\})", text, re.DOTALL)
             if match:
                 try:
-                    args = json.loads(match.group(1).strip())
-                    await tool_callback(
-                        args.get("name"), args.get("company"), args.get("intent")
-                    )
+                    args = ProfileUpdateArgs.model_validate_json(match.group(1).strip())
+                    await tool_callback(args.name, args.company, args.intent)
                 except Exception as e:  # noqa: BLE001 - best-effort fallback
                     print(f"Text-based tool parsing error: {e}")
         cleaned = visible_reply_text(text).strip()
@@ -323,15 +317,12 @@ class MistralService:
                         try:
                             # Mistral's function.arguments can be returned as a dict or str.
                             arguments = tool_call.function.arguments
-                            if isinstance(arguments, str):
-                                args = json.loads(arguments)
-                            else:
-                                args = arguments
-                            await tool_callback(
-                                args.get("name"),
-                                args.get("company"),
-                                args.get("intent"),
+                            args = (
+                                ProfileUpdateArgs.model_validate_json(arguments)
+                                if isinstance(arguments, str)
+                                else ProfileUpdateArgs.model_validate(arguments)
                             )
+                            await tool_callback(args.name, args.company, args.intent)
                             tool_result = "Profile updated successfully."
                         except Exception as e:  # noqa: BLE001 - reported back to the model
                             print(f"Tool error: {e}")
@@ -363,12 +354,10 @@ class MistralService:
                 if json_match:
                     try:
                         json_block = json_match.group(1).strip()
-                        args = json.loads(json_block)
+                        args = ProfileUpdateArgs.model_validate_json(json_block)
 
                         # Execute fallback callback silently
-                        await tool_callback(
-                            args.get("name"), args.get("company"), args.get("intent")
-                        )
+                        await tool_callback(args.name, args.company, args.intent)
                     except Exception as e:  # noqa: BLE001 - best-effort fallback
                         print(f"Text-based tool parsing error: {e}")
 
@@ -403,7 +392,7 @@ class RecaptchaService:
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(verify_url, data=data)
-                result = RecaptchaVerifyResult(**response.json())
+                result = RecaptchaVerifyResult.model_validate_json(response.content)
                 return result.success
         except Exception as e:  # noqa: BLE001 - fail closed
             print(f"Recaptcha verification error: {e}")
@@ -413,10 +402,10 @@ class RecaptchaService:
 class ContextStore:
     """Database-backed site settings store (singleton row id=1)."""
 
-    MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
+    MAX_AVATAR_SIZE: int = 2 * 1024 * 1024  # 2MB
 
     def __init__(self, storage_path: str | None = None):
-        self.storage_path = storage_path
+        self.storage_path: str | None = storage_path
 
     async def _get_settings(self, db: AsyncSession) -> SiteSettings:
         from app.models import SiteSettings
@@ -566,12 +555,12 @@ class ContextStore:
 
 class NotificationService:
     def __init__(self, topic: str):
-        self.topic = topic
+        self.topic: str = topic
 
     async def send(self, message: str, url: str | None = None):
         if not self.topic:
             return
-        headers = {}
+        headers: dict[str, str] = {}
         if url:
             headers["Click"] = url
         try:

@@ -45,8 +45,8 @@ dev = [
 
 [tool.basedpyright]
 typeCheckingMode = "recommended"
-# CI fails on errors only; the existing warnings are cleaned up over time.
-failOnWarnings = false
+# Keep the codebase warning-free: CI fails on warnings too.
+failOnWarnings = true
 # Generated migrations are not type-checked
 ignore = [
     "alembic/versions",

@@ -31,7 +31,7 @@ async def test_ui_chat_message():
             page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
 
             # Go to the chat page
-            await page.goto("http://127.0.0.1:3006/")
+            _ = await page.goto("http://127.0.0.1:3006/")
 
             # Wait for SSE to connect
             await asyncio.sleep(1)
@@ -52,7 +52,7 @@ async def test_ui_chat_message():
             await browser.close()
     finally:
         process.terminate()
-        process.wait()
+        _ = process.wait()
 
 
 @pytest.mark.asyncio
@@ -75,12 +75,12 @@ async def test_ui_editor_fallback():
             page = await browser.new_page()
 
             # 1. Log in
-            await page.goto("http://127.0.0.1:3007/manage")
+            _ = await page.goto("http://127.0.0.1:3007/manage")
             await page.fill('input[name="password"]', "test_secure_password")
             await page.click('button[type="submit"]')
 
             # Wait for dashboard to load
-            await page.wait_for_selector('h2:has-text("Settings")', timeout=5000)
+            _ = await page.wait_for_selector('h2:has-text("Settings")', timeout=5000)
 
             # 2. Inject raw markdown/text into the context via API to simulate Mistral output
             # We use the page.request context which shares cookies
@@ -93,7 +93,7 @@ async def test_ui_editor_fallback():
             assert response.ok
 
             # 3. Reload the page to the context tab and wait for Alpine/EditorJS to initialize
-            await page.goto("http://127.0.0.1:3007/manage/context")
+            _ = await page.goto("http://127.0.0.1:3007/manage/context")
             await asyncio.sleep(1)  # Give EditorJS a moment to mount
 
             # 4. Verify EditorJS rendered the fallback text
@@ -109,7 +109,7 @@ async def test_ui_editor_fallback():
             await browser.close()
     finally:
         process.terminate()
-        process.wait()
+        _ = process.wait()
 
 
 @pytest.mark.asyncio
@@ -125,7 +125,7 @@ async def test_ui_editor_loads_all_block_tools():
         ["uv", "run", "uvicorn", "app.main:app", "--port", "3008"], env=env
     )
 
-    saved = {
+    saved: dict[str, object] = {
         "time": 1,
         "version": "2.26.5",
         "blocks": [
@@ -149,10 +149,10 @@ async def test_ui_editor_loads_all_block_tools():
             errors: list[str] = []
             page.on("pageerror", lambda exc: errors.append(str(exc)))
 
-            await page.goto("http://127.0.0.1:3008/manage")
+            _ = await page.goto("http://127.0.0.1:3008/manage")
             await page.fill('input[name="password"]', "test_secure_password")
             await page.click('button[type="submit"]')
-            await page.wait_for_selector('h2:has-text("Settings")', timeout=5000)
+            _ = await page.wait_for_selector('h2:has-text("Settings")', timeout=5000)
 
             response = await page.request.post(
                 "http://127.0.0.1:3008/manage/update_raw",
@@ -160,7 +160,7 @@ async def test_ui_editor_loads_all_block_tools():
             )
             assert response.ok
 
-            await page.goto("http://127.0.0.1:3008/manage/context")
+            _ = await page.goto("http://127.0.0.1:3008/manage/context")
             await page.locator(".ce-header").first.wait_for(
                 state="visible", timeout=5000
             )
@@ -177,7 +177,7 @@ async def test_ui_editor_loads_all_block_tools():
             await browser.close()
     finally:
         process.terminate()
-        process.wait()
+        _ = process.wait()
 
 
 def _solid_png(width: int, height: int) -> bytes:
@@ -218,12 +218,12 @@ async def test_ui_avatar_crop_and_upload():
             errors: list[str] = []
             page.on("pageerror", lambda exc: errors.append(str(exc)))
 
-            await page.goto("http://127.0.0.1:3009/manage")
+            _ = await page.goto("http://127.0.0.1:3009/manage")
             await page.fill('input[name="password"]', "test_secure_password")
             await page.click('button[type="submit"]')
-            await page.wait_for_selector('h2:has-text("Settings")', timeout=5000)
+            _ = await page.wait_for_selector('h2:has-text("Settings")', timeout=5000)
 
-            await page.goto("http://127.0.0.1:3009/manage/settings")
+            _ = await page.goto("http://127.0.0.1:3009/manage/settings")
             await page.set_input_files(
                 '#avatar-section input[type="file"]',
                 files=[
@@ -283,4 +283,4 @@ async def test_ui_avatar_crop_and_upload():
             await browser.close()
     finally:
         process.terminate()
-        process.wait()
+        _ = process.wait()
