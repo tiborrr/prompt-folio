@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block admin_scripts %}{% endblock %}
+
+{% block title %}{{ public_profile.name }} – {{ public_profile.headline or "Profile" }} · Profile{% endblock %}
+
+{% block header_actions %}
+<nav class="header-actions" aria-label="Pages">
+    <a href="/" class="pill-link">Chat with my assistant</a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<article class="glass-panel profile-panel slide-up scroller" aria-labelledby="profile-heading">
+    <h2 id="profile-heading" class="visually-hidden">Profile of {{ public_profile.name }}</h2>
+    <div class="profile-content">
+        {{ public_profile.body_markdown | markdown | safe }}
+    </div>
+    <footer class="profile-footer">
+        <a href="/" class="primary-btn">Ask my AI assistant</a>
+        {% if public_profile.meeting_url %}
+        <a href="{{ public_profile.meeting_url }}" class="secondary-btn" rel="noopener">Book a meeting</a>
+        {% endif %}
+        {% for url in public_profile.links %}
+        <a href="{{ url }}" class="secondary-btn" rel="me noopener">{{ url | replace("https://", "") | replace("www.", "") }}</a>
+        {% endfor %}
+        <p class="profile-agents">For AI agents: <a href="/profile.md">profile.md</a> · <a href="/llms.txt">llms.txt</a> · MCP server at <code>{{ public_profile.base_url }}/mcp/public</code></p>
+    </footer>
+</article>
+{% endblock %}

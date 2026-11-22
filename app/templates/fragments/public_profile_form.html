@@ -1,0 +1,42 @@
+{% set ps = public_settings %}
+<div id="public-profile-section" style="scroll-margin-top: 30px;">
+    <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--shadow-grey-contrast);">Search engines &amp; AI agents</h3>
+    <p class="subtitle" style="margin-bottom: 15px; font-size: 0.9rem;">How you appear in Google, in link previews and to AI agents. Empty fields use your profile text. Your public profile is at <a href="/profile" style="color: var(--sweet-salmon);">/profile</a>; AI agents read <a href="/llms.txt" style="color: var(--sweet-salmon);">/llms.txt</a> and the MCP server at <code>{{ public_profile.base_url }}/mcp/public</code>.</p>
+
+    <form hx-post="/manage/public_profile" hx-target="#public-profile-save-status" class="styled-form">
+        <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+            <div class="form-group" style="flex: 1 1 220px; min-width: 0; margin-bottom: 20px;">
+                <label for="full_name">Full name</label>
+                <input type="text" name="full_name" id="full_name" value="{{ ps.full_name if ps else '' }}" placeholder="{{ public_profile.name }}" maxlength="120">
+                <p style="font-size: 0.8rem; color: var(--shadow-contrast-50); margin-top: 5px;">The name people search for.</p>
+            </div>
+            <div class="form-group" style="flex: 1 1 220px; min-width: 0; margin-bottom: 20px;">
+                <label for="headline">Headline</label>
+                <input type="text" name="headline" id="headline" value="{{ ps.headline if ps else '' }}" placeholder="{{ public_profile.headline or 'E.g. Solution Architect' }}" maxlength="120">
+                <p style="font-size: 0.8rem; color: var(--shadow-contrast-50); margin-top: 5px;">Job title in search results and the page header.</p>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="seo_description">Description</label>
+            <textarea name="seo_description" id="seo_description" rows="3" maxlength="300" placeholder="{{ meta_description }}">{{ ps.seo_description if ps else '' }}</textarea>
+            <p style="font-size: 0.8rem; color: var(--shadow-contrast-50); margin-top: 5px;">One or two sentences under your name in search results (about 155 characters are shown).</p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="profile_links">Your other profiles</label>
+            <textarea name="profile_links" id="profile_links" rows="3" placeholder="https://www.linkedin.com/in/you&#10;https://github.com/you">{{ ps.profile_links if ps else '' }}</textarea>
+            <p style="font-size: 0.8rem; color: var(--shadow-contrast-50); margin-top: 5px;">One URL per line (LinkedIn, GitHub, ...), so search engines know these are all you. Link back to this site from those profiles too. LinkedIn and GitHub links in your profile text are added automatically.</p>
+        </div>
+
+        <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 0.95rem; cursor: pointer;">
+            <input type="checkbox" name="hide_public_contact" value="true" {% if not ps or ps.hide_public_contact %}checked{% endif %} style="width: auto; margin-top: 4px;">
+            <span>Hide email addresses and phone numbers on the public pages and from AI agents<br><span style="font-size: 0.8rem; color: var(--shadow-contrast-50);">Keeps them away from scrapers. Visitors can still reach you through the chat and the meeting link.</span></span>
+        </label>
+
+        <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 15px; align-items: center;">
+            <div id="public-profile-save-status" style="color: var(--color-success); font-size: 0.95rem; font-weight: 500;"></div>
+            <button type="submit" class="primary-btn">Save</button>
+        </div>
+    </form>
+</div>

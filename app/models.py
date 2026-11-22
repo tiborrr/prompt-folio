@@ -57,6 +57,15 @@ class SiteSettings(SQLModel, table=True):
     avatar: bytes | None = Field(default=None)
     avatar_content_type: str | None = Field(default=None)
 
+    # Public profile: what search engines and AI agents see. Empty values fall
+    # back to what the profile text says (its "# Name" heading, its tagline).
+    full_name: str = Field(default="")
+    headline: str = Field(default="")
+    profile_links: str = Field(default="")  # one URL per line (LinkedIn, GitHub, ...)
+    seo_description: str = Field(default="")
+    # Leave email addresses and phone numbers out of the public pages
+    hide_public_contact: bool = Field(default=True)
+
     # Integrations
     mistral_api_key: str | None = Field(default=None)
     recaptcha_client_side_key: str | None = Field(default=None)

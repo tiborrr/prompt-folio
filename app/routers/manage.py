@@ -47,6 +47,7 @@ from app.schemas import (
     ManageChatContext,
     ManageContext,
     MessageContext,
+    PublicSettings,
     SessionDetail,
     SessionListItemContext,
     SourceDocumentItem,
@@ -207,6 +208,7 @@ async def manage_settings_get(
             recaptcha_server_side_key_locked=bool(settings.recaptcha_server_side_key),
             ntfy_topic=integrations.get("ntfy_topic", ""),
             ntfy_topic_locked=bool(settings.ntfy_topic),
+            public_settings=await context_store.get_public_settings(db),
         ),
     )
 
@@ -379,6 +381,37 @@ async def manage_meeting_url(
         context_store,
         db,
         StatusContext(message="Meeting link updated successfully!"),
+    )
+
+
+@router.post("/manage/public_profile", response_class=HTMLResponse)
+async def manage_public_profile(
+    request: Request,
+    context_store: Annotated[ContextStore, Depends(get_context_store)],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(require_admin)],
+    full_name: Annotated[str, Form()] = "",
+    headline: Annotated[str, Form()] = "",
+    profile_links: Annotated[str, Form()] = "",
+    seo_description: Annotated[str, Form()] = "",
+    hide_public_contact: Annotated[bool, Form()] = False,
+):
+    await context_store.save_public_settings(
+        db,
+        PublicSettings(
+            full_name=full_name,
+            headline=headline,
+            profile_links=profile_links,
+            seo_description=seo_description,
+            hide_public_contact=hide_public_contact,
+        ),
+    )
+    return await render_template(
+        request,
+        "status.html",
+        context_store,
+        db,
+        StatusContext(message="Public profile saved."),
     )
 
 

@@ -420,7 +420,7 @@ def test_default_allowlist_covers_common_clients():
 
 
 def test_profile_wrapped_in_a_markdown_fence_is_unwrapped():
-    from app.mcp_server import profile_markdown
+    from app.public_profile import profile_markdown
 
     wrapped = "```markdown\n# Name\n\n## Skills\n\n- Python\n```\n\n"
     assert profile_markdown(wrapped) == "# Name\n\n## Skills\n\n- Python"

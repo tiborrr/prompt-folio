@@ -27,6 +27,7 @@ from app.schemas import (
     ChatMessageData,
     FunctionCallData,
     ProfileUpdateArgs,
+    PublicSettings,
     RecaptchaVerifyResult,
     ThemeColors,
     ToolCallData,
@@ -539,6 +540,30 @@ class ContextStore:
         s.color_khaki_beige = colors.khaki_beige
         s.color_muted_teal = colors.muted_teal
         s.color_seaweed = colors.seaweed
+        db.add(s)
+        await db.commit()
+
+    async def get_public_settings(self, db: AsyncSession) -> PublicSettings:
+        s = await self._get_settings(db)
+        return PublicSettings(
+            full_name=s.full_name,
+            headline=s.headline,
+            profile_links=s.profile_links,
+            seo_description=s.seo_description,
+            hide_public_contact=s.hide_public_contact,
+        )
+
+    async def save_public_settings(
+        self, db: AsyncSession, public: PublicSettings
+    ) -> None:
+        s = await self._get_settings(db)
+        s.full_name = public.full_name.strip()
+        s.headline = public.headline.strip()
+        s.profile_links = "\n".join(
+            u.strip() for u in public.profile_links.split() if u.strip()
+        )
+        s.seo_description = public.seo_description.strip()
+        s.hide_public_contact = public.hide_public_contact
         db.add(s)
         await db.commit()
 

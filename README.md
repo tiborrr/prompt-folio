@@ -10,6 +10,18 @@ Prompt Folio is a modern, open-source, AI-powered portfolio and context manageme
 - **Integrations**: Built-in support for invisible ReCAPTCHA v3 and external analytics.
 - **Lightweight & Fast**: Built with FastAPI, HTMX, and modern CSS (glassmorphism UI). No heavy frontend frameworks.
 
+## Found by search engines and AI agents
+
+Prompt Folio makes the owner easy to find, for people searching their name and for AI agents looking them up:
+
+- **Search engines**: every public page has a proper `<title>` ("Full Name – Headline"), meta description, canonical URL, Open Graph tags for link previews, and [schema.org](https://schema.org) `ProfilePage` + `Person` structured data with `sameAs` links to the owner's other profiles, so search engines can connect them. `/profile` shows the full profile as a normal web page; `/robots.txt` and `/sitemap.xml` point crawlers to it. The admin pages are `noindex`.
+- **AI agents**: `/llms.txt` ([llmstxt.org](https://llmstxt.org)) says what is where; `/profile.md` (also `/llms-full.txt`) is the profile as clean Markdown. A public, read-only MCP server at `/mcp/public` (no login) offers `get_profile` and `ask_assistant`, which asks the AI assistant a question (rate limited: `PUBLIC_ASK_RATE_LIMIT` per client, `PUBLIC_ASK_DAILY_LIMIT` overall; turn it off with `PUBLIC_ASK_ENABLED=false`, or the whole server with `PUBLIC_MCP_ENABLED=false`). Questions from agents show up under Chats as "AI agent (MCP)".
+- **Privacy**: by default email addresses and phone numbers are left out of everything public (pages, files, MCP). The chat assistant can still share them with visitors.
+
+Set the full name, headline, description and your other profiles (LinkedIn, GitHub, ...) in */manage > Settings > Search engines & AI agents*, or with the `update_owner_details` MCP tool. Empty fields come from the profile text: its `# Name` heading, the line under it and the first paragraph of its summary.
+
+To rank for your name: add the site to [Google Search Console](https://search.google.com/search-console) and [Bing Webmaster Tools](https://www.bing.com/webmasters) (Bing also feeds ChatGPT search and Copilot), submit `/sitemap.xml`, and link to the site from your LinkedIn, GitHub and other profiles.
+
 ## MCP server: let Claude read and update your profile
 
 The app serves a remote [MCP](https://modelcontextprotocol.io) server at `/mcp` (streamable HTTP), so Claude can read your profile and keep it up to date.
