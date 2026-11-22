@@ -112,6 +112,16 @@ class ConsentContext(BaseModel):
     redirect_host: str
 
 
+class PublicSettings(BaseModel):
+    """What search engines and AI agents see; empty fields use the profile text."""
+
+    full_name: str = ""
+    headline: str = ""
+    profile_links: str = ""  # one URL per line
+    seo_description: str = ""
+    hide_public_contact: bool = True
+
+
 class ManageContext(BaseModel):
     is_upload: bool = False
     active_tab: str
@@ -132,6 +142,8 @@ class ManageContext(BaseModel):
 
     ntfy_topic: str | None = None
     ntfy_topic_locked: bool = False
+
+    public_settings: PublicSettings | None = None
 
 
 class ChatSessionContext(BaseModel):

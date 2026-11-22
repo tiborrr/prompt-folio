@@ -9,7 +9,6 @@ Markdown and convert Markdown back, so the /manage editor keeps working.
 import collections.abc
 import contextlib
 import io
-import re
 from typing import cast
 
 from mcp.server.auth.settings import (
@@ -27,10 +26,11 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.config import Settings
 from app.database import get_engine
-from app.editorjs_parser import editorjs_to_markdown
 from app.markdown_editorjs import list_sections, markdown_to_editorjs, replace_section
 from app.mcp_oauth import MCP_SCOPE, DatabaseOAuthProvider
 from app.models import ProfileRevision, SiteSettings, SourceDocument
+from app.public_mcp import PUBLIC_MCP_PATH, create_public_mcp_server
+from app.public_profile import profile_markdown
 
 MAX_REVISIONS = 50
 MAX_DOCUMENT_CHARS = 100_000
@@ -90,20 +90,6 @@ async def _save_context(db: AsyncSession, site: SiteSettings, context: str, note
     await db.commit()
 
 
-_OUTER_FENCE = re.compile(r"^```(?:markdown|md)?[ \t]*\n(.*)\n```[ \t]*$", re.DOTALL)
-
-
-def profile_markdown(context: str) -> str:
-    """The stored profile as Markdown. A profile generated from uploads can be
-    wrapped in one ```markdown fence as a whole; unwrap it so its headings count
-    as sections."""
-    markdown = editorjs_to_markdown(context).strip()
-    match = _OUTER_FENCE.match(markdown)
-    if match and "\n```" not in match.group(1):
-        return match.group(1).strip()
-    return markdown
-
-
 def _document_text(doc: SourceDocument) -> str:
     if doc.filename.lower().endswith(".md"):
         return doc.content.decode("utf-8", errors="replace")
@@ -147,6 +133,10 @@ def create_mcp_server(config: Settings) -> MCPServer:
                 "owner_name": site.owner_name,
                 "owner_pronouns": site.owner_pronouns,
                 "meeting_url": site.meeting_url,
+                "full_name": site.full_name,
+                "headline": site.headline,
+                "profile_links": site.profile_links.split(),
+                "seo_description": site.seo_description,
                 "sections": list_sections(profile),
                 "profile_markdown": profile,
             }
@@ -188,9 +178,23 @@ def create_mcp_server(config: Settings) -> MCPServer:
         owner_name: str | None = None,
         owner_pronouns: str | None = None,
         meeting_url: str | None = None,
+        full_name: str | None = None,
+        headline: str | None = None,
+        profile_links: list[str] | None = None,
+        seo_description: str | None = None,
     ) -> str:
-        """Change the owner's display name, pronouns (e.g. "his", "her",
-        "their") or meeting/booking link. Fields left out stay as they are."""
+        """Change the owner's details. Fields left out stay as they are.
+
+        - owner_name: short display name the assistant uses ("Alex")
+        - owner_pronouns: e.g. "his", "her", "their"
+        - meeting_url: meeting/booking link
+        - full_name: full name for search engines ("Alex Jansen"); empty uses
+          the profile's "# Name" heading
+        - headline: job title shown in search results and the page header
+        - profile_links: the owner's profiles elsewhere (LinkedIn, GitHub, ...),
+          so search engines know they are the same person
+        - seo_description: one or two sentences for search results; empty
+          uses the first paragraph of the profile's summary"""
         async with sessions() as db:
             site = await _site(db)
             changed: list[str] = []
@@ -203,6 +207,20 @@ def create_mcp_server(config: Settings) -> MCPServer:
             if meeting_url is not None:
                 site.meeting_url = meeting_url.strip()
                 changed.append("meeting link")
+            if full_name is not None:
+                site.full_name = full_name.strip()
+                changed.append("full name")
+            if headline is not None:
+                site.headline = headline.strip()
+                changed.append("headline")
+            if profile_links is not None:
+                site.profile_links = "\n".join(
+                    u.strip() for u in profile_links if u.strip()
+                )
+                changed.append("profile links")
+            if seo_description is not None:
+                site.seo_description = seo_description.strip()
+                changed.append("description")
             db.add(site)
             await db.commit()
         return f"Updated: {', '.join(changed)}." if changed else "Nothing to update."
@@ -277,37 +295,48 @@ WELL_KNOWN_PREFIX = "/.well-known/oauth-"
 
 
 class MCPRuntime:
-    """Builds the MCP app and runs its session manager for the app's lifetime."""
+    """Builds the MCP apps and runs their session managers for the app's lifetime:
+    the owner's OAuth-protected server at /mcp and the public one at /mcp/public."""
 
     def __init__(self, config: Settings):
         self.config: Settings = config
         self.app: ASGIApp | None = None
         self.server: MCPServer | None = None
+        self.public_app: ASGIApp | None = None
 
     @contextlib.asynccontextmanager
     async def run(self) -> collections.abc.AsyncGenerator[None]:
-        if not self.config.mcp_enabled:
-            yield
-            return
-        # A session manager runs only once, so every lifespan gets a fresh server
-        server = create_mcp_server(self.config)
-        app = server.streamable_http_app(
-            streamable_http_path="/mcp",
-            stateless_http=True,
-            json_response=True,
-            # Requests come through the reverse proxy; bearer auth guards /mcp
-            host="0.0.0.0",
-        )
-        async with server.session_manager.run():
-            self.server, self.app = server, app
+        # A session manager runs only once, so every lifespan gets fresh servers
+        async with contextlib.AsyncExitStack() as stack:
+            if self.config.mcp_enabled:
+                server = create_mcp_server(self.config)
+                app = server.streamable_http_app(
+                    streamable_http_path="/mcp",
+                    stateless_http=True,
+                    json_response=True,
+                    # Requests come through the reverse proxy; bearer auth guards /mcp
+                    host="0.0.0.0",
+                )
+                await stack.enter_async_context(server.session_manager.run())
+                self.server, self.app = server, app
+            if self.config.public_mcp_enabled:
+                public = create_public_mcp_server(self.config)
+                public_app = public.streamable_http_app(
+                    streamable_http_path=PUBLIC_MCP_PATH,
+                    stateless_http=True,
+                    json_response=True,
+                    host="0.0.0.0",
+                )
+                await stack.enter_async_context(public.session_manager.run())
+                self.public_app = public_app
             try:
                 yield
             finally:
-                self.server, self.app = None, None
+                self.server, self.app, self.public_app = None, None, None
 
 
 class MCPDispatchMiddleware:
-    """Sends MCP and OAuth paths to the MCP app; everything else to FastAPI."""
+    """Sends MCP and OAuth paths to the MCP apps; everything else to FastAPI."""
 
     def __init__(self, app: ASGIApp, runtime: MCPRuntime):
         self.inner: ASGIApp = app
@@ -316,11 +345,20 @@ class MCPDispatchMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http":
             path = cast(str, scope["path"])
+            if path == PUBLIC_MCP_PATH:
+                await self._forward(self.runtime.public_app, scope, receive, send)
+                return
             if path in MCP_PATHS or path.startswith(WELL_KNOWN_PREFIX):
-                if self.runtime.app is None:
-                    response = PlainTextResponse("MCP server is disabled.", 404)
-                    await response(scope, receive, send)
-                    return
-                await self.runtime.app(scope, receive, send)
+                await self._forward(self.runtime.app, scope, receive, send)
                 return
         await self.inner(scope, receive, send)
+
+    @staticmethod
+    async def _forward(
+        app: ASGIApp | None, scope: Scope, receive: Receive, send: Send
+    ) -> None:
+        if app is None:
+            response = PlainTextResponse("MCP server is disabled.", 404)
+            await response(scope, receive, send)
+            return
+        await app(scope, receive, send)

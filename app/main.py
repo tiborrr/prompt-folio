@@ -23,7 +23,7 @@ from app.database import get_engine
 from app.dependencies import get_context_store, get_db_session, get_settings
 from app.mcp_server import MCPDispatchMiddleware, MCPRuntime
 from app.rate_limit import RateLimitExceeded
-from app.routers import chat, manage, oauth
+from app.routers import chat, manage, oauth, public
 from app.schemas import StatusContext
 from app.services import ContextStore
 from app.utils import render_template
@@ -293,3 +293,4 @@ def _error_page_html() -> str:
 app.include_router(chat.router)
 app.include_router(manage.router)
 app.include_router(oauth.router)
+app.include_router(public.router)

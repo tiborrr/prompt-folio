@@ -19,10 +19,16 @@ async def test_chat_sse_flow_real():
     )
 
     try:
-        # Wait for the server to start
-        await asyncio.sleep(2)
-
         async with httpx.AsyncClient(base_url="http://127.0.0.1:31234") as client:
+            # Wait for the server to start (slower when the suite runs in parallel)
+            for _ in range(60):
+                try:
+                    if (await client.get("/health")).status_code == 200:
+                        break
+                except httpx.TransportError:
+                    pass
+                await asyncio.sleep(0.25)
+
             # 1. Connect to / to get a session
             response = await client.get("/")
             assert response.status_code == 200

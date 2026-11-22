@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.public_profile import json_ld, load_public_profile, shorten
 from app.schemas import TakeoverControlsContext
 from app.services import ContextStore
 
@@ -73,6 +74,14 @@ async def render_template(
     template_context["app_version"] = app_version
     template_context["owner_name"] = await context_store.get_owner_name(db)
     template_context["owner_pronouns"] = await context_store.get_owner_pronouns(db)
+
+    # What search engines, link previews and AI agents read about the owner
+    public_profile = await load_public_profile(db, settings)
+    page_url = settings.base_url + request.url.path
+    template_context["public_profile"] = public_profile
+    template_context["page_url"] = page_url
+    template_context["meta_description"] = shorten(public_profile.description)
+    template_context["json_ld"] = json_ld(public_profile, page_url)
 
     integrations = await context_store.get_active_integrations(db, settings)
     template_context["recaptcha_client_side_key"] = integrations[

@@ -31,6 +31,13 @@ class Settings(BaseSettings):
         "*.grok.com,*.x.ai,*.mistral.ai,*.perplexity.ai,vscode.dev,*.github.com"
     )
 
+    # Public, read-only MCP server at /mcp/public for anyone's AI agent: reads
+    # the public profile and (if enabled) asks the AI assistant, rate limited.
+    public_mcp_enabled: bool = True
+    public_ask_enabled: bool = True
+    public_ask_rate_limit: str = "10/hour"  # per client
+    public_ask_daily_limit: str = "200/day"  # all clients together
+
     # Default UI configuration for new deployments
     default_owner_name: str = "Tibor"
     default_owner_pronouns: str = "their"
