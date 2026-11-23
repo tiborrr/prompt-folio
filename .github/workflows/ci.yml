@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # Weekly rebuild so the image picks up patched base-image and OS packages
+  # even when the code doesn't change (Monday 04:00 UTC).
+  schedule:
+    - cron: '0 4 * * 1'
 
 # One run per ref at a time. Superseded PR runs are cancelled; main runs queue,
 # so two quick merges can never push and roll out images out of order.
@@ -74,6 +78,9 @@ jobs:
           load: true
           tags: ${{ env.IMAGE_NAME }}:local
           cache-from: type=gha
+          # Scheduled runs rebuild from scratch with the newest base image.
+          pull: true
+          no-cache: ${{ github.event_name == 'schedule' }}
           cache-to: type=gha,mode=max
 
       - name: Smoke test the image
@@ -164,6 +171,9 @@ jobs:
             ${{ secrets.REGISTRY_HOST }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ secrets.REGISTRY_HOST }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha
+          # Scheduled runs rebuild from scratch with the newest base image.
+          pull: true
+          no-cache: ${{ github.event_name == 'schedule' }}
 
   # The deploy key is pinned to scripts/deploy_remote.sh on the server (SSH
   # forced command): it can only roll out a commit SHA, never open a shell.
