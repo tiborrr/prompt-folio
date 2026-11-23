@@ -115,6 +115,17 @@ jobs:
     environment: production
     timeout-minutes: 20
     steps:
+      # Production (registry + deploy target) lives on Omarchy, reachable only
+      # over Tailscale. Joins as an ephemeral tag:ci node; the tailnet policy
+      # lets tag:ci reach omarchy on tcp/22 and tcp/443 only.
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          ping: omarchy.tail0118fa.ts.net
+
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -151,6 +162,17 @@ jobs:
     environment: production
     timeout-minutes: 15
     steps:
+      # Production (registry + deploy target) lives on Omarchy, reachable only
+      # over Tailscale. Joins as an ephemeral tag:ci node; the tailnet policy
+      # lets tag:ci reach omarchy on tcp/22 and tcp/443 only.
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          ping: omarchy.tail0118fa.ts.net
+
       - name: Configure SSH key and pinned host key
         env:
           SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
