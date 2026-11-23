@@ -129,8 +129,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Make the registry's tailnet name resolvable for BuildKit
+        # BuildKit runs in its own container and uses the runner's upstream DNS,
+        # which does not know Tailscale MagicDNS names: pin the name in /etc/hosts
+        # and give BuildKit the host network (which copies /etc/hosts).
+        env:
+          REGISTRY_HOST: ${{ secrets.REGISTRY_HOST }}
+        run: |
+          ip="$(getent ahostsv4 "$REGISTRY_HOST" | awk 'NR==1 {print $1}')"
+          test -n "$ip"
+          echo "$ip $REGISTRY_HOST" | sudo tee -a /etc/hosts
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          driver-opts: network=host
 
       - name: Log in to private registry
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
